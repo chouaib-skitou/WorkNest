@@ -44,7 +44,7 @@ WorkNest is built using a microservices architecture to ensure:
 ### **Backend**
 - ⚡ **Framework**: Express.js (Node.js)
 - 🔐 **Authentication**: JSON Web Tokens (JWT) & OAuth 2.0 (Google, GitHub)
-- 🗄️ **Database**: PostgreSQL (for relational data)
+- 🗄️ **Database**: MySQL (for relational data)
 - 🚀 **Caching**: Redis
 
 ### **Infrastructure & DevOps**
