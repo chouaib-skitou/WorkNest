@@ -1,0 +1,50 @@
+name: CI Identity Service Workflow
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  IdentityService_dir: ./WorkNest/services/identity-service
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          npm install
+
+      - name: Run ESLint
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          npm run lint
+
+    #   - name: Run Prettier
+    #     run: |
+    #       cd ${{ env.IdentityService_dir }}
+    #       npm run format
+
+      # - name: Run tests
+      #   run: |
+      #     cd ${{ env.IdentityService_dir }}
+      #     npm test -- --passWithNoTests
+
+      - name: Build the project
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          npm run build
