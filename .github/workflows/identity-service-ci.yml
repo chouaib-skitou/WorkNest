@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - '*'
+      - main
+      - develop
+      - feature/*
   pull_request:
     branches:
       - main
+      - develop
 
 env:
   IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
