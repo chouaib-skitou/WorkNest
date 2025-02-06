@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  IdentityService_dir: ./WorkNest/services/identity-service
+  IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
 
 jobs:
   build:
