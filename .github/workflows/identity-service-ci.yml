@@ -68,8 +68,6 @@ on:
 
 env:
   IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
-  DATABASE_URL: postgresql://root:root@localhost:5432/identity_service_test?schema=public
-  NODE_ENV: test
 
 jobs:
   build:
@@ -79,12 +77,12 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
           POSTGRES_DB: identity_service_test
         ports:
           - 5432:5432
-        options: --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: --health-cmd="pg_isready -U root" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
       - name: Checkout repository
@@ -100,14 +98,50 @@ jobs:
           cd ${{ env.IdentityService_dir }}
           npm install
 
+      - name: Generate JWT Secrets and save to `/config/jwt`
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          mkdir -p config/jwt
+          openssl rand -hex 64 > config/jwt/JWT_SECRET
+          openssl rand -hex 64 > config/jwt/JWT_REFRESH_SECRET
+
+      - name: Create `.env.test` file dynamically
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          echo "Creating .env.test file..."
+          cat <<EOF > .env.test
+          PORT=5000
+          DATABASE_URL="postgresql://root:root@localhost:5432/identity_service_test?schema=public"
+
+          # Load JWT Secrets from /config/jwt
+          JWT_SECRET=$(cat config/jwt/JWT_SECRET)
+          JWT_EXPIRES_IN=1h
+          JWT_REFRESH_SECRET=$(cat config/jwt/JWT_REFRESH_SECRET)
+          JWT_REFRESH_EXPIRES_IN=7d
+
+          # Email Configuration (MailHog)
+          SMTP_HOST=localhost
+          SMTP_PORT=1025
+          SMTP_USER=
+          SMTP_PASS=
+          EMAIL_FROM="no-reply@worknest.com"
+
+          # Frontend URL (For email verification links)
+          FRONTEND_URL=http://localhost:3000
+          BASE_URL=http://localhost:5000
+          EOF
+          echo ".env.test file created successfully."
+
       - name: Wait for PostgreSQL to be ready
         run: |
-          until pg_isready -h localhost -p 5432 -U postgres; do
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 -U root && echo "Database is ready" && exit 0
             echo "Waiting for database..."
-            sleep 2
+            sleep 5
           done
+          echo "Database failed to start" && exit 1
 
-      - name: Set up Prisma (Migrate + Generate)
+      - name: Set up Prisma (Generate + Migrate)
         run: |
           cd ${{ env.IdentityService_dir }}
           npx prisma generate
