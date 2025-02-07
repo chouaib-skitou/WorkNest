@@ -82,17 +82,16 @@ jobs:
           npx prisma migrate dev --name init --preview-feature
           echo "✅ Prisma setup completed"
 
+      - name: Run ESLint
+        run: |
+          cd services/identity-service
+          npm run lint
+
       - name: Run Tests with Code Coverage
         run: |
           cd services/identity-service
           export $(grep -v '^#' .env | xargs)
           npm run test:coverage
-
-      - name: Run Tests
-        run: |
-          cd services/identity-service
-          export $(grep -v '^#' .env | xargs)
-          npm run test
 
       - name: Build the project
         run: |
