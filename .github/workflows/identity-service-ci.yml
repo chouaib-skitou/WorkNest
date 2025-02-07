@@ -12,12 +12,26 @@ on:
       - main
       - develop
 
-env:
-  IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
-
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: identity_service_test
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready -U root" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      mailhog:
+        image: mailhog/mailhog
+        ports:
+          - 1025:1025 # SMTP server for sending emails
+          - 8025:8025 # Web UI for viewing emails
 
     steps:
       - name: Checkout repository
@@ -30,25 +44,56 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd ${{ env.IdentityService_dir }}
+          cd services/identity-service
           npm install
+
+      - name: Generate JWT Secrets
+        run: |
+          cd services/identity-service
+          npm run generate:jwt
+
+      - name: Ensure `.env` is configured correctly
+        run: |
+          cd services/identity-service
+          cp .env.test .env  # Prisma requires .env, not .env.test
+          sed -i "s|REPLACE_WITH_JWT_SECRET|$(cat config/jwt/JWT_SECRET)|g" .env
+          sed -i "s|REPLACE_WITH_JWT_REFRESH_SECRET|$(cat config/jwt/JWT_REFRESH_SECRET)|g" .env
+          echo "✅ JWT secrets replaced in .env"
+
+      - name: Wait for PostgreSQL and MailHog to be ready
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 -U root && echo "✅ PostgreSQL is ready" && break
+            echo "⏳ Waiting for PostgreSQL..."
+            sleep 5
+          done
+
+          for i in {1..10}; do
+            nc -z localhost 1025 && echo "✅ MailHog is ready" && break
+            echo "⏳ Waiting for MailHog..."
+            sleep 5
+          done
+
+      - name: Set up Prisma (Force Load `.env`)
+        run: |
+          cd services/identity-service
+          export $(grep -v '^#' .env | xargs)
+          npx prisma generate
+          npx prisma migrate dev --name init --preview-feature
+          echo "✅ Prisma setup completed"
 
       - name: Run ESLint
         run: |
-          cd ${{ env.IdentityService_dir }}
+          cd services/identity-service
           npm run lint
 
-    #   - name: Run Prettier
-    #     run: |
-    #       cd ${{ env.IdentityService_dir }}
-    #       npm run format
-
-      # - name: Run tests
-      #   run: |
-      #     cd ${{ env.IdentityService_dir }}
-      #     npm test -- --passWithNoTests
+      - name: Run Tests
+        run: |
+          cd services/identity-service
+          export $(grep -v '^#' .env | xargs)
+          npm run test
 
       - name: Build the project
         run: |
-          cd ${{ env.IdentityService_dir }}
+          cd services/identity-service
           npm run build

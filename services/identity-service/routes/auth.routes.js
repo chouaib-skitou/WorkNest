@@ -1,5 +1,11 @@
 import express from "express";
-import { register, login, verifyEmail } from "../controllers/auth.controller.js";
+import {
+  register,
+  login,
+  verifyEmail,
+  resetPasswordRequest,
+  resetPassword,
+} from "../controllers/auth.controller.js";
 
 const router = express.Router();
 
@@ -105,5 +111,68 @@ router.post("/login", login);
  *         description: Invalid or expired token.
  */
 router.get("/verify-email/:userId/:token", verifyEmail);
+
+/**
+ * @swagger
+ * /auth/reset-password-request:
+ *   post:
+ *     summary: Request password reset
+ *     description: Sends a password reset email if the user exists.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Password reset email sent if user exists.
+ */
+router.post("/reset-password-request", resetPasswordRequest);
+
+/**
+ * @swagger
+ * /auth/reset-password/{token}:
+ *   post:
+ *     summary: Reset password
+ *     description: Resets a user's password using a valid reset token.
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Password reset token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newPassword
+ *               - confirmNewPassword
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *               confirmNewPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password successfully reset.
+ *       400:
+ *         description: Invalid or expired token, or passwords do not match.
+ */
+router.post("/reset-password/:token", resetPassword);
 
 export default router;
