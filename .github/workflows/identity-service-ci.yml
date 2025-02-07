@@ -46,6 +46,11 @@ jobs:
           cd services/identity-service
           npm run generate:jwt
 
+      - name: Load Environment Variables
+        run: |
+          cd services/identity-service
+          cp .env.test .env  # Ensure Prisma loads DATABASE_URL
+
       - name: Wait for PostgreSQL to be ready
         run: |
           for i in {1..10}; do
@@ -58,6 +63,7 @@ jobs:
       - name: Set up Prisma (Generate + Migrate)
         run: |
           cd services/identity-service
+          export $(grep -v '^#' .env | xargs) # Load env variables
           npx prisma generate
           npx prisma migrate dev --name init --preview-feature
 
