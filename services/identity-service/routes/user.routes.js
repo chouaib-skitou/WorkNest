@@ -26,7 +26,7 @@ const router = express.Router();
  *       403:
  *         description: Unauthorized, missing or invalid token.
  */
-router.get("/", authMiddleware, getUsers);
+router.get("/", getUsers);
 
 /**
  * @swagger
@@ -66,7 +66,7 @@ router.get("/", authMiddleware, getUsers);
  *       404:
  *         description: User not found.
  */
-router.put("/:userId", authMiddleware, updateUser);
+router.put("/:id", authMiddleware, updateUser);
 
 /**
  * @swagger
@@ -92,6 +92,6 @@ router.put("/:userId", authMiddleware, updateUser);
  *       404:
  *         description: User not found.
  */
-router.delete("/:userId", authMiddleware, deleteUser);
+router.delete("/:id", authMiddleware, deleteUser);
 
 export default router;

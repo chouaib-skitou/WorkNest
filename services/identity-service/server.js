@@ -20,7 +20,7 @@ app.use(helmet());
 
 // Routes
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
+app.use("/api/users", userRoutes);
 
 // Initialize Swagger documentation
 swaggerDocs(app);

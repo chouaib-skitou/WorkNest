@@ -23,6 +23,28 @@ model User {
   isVerified Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  // Relations
+  verificationToken VerificationToken?
+  passwordResetToken PasswordResetToken?
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  token     String   @unique
+  expiresAt DateTime
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  token     String   @unique
+  expiresAt DateTime
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum Role {
@@ -30,3 +52,4 @@ enum Role {
   ROLE_MANAGER
   ROLE_ADMIN
 }
+
