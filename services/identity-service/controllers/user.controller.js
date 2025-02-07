@@ -6,13 +6,13 @@ export const getUsers = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
-  const { userId } = req.params;
-  const updatedUser = await prisma.user.update({ where: { id: userId }, data: req.body });
+  const { id } = req.params;
+  const updatedUser = await prisma.user.update({ where: { id: id }, data: req.body });
   res.json(updatedUser);
 };
 
 export const deleteUser = async (req, res) => {
-  const { userId } = req.params;
-  await prisma.user.delete({ where: { id: userId } });
+  const { id } = req.params;
+  await prisma.user.delete({ where: { id: id } });
   res.json({ message: "User deleted" });
 };
