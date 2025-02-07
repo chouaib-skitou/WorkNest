@@ -20,12 +20,17 @@ app.use(helmet());
 
 // Routes
 app.use("/auth", authRoutes);
-app.use("/users", userRoutes);
+app.use("/api/users", userRoutes);
 
 // Initialize Swagger documentation
 swaggerDocs(app);
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+
+export default app;

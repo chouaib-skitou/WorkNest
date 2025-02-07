@@ -13,7 +13,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /users:
+ * /api/users:
  *   get:
  *     summary: Get all users
  *     description: Retrieves a list of all users.
@@ -30,7 +30,7 @@ router.get("/", authMiddleware, getUsers);
 
 /**
  * @swagger
- * /users/{userId}:
+ * /api/users/{id}:
  *   put:
  *     summary: Update user information
  *     description: Updates a user's details.
@@ -66,11 +66,11 @@ router.get("/", authMiddleware, getUsers);
  *       404:
  *         description: User not found.
  */
-router.put("/:userId", authMiddleware, updateUser);
+router.put("/:id", authMiddleware, updateUser);
 
 /**
  * @swagger
- * /users/{userId}:
+ * /api/users/{id}:
  *   delete:
  *     summary: Delete a user
  *     description: Deletes a user by ID.
@@ -92,6 +92,6 @@ router.put("/:userId", authMiddleware, updateUser);
  *       404:
  *         description: User not found.
  */
-router.delete("/:userId", authMiddleware, deleteUser);
+router.delete("/:id", authMiddleware, deleteUser);
 
 export default router;
