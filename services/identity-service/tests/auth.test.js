@@ -64,4 +64,18 @@ describe("🛂 Auth Routes", () => {
     expect(res.statusCode).toBe(401);
     expect(res.body).toHaveProperty("error", "Invalid credentials");
   });
+
+  test("🚀 Request password reset", async () => {
+    const res = await request(app).post("/auth/reset-password-request").send({ email: testUser.email });
+  
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty("message", "Password reset link sent to your email.");
+  });
+  
+  test("🚫 Prevent password reset for non-existent email", async () => {
+    const res = await request(app).post("/auth/reset-password-request").send({ email: "nonexistent@example.com" });
+  
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toHaveProperty("error", "User with this email does not exist.");
+  });
 });
