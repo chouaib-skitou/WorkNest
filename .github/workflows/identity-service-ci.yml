@@ -46,19 +46,13 @@ jobs:
           cd services/identity-service
           npm run generate:jwt
 
-      - name: Ensure `.env.test` is configured correctly
+      - name: Ensure `.env` is configured correctly
         run: |
           cd services/identity-service
-          cp .env.test .env  # Prisma expects .env, not .env.test
+          cp .env.test .env  # Prisma requires .env, not .env.test
           sed -i "s|REPLACE_WITH_JWT_SECRET|$(cat config/jwt/JWT_SECRET)|g" .env
           sed -i "s|REPLACE_WITH_JWT_REFRESH_SECRET|$(cat config/jwt/JWT_REFRESH_SECRET)|g" .env
           echo "✅ JWT secrets replaced in .env"
-
-      - name: Load Environment Variables
-        run: |
-          cd services/identity-service
-          export $(grep -v '^#' .env | xargs) # Ensures Prisma reads DATABASE_URL
-          echo "✅ Environment variables loaded"
 
       - name: Wait for PostgreSQL to be ready
         run: |
@@ -69,12 +63,13 @@ jobs:
           done
           echo "Database failed to start" && exit 1
 
-      - name: Set up Prisma (Generate + Migrate)
+      - name: Set up Prisma (Force Load `.env`)
         run: |
           cd services/identity-service
-          export $(grep -v '^#' .env | xargs) # Ensures Prisma loads the database URL
+          export $(grep -v '^#' .env | xargs) # Ensures Prisma loads DATABASE_URL
           npx prisma generate
           npx prisma migrate dev --name init --preview-feature
+          echo "✅ Prisma setup completed"
 
       - name: Run ESLint
         run: |
@@ -84,6 +79,7 @@ jobs:
       - name: Run Tests
         run: |
           cd services/identity-service
+          export $(grep -v '^#' .env | xargs) # Ensure tests use the correct env
           npm run test
 
       - name: Build the project
