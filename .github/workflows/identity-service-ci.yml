@@ -1,3 +1,57 @@
+# name: CI Identity Service Workflow
+
+# on:
+#   push:
+#     branches:
+#       - '*'
+#       - main
+#       - develop
+#       - feature/*
+#   pull_request:
+#     branches:
+#       - main
+#       - develop
+
+# env:
+#   IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '18'
+
+#       - name: Install dependencies
+#         run: |
+#           cd ${{ env.IdentityService_dir }}
+#           npm install
+
+#       - name: Run ESLint
+#         run: |
+#           cd ${{ env.IdentityService_dir }}
+#           npm run lint
+
+#     #   - name: Run Prettier
+#     #     run: |
+#     #       cd ${{ env.IdentityService_dir }}
+#     #       npm run format
+
+#       # - name: Run tests
+#       #   run: |
+#       #     cd ${{ env.IdentityService_dir }}
+#       #     npm test -- --passWithNoTests
+
+#       - name: Build the project
+#         run: |
+#           cd ${{ env.IdentityService_dir }}
+#           npm run build
 name: CI Identity Service Workflow
 
 on:
@@ -14,10 +68,23 @@ on:
 
 env:
   IdentityService_dir: /home/runner/work/WorkNest/WorkNest/services/identity-service
+  DATABASE_URL: postgresql://root:root@localhost:5432/identity_service_test?schema=public
+  NODE_ENV: test
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: identity_service_test
+        ports:
+          - 5432:5432
+        options: --health-cmd="pg_isready -U postgres" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
       - name: Checkout repository
@@ -33,20 +100,28 @@ jobs:
           cd ${{ env.IdentityService_dir }}
           npm install
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for database..."
+            sleep 2
+          done
+
+      - name: Set up Prisma (Migrate + Generate)
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          npx prisma generate
+          npx prisma migrate dev --name init --preview-feature
+
       - name: Run ESLint
         run: |
           cd ${{ env.IdentityService_dir }}
           npm run lint
 
-    #   - name: Run Prettier
-    #     run: |
-    #       cd ${{ env.IdentityService_dir }}
-    #       npm run format
-
-      # - name: Run tests
-      #   run: |
-      #     cd ${{ env.IdentityService_dir }}
-      #     npm test -- --passWithNoTests
+      - name: Run Tests
+        run: |
+          cd ${{ env.IdentityService_dir }}
+          npm run test
 
       - name: Build the project
         run: |
