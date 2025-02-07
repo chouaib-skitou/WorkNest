@@ -4,58 +4,104 @@ import { generateToken, generateRefreshToken } from "../config/jwt.js";
 import { sendMail } from "../config/mail.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import { loginValidationRules, registerValidationRules } from "../dtos/auth.dto.js";
+import { validateRequest } from "../middleware/validate.middleware.js";
 
 dotenv.config();
 
 // 📝 User Registration
-export const register = async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+export const register = [
+  registerValidationRules,  // Apply validation rules
+  validateRequest,          // Middleware to check validation results
+  async (req, res) => {
+    try {
+      const { firstName, lastName, email, password } = req.body;
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) return res.status(400).json({ error: "Email already in use" });
+      // Check if the email already exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ error: "Email already in use" });
+      }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: { firstName, lastName, email, password: hashedPassword },
-  });
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Generate email verification token
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-  await prisma.verificationToken.create({
-    data: { userId: user.id, token: verificationToken, expiresAt: new Date(Date.now() + 3600000) }, // 1 hour expiry
-  });
+      // Create user
+      const user = await prisma.user.create({
+        data: { firstName, lastName, email, password: hashedPassword },
+      });
 
-  // Send verification email
-  await sendMail(
-    user.email,
-    "Verify Your Email",
-    `Click here to verify your email: ${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}`,
-    `<a href="${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`
-  );
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+      await prisma.verificationToken.create({
+        data: {
+          userId: user.id,
+          token: verificationToken,
+          expiresAt: new Date(Date.now() + 3600000), // 1 hour expiry
+        },
+      });
 
-  res.status(201).json({ message: "User registered. Please verify your email." });
-};
+      // Send email verification
+      await sendMail(
+        user.email,
+        "Verify Your Email",
+        `Click here to verify your email: ${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}`,
+        `<a href="${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`
+      );
+
+      // Send response with only needed user info
+      res.status(201).json({
+        message: "User registered successfully. Please verify your email.",
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt,
+        }
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+];
 
 // 📝 User Login
-export const login = async (req, res) => {
-  const { email, password } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
+export const login = [
+  loginValidationRules, // Apply validation rules
+  validateRequest,      // Middleware to check validation results
+  async (req, res) => {
+    try {
+      const { email, password } = req.body;
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
-    return res.status(401).json({ error: "Invalid credentials" });
+      // Find user by email
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Ensure user is verified
+      if (!user.isVerified) {
+        return res.status(403).json({ error: "Please verify your email before logging in." });
+      }
+
+      // Generate tokens
+      const accessToken = generateToken(user);
+      const refreshToken = generateRefreshToken(user);
+
+      res.json({
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-
-  if (!user.isVerified) {
-    return res.status(403).json({
-      error: "Please verify your email before logging in.",
-    });
-  }
-
-  const accessToken = generateToken(user);
-  const refreshToken = generateRefreshToken(user);
-  
-  res.json({ accessToken, refreshToken, expiresIn: process.env.JWT_EXPIRES_IN || "1h" });
-};
+];
 
 // 📝 Verify Email
 export const verifyEmail = async (req, res) => {
