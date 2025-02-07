@@ -46,19 +46,18 @@ jobs:
           cd services/identity-service
           npm run generate:jwt
 
-      - name: Replace JWT Placeholders in `.env.test`
+      - name: Ensure `.env.test` is configured correctly
         run: |
           cd services/identity-service
-          sed -i "s|REPLACE_WITH_JWT_SECRET|$(cat config/jwt/JWT_SECRET)|g" .env.test
-          sed -i "s|REPLACE_WITH_JWT_REFRESH_SECRET|$(cat config/jwt/JWT_REFRESH_SECRET)|g" .env.test
-          echo "✅ JWT secrets replaced in .env.test"
+          cp .env.test .env  # Prisma expects .env, not .env.test
+          sed -i "s|REPLACE_WITH_JWT_SECRET|$(cat config/jwt/JWT_SECRET)|g" .env
+          sed -i "s|REPLACE_WITH_JWT_REFRESH_SECRET|$(cat config/jwt/JWT_REFRESH_SECRET)|g" .env
+          echo "✅ JWT secrets replaced in .env"
 
       - name: Load Environment Variables
         run: |
           cd services/identity-service
-          set -o allexport
-          source .env.test
-          set +o allexport
+          export $(grep -v '^#' .env | xargs) # Ensures Prisma reads DATABASE_URL
           echo "✅ Environment variables loaded"
 
       - name: Wait for PostgreSQL to be ready
@@ -73,6 +72,7 @@ jobs:
       - name: Set up Prisma (Generate + Migrate)
         run: |
           cd services/identity-service
+          export $(grep -v '^#' .env | xargs) # Ensures Prisma loads the database URL
           npx prisma generate
           npx prisma migrate dev --name init --preview-feature
 
