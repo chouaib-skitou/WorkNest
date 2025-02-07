@@ -26,7 +26,7 @@ const router = express.Router();
  *       403:
  *         description: Unauthorized, missing or invalid token.
  */
-router.get("/", getUsers);
+router.get("/", authMiddleware, getUsers);
 
 /**
  * @swagger
