@@ -15,7 +15,8 @@
     "build": "npx prisma generate && npm run transpile",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "transpile": "babel . --out-dir dist --ignore node_modules"
+    "transpile": "babel . --out-dir dist --ignore node_modules",
+    "generate:jwt": "mkdir config\\jwt 2>nul & openssl rand -hex 64 > config\\jwt\\JWT_SECRET & openssl rand -hex 64 > config\\jwt\\JWT_REFRESH_SECRET && echo ✅ JWT keys generated in /config/jwt/"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
