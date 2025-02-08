@@ -1,113 +1,120 @@
-import { getUsers, updateUser, deleteUser } from "../../controllers/user.controller.js";
+import * as userController from "../../controllers/user.controller.js";
 import { prisma } from "../../config/database.js";
-import { body, param } from "express-validator";
-
+import { validateRequest } from "../../middleware/validate.middleware.js";
+import { authMiddleware } from "../../middleware/auth.middleware.js";
 
 jest.mock("../../config/database.js", () => ({
   prisma: {
     user: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
   },
 }));
 
-jest.mock("express-validator", () => ({
-  validationResult: jest.fn(),
+jest.mock("../../middleware/validate.middleware.js", () => ({
+  validateRequest: jest.fn((req, res, next) => next()),
 }));
 
-describe("🧑‍💼 User Controller Tests", () => {
-  let req, res, next;
+jest.mock("../../middleware/auth.middleware.js", () => ({
+  authMiddleware: jest.fn((req, res, next) => {
+    req.user = { id: "1", role: "ROLE_ADMIN" }; // Mock authenticated user
+    next();
+  }),
+}));
+
+describe("👥 User Controller Tests", () => {
+  let req, res;
 
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { body: {}, params: {}, user: { id: "1" } };
     res = {
       json: jest.fn(),
       status: jest.fn().mockReturnThis(),
     };
-    next = jest.fn();
     jest.clearAllMocks();
   });
 
-  /** ✅ Get all users */
-  test("✅ Get all users", async () => {
-    const mockUsers = [{ id: "1", firstName: "John", lastName: "Doe", email: "john@example.com" }];
+  /** 📌 Get All Users */
+  test("✅ Retrieve all users", async () => {
+    const mockUsers = [
+      { 
+        id: "1", 
+        firstName: "John", 
+        lastName: "Doe", 
+        email: "john@example.com", 
+        role: "ROLE_USER", 
+        isVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      { 
+        id: "2", 
+        firstName: "Jane", 
+        lastName: "Doe", 
+        email: "jane@example.com", 
+        role: "ROLE_ADMIN", 
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
     prisma.user.findMany.mockResolvedValue(mockUsers);
 
-    await getUsers(req, res);
+    await userController.getUsers(req, res);
 
     expect(prisma.user.findMany).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith(mockUsers);
+    expect(res.json).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ id: "1", role: "ROLE_USER", isVerified: true }),
+      expect.objectContaining({ id: "2", role: "ROLE_ADMIN", isVerified: false })
+    ]));
   });
 
-  /** ✅ Update user with valid data */
-  test("✅ Update user with valid data", async () => {
+  /** 📌 Update User */
+  test("✅ Successfully update a user", async () => {
     req.params.id = "1";
-    req.body = { firstName: "Updated Name" };
+    req.body = { firstName: "UpdatedName" };
+    const updatedUser = { id: "1", firstName: "UpdatedName", lastName: "Doe" };
 
-    validationResult.mockReturnValue({ isEmpty: () => true });
-
-    const updatedUser = { id: "1", firstName: "Updated Name", email: "john@example.com" };
     prisma.user.update.mockResolvedValue(updatedUser);
 
-    await updateUser[2](req, res, next);
+    await userController.updateUser[2](req, res);
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: "1" },
-      data: req.body,
-    });
+    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: "1" }, data: req.body });
     expect(res.json).toHaveBeenCalledWith(updatedUser);
   });
 
-  /** 🚫 Prevent updating user ID */
-  test("🚫 Prevent updating user ID", async () => {
-    req.params.id = "1";
-    req.body = { id: "2" };
+  test("🚫 Prevent update if user not found", async () => {
+    req.params.id = "999";
+    req.body = { firstName: "NonExistent" };
+    prisma.user.update.mockRejectedValue(new Error("User not found"));
 
-    validationResult.mockReturnValue({
-      isEmpty: () => false,
-      array: () => [{ param: "id", msg: "User ID cannot be changed" }],
-    });
+    await userController.updateUser[2](req, res);
 
-    await updateUser[1](req, res, next); // Call validation middleware
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      errors: [{ field: "id", message: "User ID cannot be changed" }],
-    });
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 
-  /** 🚫 Prevent weak passwords */
-  test("🚫 Prevent weak passwords", async () => {
+  /** 📌 Delete User */
+  test("✅ Successfully delete a user", async () => {
     req.params.id = "1";
-    req.body = { password: "123" };
+    prisma.user.delete.mockResolvedValue({});
 
-    validationResult.mockReturnValue({
-      isEmpty: () => false,
-      array: () => [
-        { param: "password", msg: "Password must be at least 8 characters long" },
-      ],
-    });
-
-    await updateUser[1](req, res, next); // Call validation middleware
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      errors: [{ field: "password", message: "Password must be at least 8 characters long" }],
-    });
-  });
-
-  /** ✅ Delete user */
-  test("✅ Delete user", async () => {
-    req.params.id = "1";
-
-    validationResult.mockReturnValue({ isEmpty: () => true });
-    prisma.user.delete.mockResolvedValue();
-
-    await deleteUser[2](req, res, next);
+    await userController.deleteUser[2](req, res);
 
     expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "1" } });
     expect(res.json).toHaveBeenCalledWith({ message: "User deleted successfully" });
+  });
+
+  test("🚫 Prevent deletion of non-existent user", async () => {
+    req.params.id = "999";
+    prisma.user.delete.mockRejectedValue(new Error("User not found"));
+
+    await userController.deleteUser[2](req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 });

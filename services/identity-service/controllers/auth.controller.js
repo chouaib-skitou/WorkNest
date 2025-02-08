@@ -52,14 +52,6 @@ export const register = [
       // Send response with only needed user info
       res.status(201).json({
         message: "User registered successfully. Please verify your email.",
-        user: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          isVerified: user.isVerified,
-          createdAt: user.createdAt,
-        }
       });
     } catch (error) {
       console.error("Registration error:", error);

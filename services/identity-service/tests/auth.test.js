@@ -17,11 +17,13 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+// TODO: correct the concole error
+
 describe("🛂 Auth Routes", () => {
   test("✅ Register a new user", async () => {
     const res = await request(app).post("/auth/register").send(testUser);
     expect(res.statusCode).toBe(201);
-    expect(res.body).toHaveProperty("message", "User registered. Please verify your email.");
+    expect(res.body).toHaveProperty("message", "User registered successfully. Please verify your email.");
   });
 
   test("🚫 Prevent duplicate registration", async () => {
