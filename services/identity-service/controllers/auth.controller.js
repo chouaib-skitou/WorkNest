@@ -4,7 +4,7 @@ import { generateToken, generateRefreshToken } from "../config/jwt.js";
 import { sendMail } from "../config/mail.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { loginValidationRules, registerValidationRules } from "../dtos/auth.dto.js";
+import { loginValidationRules, registerValidationRules } from "../validators/auth.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
 
 dotenv.config();

@@ -1,10 +1,17 @@
 import { prisma } from "../config/database.js";
-import { updateUserValidationRules, deleteUserValidationRules } from "../dtos/user.dto.js";
+import { updateUserValidationRules, deleteUserValidationRules } from "../validators/user.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
+import { UserDTO } from "../dtos/user.dto.js";
 
 export const getUsers = async (req, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
+  try {
+    const users = await prisma.user.findMany();
+    const transformedUsers = users.map(user => new UserDTO(user));
+    res.json(transformedUsers);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 // 📝 Update User with Validation
@@ -30,7 +37,7 @@ export const updateUser = [
   }
 ];
 
-// 📝 Delete User with Validation
+// Delete User with Validation
 export const deleteUser = [
   deleteUserValidationRules, // Apply validation rules
   validateRequest, // Middleware to check validation results
