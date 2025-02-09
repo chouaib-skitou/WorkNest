@@ -25,20 +25,28 @@ jest.mock("../../middleware/auth.middleware.js", () => ({
   }),
 }));
 
-describe("👥 User Controller Tests", () => {
+describe("User Controller Tests", () => {
   let req, res;
 
   beforeEach(() => {
-    req = { body: {}, params: {}, user: { id: "1" } };
+    req = { body: {}, params: {}, user: { id: "1", role: "ROLE_ADMIN" } };
     res = {
       json: jest.fn(),
       status: jest.fn().mockReturnThis(),
     };
+  
+    // Mock console.error to suppress error messages in tests
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  
     jest.clearAllMocks();
   });
+  
+  afterEach(() => {
+    jest.restoreAllMocks(); // Restore console.error after each test
+  });  
 
-  /** 📌 Get All Users */
-  test("✅ Retrieve all users", async () => {
+  /** Get All Users */
+  test("Retrieve all users (Only ADMIN or MANAGER)", async () => {
     const mockUsers = [
       { 
         id: "1", 
@@ -63,7 +71,7 @@ describe("👥 User Controller Tests", () => {
     ];
     prisma.user.findMany.mockResolvedValue(mockUsers);
 
-    await userController.getUsers(req, res);
+    await userController.getUsers[1](req, res);
 
     expect(prisma.user.findMany).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith(expect.arrayContaining([
@@ -72,8 +80,17 @@ describe("👥 User Controller Tests", () => {
     ]));
   });
 
-  /** 📌 Update User */
-  test("✅ Successfully update a user", async () => {
+  test("Deny access to non-admin users for retrieving users", async () => {
+    req.user.role = "ROLE_USER"; // Not admin or manager
+
+    await userController.getUsers[0](req, res, () => {}); // Call middleware
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "Access denied" });
+  });
+
+  /** Update User */
+  test("Successfully update a user (Admin or User themselves)", async () => {
     req.params.id = "1";
     req.body = { firstName: "UpdatedName" };
     const updatedUser = { id: "1", firstName: "UpdatedName", lastName: "Doe" };
@@ -86,7 +103,17 @@ describe("👥 User Controller Tests", () => {
     expect(res.json).toHaveBeenCalledWith(updatedUser);
   });
 
-  test("🚫 Prevent update if user not found", async () => {
+  test("Prevent update if user is not admin or the same user", async () => {
+    req.params.id = "2"; // Different user
+    req.user.role = "ROLE_USER"; // Not admin
+
+    await userController.updateUser[2](req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "You can only update your own profile" });
+  });
+
+  test("Handle user update error gracefully", async () => {
     req.params.id = "999";
     req.body = { firstName: "NonExistent" };
     prisma.user.update.mockRejectedValue(new Error("User not found"));
@@ -97,20 +124,43 @@ describe("👥 User Controller Tests", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 
-  /** 📌 Delete User */
-  test("✅ Successfully delete a user", async () => {
-    req.params.id = "1";
+  /** Delete User */
+  test("Successfully delete a user (Admin only)", async () => {
+    req.params.id = "2"; // Deleting another user
+    prisma.user.findUnique.mockResolvedValue({ id: "2" }); // Ensure user exists
     prisma.user.delete.mockResolvedValue({});
 
     await userController.deleteUser[2](req, res);
 
-    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "1" } });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { id: "2" } });
+    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "2" } });
     expect(res.json).toHaveBeenCalledWith({ message: "User deleted successfully" });
   });
 
-  test("🚫 Prevent deletion of non-existent user", async () => {
+  test("Prevent non-admin users from deleting a user", async () => {
+    req.user.role = "ROLE_USER"; // Not admin
+    req.params.id = "2";
+
+    await userController.deleteUser[2](req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "Only administrators can delete users" });
+  });
+
+  test("Prevent deletion of non-existent user", async () => {
     req.params.id = "999";
-    prisma.user.delete.mockRejectedValue(new Error("User not found"));
+    prisma.user.findUnique.mockResolvedValue(null); // User not found
+
+    await userController.deleteUser[2](req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
+  });
+
+  test("Handle user deletion error", async () => {
+    req.params.id = "1";
+    prisma.user.findUnique.mockResolvedValue({ id: "1" });
+    prisma.user.delete.mockRejectedValue(new Error("Database error"));
 
     await userController.deleteUser[2](req, res);
 

@@ -24,8 +24,17 @@ describe("🛂 Auth Middleware Tests", () => {
       json: jest.fn(),
     };
     next = jest.fn();
+    
+    // Suppress console.error for expected authentication errors
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  
     jest.clearAllMocks();
   });
+  
+  afterEach(() => {
+    jest.restoreAllMocks(); // Restore console.error after each test
+  });
+  
 
   test("✅ Allows access with valid token and existing user", async () => {
     req.headers.authorization = "Bearer validToken";
