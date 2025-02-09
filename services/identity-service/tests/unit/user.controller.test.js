@@ -369,7 +369,6 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
     prisma.user.findUnique.mockRejectedValue(new Error("Database error"));
 
     await userController.patchUser[1](req, res);
-
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
