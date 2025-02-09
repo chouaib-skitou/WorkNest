@@ -96,6 +96,7 @@ export const updateUser = [
 
 // Partially update user (PATCH)
 export const patchUser = [
+  // updateUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {
