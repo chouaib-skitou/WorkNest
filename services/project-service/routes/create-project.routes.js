@@ -5,6 +5,6 @@ import { validateRequestProject } from "../middleware/validate.middleware.js";
 
 const router = express.Router();
 
-router.post("/project", createProject);
+router.post("/", createProject);
 
 export default router;
