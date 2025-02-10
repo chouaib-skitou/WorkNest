@@ -15,6 +15,7 @@ export const generateRefreshToken = (user) => {
   });
 };
 
-export const verifyToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET);
+export const verifyToken = (token, isRefreshToken = false) => {
+  const secret = isRefreshToken ? process.env.JWT_REFRESH_SECRET : process.env.JWT_SECRET;
+    return jwt.verify(token, secret);
 };

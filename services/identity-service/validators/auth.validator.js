@@ -23,3 +23,7 @@ export const loginValidationRules = [
   body("email").isEmail().withMessage("Invalid email format"),
   body("password").notEmpty().withMessage("Password is required"),
 ];
+
+export const refreshTokenRules = [
+  body("refreshToken").notEmpty().withMessage("Refresh token is required"),
+];

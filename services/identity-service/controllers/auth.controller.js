@@ -1,10 +1,10 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/database.js";
-import { generateToken, generateRefreshToken } from "../config/jwt.js";
+import { generateToken, generateRefreshToken, verifyToken } from "../config/jwt.js";
 import { sendMail } from "../config/mail.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { loginValidationRules, registerValidationRules } from "../validators/auth.validator.js";
+import { loginValidationRules, registerValidationRules, refreshTokenRules } from "../validators/auth.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
 
 dotenv.config();
@@ -54,7 +54,6 @@ export const register = [
         message: "User registered successfully. Please verify your email.",
       });
     } catch (error) {
-      console.error("Registration error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -89,7 +88,6 @@ export const login = [
         expiresIn: process.env.JWT_EXPIRES_IN || "1h",
       });
     } catch (error) {
-      console.error("Login error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -165,3 +163,39 @@ export const resetPassword = async (req, res) => {
 
   res.status(200).json({ message: "Password reset successful. You can now log in with your new password." });
 };
+
+export const refreshToken = [
+  refreshTokenRules,  
+  validateRequest, 
+  async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+
+      let decoded;
+      try {
+        decoded = verifyToken(refreshToken, true);
+      } catch (error) {
+        return res.status(401).json({ error: "Invalid or expired refresh token" });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.isVerified) {
+        return res.status(403).json({ error: "Please verify your email before requesting a new token." });
+      }
+
+      const accessToken = generateToken(user);
+
+      res.json({
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+];
