@@ -25,6 +25,11 @@ app.use("/api/users", userRoutes);
 // Initialize Swagger documentation
 swaggerDocs(app);
 
+app.get("/", (req, res) => {
+  res.send("Welcome to the API");
+});
+
+
 // Start server
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
