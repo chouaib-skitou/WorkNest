@@ -383,4 +383,34 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
   });
+
+  test("🚫 Deny profile update if not the user themselves or an admin", async () => {
+    req.user = { id: "1", role: "ROLE_EMPLOYEE" };
+    req.params.id = "2"; // Another user
+    prisma.user.findUnique.mockResolvedValue({ id: "2" });
+  
+    await userController.updateUser[2](req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "You can only update your own profile" });
+  });
+
+  test("🚫 Deny partial profile update if not the user themselves or an admin", async () => {
+    req.user = { id: "1", role: "ROLE_EMPLOYEE" };
+    req.params.id = "2"; // Another user
+    prisma.user.findUnique.mockResolvedValue({ id: "2" });
+  
+    await userController.patchUser[1](req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "You can only update your own profile" });
+  });
+
+  test("🚫 Deny user deletion if not an admin", async () => {
+    req.user = { id: "1", role: "ROLE_EMPLOYEE" };
+    req.params.id = "2"; // Another user
+    prisma.user.findUnique.mockResolvedValue({ id: "2" });
+  
+    await userController.deleteUser[2](req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "Only administrators can delete users" });
+  });  
 });
