@@ -5,6 +5,7 @@ import {
   verifyEmail,
   resetPasswordRequest,
   resetPassword,
+  refreshToken,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -111,6 +112,50 @@ router.post("/login", login);
  *         description: Invalid or expired token.
  */
 router.get("/verify-email/:userId/:token", verifyEmail);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: Generates a new access token if the provided refresh token is valid.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Valid refresh token to obtain a new access token.
+ *     responses:
+ *       200:
+ *         description: New access token generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   description: The newly generated access token.
+ *                 expiresIn:
+ *                   type: string
+ *                   description: The expiration time of the access token.
+ *       400:
+ *         description: Bad request, missing refresh token.
+ *       401:
+ *         description: Unauthorized, invalid or expired refresh token.
+ *       403:
+ *         description: Forbidden, user not verified.
+ *       404:
+ *         description: User not found.
+ */
+router.post("/refresh", refreshToken);
 
 /**
  * @swagger
