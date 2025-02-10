@@ -15,7 +15,7 @@ WorkNest is built using a microservices architecture to ensure:
 
 📦 **Microservices**:
 - **Identity Service**: Manages authentication, user login, token generation, user profiles, and role-based access control.
-- **Task Service**: Manages task creation, updates, tagging, and assignment.
+- **Project Service**: Manages task creation, updates, tagging, and assignment.
 - **Notification Service**: Sends email and push notifications.
 - **Analytics Service**: Provides insights on task completion and productivity.
 
