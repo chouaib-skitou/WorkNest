@@ -9,7 +9,7 @@
     "lint": "eslint \"**/*.{js,jsx}\" && echo All good!",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "test": "vitest",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
