@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          npm install
+          npm ci
 
       - name: Run ESLint
         run: |
@@ -38,7 +38,7 @@ jobs:
       - name: Run Prettier Check
         run: |
           cd frontend
-          npm run format
+          npm run format:check
 
       - name: Run Tests
         run: |
