@@ -1,4 +1,4 @@
-// Karma configuration file, see https://angular.io/guide/testing
+// karma.conf.js - Karma configuration file, see https://angular.io/guide/testing
 module.exports = function (config) {
     config.set({
       basePath: '',
@@ -42,7 +42,7 @@ module.exports = function (config) {
           ]
         }
       },
-      // Use the custom launcher
+      // Use the custom launcher for CI environments
       browsers: ['ChromeHeadlessCI'],
       singleRun: true,
       restartOnFileChange: true
