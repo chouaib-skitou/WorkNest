@@ -1,0 +1,51 @@
+name: CI Frontend Workflow
+
+on:
+  push:
+    branches:
+      - '*'
+      - main
+      - develop
+      - feature/*
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm install
+
+      - name: Run ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Run Prettier Check
+        run: |
+          cd frontend
+          npm run format
+
+      - name: Run Tests
+        run: |
+          cd frontend
+          npm run test
+
+      - name: Build the project
+        run: |
+          cd frontend
+          npm run build
