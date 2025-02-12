@@ -46,7 +46,7 @@ export const register = [
         user.email,
         "Verify Your Email",
         `Click here to verify your email: ${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}`,
-        `<a href="${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`
+        `<a href="${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`
       );
 
       // Send response with only needed user info

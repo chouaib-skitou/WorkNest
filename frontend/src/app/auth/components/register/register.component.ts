@@ -3,13 +3,14 @@ import { CommonModule } from "@angular/common";
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from "@angular/forms";
 import { AuthService } from "../../../core/services/auth.service";
 import { Router } from "@angular/router";
+import { RouterModule } from '@angular/router'; // ✅ Import RouterModule
 
 @Component({
-  selector: "app-register",
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: "./register.component.html",
   styleUrls: ["./register.component.scss"],
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // ✅ Added CommonModule
 })
 export class RegisterComponent {
   registerForm: FormGroup;
@@ -45,7 +46,7 @@ export class RegisterComponent {
           this.router.navigate(["/login"], { queryParams: { registered: "true" } });
         },
         (error) => {
-          this.errorMessage = error.error.message || "Registration failed. Please try again.";
+          this.errorMessage = error.error?.message || "Registration failed. Please try again.";
         },
       );
     }

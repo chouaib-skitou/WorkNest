@@ -7,7 +7,7 @@ import { tap } from "rxjs/operators";
   providedIn: "root",
 })
 export class AuthService {
-  private apiUrl = "http://localhost:3000/api/auth"; // Replace with your actual API URL
+  private apiUrl = "http://localhost:5000/api/auth"; // Replace with your actual API URL
   private currentUserSubject: BehaviorSubject<any>;
   public currentUser: Observable<any>;
 
@@ -20,8 +20,8 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
-  register(user: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/register`, user);
+  register(userData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, userData);
   }
 
   login(email: string, password: string): Observable<any> {
