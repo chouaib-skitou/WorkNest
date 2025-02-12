@@ -1,0 +1,28 @@
+<div class="login-container">
+    <div class="login-card">
+      <img src="./worknest-logo.svg" alt="WorkNest Logo" class="logo">
+      <h2>Welcome to WorkNest</h2>
+      <p>Your efficient task management solution</p>
+      
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" formControlName="password" placeholder="Enter your password">
+        </div>
+        
+        <button type="submit" [disabled]="loginForm.invalid">Log In</button>
+      </form>
+      
+      <div class="alternative-actions">
+        <a href="/reset-password">Forgot password?</a>
+        <span>Don't have an account? <a href="/register">Sign up</a></span>
+      </div>
+    </div>
+  </div>
+  
+  
