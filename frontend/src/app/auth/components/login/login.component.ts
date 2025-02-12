@@ -1,6 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; // ✅ Added Validators
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms'; // ✅ Added Validators
 import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
 
@@ -18,24 +23,29 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router,
+    private router: Router
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],  // ✅ Added Validators
-      password: ['', [Validators.required, Validators.minLength(6)]],  // ✅ Added Validators
+      email: ['', [Validators.required, Validators.email]], // ✅ Added Validators
+      password: ['', [Validators.required, Validators.minLength(6)]], // ✅ Added Validators
     });
   }
 
   onSubmit() {
     if (this.loginForm.valid) {
-      this.authService.login(this.loginForm.value.email, this.loginForm.value.password).subscribe(
-        () => {
-          this.router.navigate(["/login"], { queryParams: { registered: "true" } });
-        },
-        (error) => {
-          this.errorMessage = error.error?.message || "Login failed. Please try again.";
-        },
-      );
+      this.authService
+        .login(this.loginForm.value.email, this.loginForm.value.password)
+        .subscribe(
+          () => {
+            this.router.navigate(['/login'], {
+              queryParams: { registered: 'true' },
+            });
+          },
+          (error) => {
+            this.errorMessage =
+              error.error?.message || 'Login failed. Please try again.';
+          }
+        );
     }
   }
 }

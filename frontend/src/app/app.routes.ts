@@ -12,9 +12,9 @@ export const routes: Routes = [
   { path: 'reset-password/:token', component: ResetPasswordComponent },
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   // Add a catch-all route for undefined routes
-  { path: '**', redirectTo: '/login' }
+  { path: '**', redirectTo: '/login' },
 ];
 
 export const appConfig = {
-  providers: [provideRouter(routes)]
+  providers: [provideRouter(routes)],
 };

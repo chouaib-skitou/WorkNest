@@ -6,6 +6,23 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
+// Define a mock response that matches AuthResponse
+interface AuthResponse {
+  user: { id: string; email: string; token: string; refreshToken: string };
+  token: string;
+}
+
+// Mock user response
+const mockAuthResponse: AuthResponse = {
+  user: {
+    id: '1',
+    email: 'test@example.com',
+    token: 'fake-jwt-token',
+    refreshToken: 'fake-refresh-token',
+  },
+  token: 'fake-jwt-token',
+};
+
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
@@ -17,7 +34,7 @@ describe('LoginComponent', () => {
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
-      imports: [LoginComponent, ReactiveFormsModule, HttpClientTestingModule], // ✅ Import LoginComponent instead of declaring it
+      imports: [LoginComponent, ReactiveFormsModule, HttpClientTestingModule], // ✅ Import LoginComponent
       providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: Router, useValue: routerSpy },
@@ -43,35 +60,53 @@ describe('LoginComponent', () => {
   });
 
   it('should invalidate the form when empty', () => {
+    component.loginForm.setValue({ email: '', password: '' });
     expect(component.loginForm.valid).toBeFalse();
   });
 
   it('should validate the form when email and password are provided', () => {
-    component.loginForm.setValue({ email: 'test@example.com', password: 'password123' });
+    component.loginForm.setValue({
+      email: 'test@example.com',
+      password: 'password123',
+    });
     expect(component.loginForm.valid).toBeTrue();
   });
 
   it('should call AuthService login method when form is valid', () => {
-    component.loginForm.setValue({ email: 'test@example.com', password: 'password123' });
-    authService.login.and.returnValue(of({}));
+    component.loginForm.setValue({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    authService.login.and.returnValue(of(mockAuthResponse)); // ✅ Provide valid mock response
 
     component.onSubmit();
 
-    expect(authService.login).toHaveBeenCalledWith('test@example.com', 'password123');
+    expect(authService.login).toHaveBeenCalledWith(
+      'test@example.com',
+      'password123'
+    );
   });
 
   it('should navigate to login with query param "registered=true" on successful login', () => {
-    component.loginForm.setValue({ email: 'test@example.com', password: 'password123' });
-    authService.login.and.returnValue(of({}));
+    component.loginForm.setValue({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    authService.login.and.returnValue(of(mockAuthResponse)); // ✅ Provide valid mock response
 
     component.onSubmit();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { registered: 'true' } });
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { registered: 'true' },
+    });
   });
 
   it('should display an error message on login failure', () => {
     const errorResponse = { error: { message: 'Invalid credentials' } };
-    component.loginForm.setValue({ email: 'test@example.com', password: 'password123' });
+    component.loginForm.setValue({
+      email: 'test@example.com',
+      password: 'password123',
+    });
     authService.login.and.returnValue(throwError(() => errorResponse));
 
     component.onSubmit();
@@ -80,8 +115,11 @@ describe('LoginComponent', () => {
   });
 
   it('should display a default error message if login error has no message', () => {
-    component.loginForm.setValue({ email: 'test@example.com', password: 'password123' });
-    authService.login.and.returnValue(throwError(() => ({})));
+    component.loginForm.setValue({
+      email: 'test@example.com',
+      password: 'password123',
+    });
+    authService.login.and.returnValue(throwError(() => ({ error: {} }))); // ✅ Properly handle missing error message
 
     component.onSubmit();
 

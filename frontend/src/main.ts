@@ -8,4 +8,4 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(), // ✅ Ensure HttpClient is provided
     ...appConfig.providers,
   ],
-}).catch(err => console.error(err));
+}).catch((err) => console.error(err));
