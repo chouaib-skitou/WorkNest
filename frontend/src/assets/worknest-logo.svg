@@ -1,0 +1,17 @@
+<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text { font: bold 24px sans-serif; fill: #333; }
+    .nest { fill: none; stroke: #4a90e2; stroke-width: 2; }
+    .check { fill: none; stroke: #4a90e2; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  
+  <!-- Nest icon -->
+  <path class="nest" d="M10,25 Q25,5 40,25 T70,25" />
+  
+  <!-- Checkmark -->
+  <path class="check" d="M30,25 L40,35 L55,20" />
+  
+  <!-- WorkNest text -->
+  <text x="80" y="35" class="text">WorkNest</text>
+</svg>
+

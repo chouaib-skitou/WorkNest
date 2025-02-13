@@ -19,7 +19,7 @@ app.use(morgan("dev"));
 app.use(helmet());
 
 // Routes
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
 // Initialize Swagger documentation
