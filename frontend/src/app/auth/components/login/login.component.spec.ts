@@ -5,22 +5,13 @@ import { Router } from '@angular/router';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { LoginResponse } from '../../interfaces/auth.interfaces';
 
-// Define a mock response that matches AuthResponse
-interface AuthResponse {
-  user: { id: string; email: string; token: string; refreshToken: string };
-  token: string;
-}
-
-// Mock user response
-const mockAuthResponse: AuthResponse = {
-  user: {
-    id: '1',
-    email: 'test@example.com',
-    token: 'fake-jwt-token',
-    refreshToken: 'fake-refresh-token',
-  },
-  token: 'fake-jwt-token',
+// ✅ Updated mock response to match `LoginResponse`
+const mockLoginResponse: LoginResponse = {
+  accessToken: 'fake-access-token',
+  refreshToken: 'fake-refresh-token',
+  expiresIn: '3600',
 };
 
 describe('LoginComponent', () => {
@@ -34,7 +25,7 @@ describe('LoginComponent', () => {
     const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
 
     await TestBed.configureTestingModule({
-      imports: [LoginComponent, ReactiveFormsModule, HttpClientTestingModule], // ✅ Import LoginComponent
+      imports: [LoginComponent, ReactiveFormsModule, HttpClientTestingModule],
       providers: [
         { provide: AuthService, useValue: authServiceSpy },
         { provide: Router, useValue: routerSpy },
@@ -77,7 +68,9 @@ describe('LoginComponent', () => {
       email: 'test@example.com',
       password: 'password123',
     });
-    authService.login.and.returnValue(of(mockAuthResponse)); // ✅ Provide valid mock response
+
+    // ✅ Corrected to use `mockLoginResponse`
+    authService.login.and.returnValue(of(mockLoginResponse));
 
     component.onSubmit();
 
@@ -87,18 +80,18 @@ describe('LoginComponent', () => {
     );
   });
 
-  it('should navigate to login with query param "registered=true" on successful login', () => {
+  it('should navigate to /projects on successful login', () => {
     component.loginForm.setValue({
       email: 'test@example.com',
       password: 'password123',
     });
-    authService.login.and.returnValue(of(mockAuthResponse)); // ✅ Provide valid mock response
+
+    // ✅ Corrected to use `mockLoginResponse`
+    authService.login.and.returnValue(of(mockLoginResponse));
 
     component.onSubmit();
 
-    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
-      queryParams: { registered: 'true' },
-    });
+    expect(router.navigate).toHaveBeenCalledWith(['/projects']);
   });
 
   it('should display an error message on login failure', () => {
@@ -107,6 +100,7 @@ describe('LoginComponent', () => {
       email: 'test@example.com',
       password: 'password123',
     });
+
     authService.login.and.returnValue(throwError(() => errorResponse));
 
     component.onSubmit();
@@ -119,7 +113,8 @@ describe('LoginComponent', () => {
       email: 'test@example.com',
       password: 'password123',
     });
-    authService.login.and.returnValue(throwError(() => ({ error: {} }))); // ✅ Properly handle missing error message
+
+    authService.login.and.returnValue(throwError(() => ({ error: {} })));
 
     component.onSubmit();
 

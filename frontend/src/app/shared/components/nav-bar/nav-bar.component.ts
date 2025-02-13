@@ -13,7 +13,10 @@ import { Router } from '@angular/router';
 export class NavBarComponent {
   isMenuOpen = false;
 
-  constructor(public authService: AuthService, private router: Router) {}
+  constructor(
+    public authService: AuthService,
+    private router: Router
+  ) {}
 
   toggleMenu() {
     this.isMenuOpen = !this.isMenuOpen;

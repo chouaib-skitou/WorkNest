@@ -10,7 +10,9 @@ import { LoginResponse } from '../../auth/interfaces/auth.interfaces'; // Import
 export class AuthService {
   private apiUrl = 'http://localhost:5000/api/auth'; // Replace with your actual API URL
 
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(
+    this.hasToken()
+  );
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   constructor(private http: HttpClient) {}
@@ -19,17 +21,25 @@ export class AuthService {
     return !!localStorage.getItem('accessToken');
   }
 
-  register(userData: { email: string; password: string }): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/register`, userData);
+  register(userData: {
+    email: string;
+    password: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/register`,
+      userData
+    );
   }
 
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
-      tap((response) => {
-        this.storeTokens(response);
-        this.isAuthenticatedSubject.next(true);
-      })
-    );
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
+      .pipe(
+        tap((response) => {
+          this.storeTokens(response);
+          this.isAuthenticatedSubject.next(true);
+        })
+      );
   }
 
   logout(): void {
@@ -39,11 +49,13 @@ export class AuthService {
 
   refreshToken(): Observable<LoginResponse> {
     const refreshToken = localStorage.getItem('refreshToken');
-    return this.http.post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken }).pipe(
-      tap((tokens) => {
-        this.storeTokens(tokens);
-      })
-    );
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken })
+      .pipe(
+        tap((tokens) => {
+          this.storeTokens(tokens);
+        })
+      );
   }
 
   isLoggedIn(): boolean {
@@ -63,14 +75,23 @@ export class AuthService {
   }
 
   resetPasswordRequest(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password-request`, { email });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/reset-password-request`,
+      { email }
+    );
   }
 
-  resetPassword(token: string, newPassword: string, confirmNewPassword: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.apiUrl}/reset-password/${token}`, {
-      newPassword,
-      confirmNewPassword,
-    });
+  resetPassword(
+    token: string,
+    newPassword: string,
+    confirmNewPassword: string
+  ): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(
+      `${this.apiUrl}/reset-password/${token}`,
+      {
+        newPassword,
+        confirmNewPassword,
+      }
+    );
   }
-
 }
