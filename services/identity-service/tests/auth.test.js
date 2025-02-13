@@ -21,13 +21,13 @@ afterAll(async () => {
 
 describe("🛂 Auth Routes", () => {
   test("✅ Register a new user", async () => {
-    const res = await request(app).post("/auth/register").send(testUser);
+    const res = await request(app).post("/api/auth/register").send(testUser);
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty("message", "User registered successfully. Please verify your email.");
   });
 
   test("🚫 Prevent duplicate registration", async () => {
-    const res = await request(app).post("/auth/register").send(testUser);
+    const res = await request(app).post("/api/auth/register").send(testUser);
     expect(res.statusCode).toBe(400);
     expect(res.body).toHaveProperty("error", "Email already in use");
   });
@@ -35,7 +35,7 @@ describe("🛂 Auth Routes", () => {
   test("🚀 Login with verified user", async () => {
     await prisma.user.updateMany({ where: { email: testUser.email }, data: { isVerified: true } });
 
-    const res = await request(app).post("/auth/login").send({
+    const res = await request(app).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
     });
@@ -48,7 +48,7 @@ describe("🛂 Auth Routes", () => {
   test("🚫 Prevent login if user is not verified", async () => {
     await prisma.user.updateMany({ where: { email: testUser.email }, data: { isVerified: false } });
 
-    const res = await request(app).post("/auth/login").send({
+    const res = await request(app).post("/api/auth/login").send({
       email: testUser.email,
       password: testUser.password,
     });
@@ -58,7 +58,7 @@ describe("🛂 Auth Routes", () => {
   });
 
   test("🚫 Prevent login with wrong credentials", async () => {
-    const res = await request(app).post("/auth/login").send({
+    const res = await request(app).post("/api/auth/login").send({
       email: testUser.email,
       password: "WrongPass!",
     });
@@ -68,14 +68,14 @@ describe("🛂 Auth Routes", () => {
   });
 
   test("🚀 Request password reset", async () => {
-    const res = await request(app).post("/auth/reset-password-request").send({ email: testUser.email });
+    const res = await request(app).post("/api/auth/reset-password-request").send({ email: testUser.email });
   
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty("message", "Password reset link sent to your email.");
   });
   
   test("🚫 Prevent password reset for non-existent email", async () => {
-    const res = await request(app).post("/auth/reset-password-request").send({ email: "nonexistent@example.com" });
+    const res = await request(app).post("/api/auth/reset-password-request").send({ email: "nonexistent@example.com" });
   
     expect(res.statusCode).toBe(400);
     expect(res.body).toHaveProperty("error", "User with this email does not exist.");

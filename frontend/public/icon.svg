@@ -1,0 +1,19 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .nest { fill: none; stroke: #4a90e2; stroke-width: 2; }
+    .check { fill: none; stroke: #4a90e2; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  
+  <!-- Background -->
+  <rect width="32" height="32" rx="4" fill="#ffffff"/>
+  
+  <!-- Centered icon group -->
+  <g transform="translate(2, 4)">
+    <!-- Nest icon -->
+    <path class="nest" d="M0,12 Q7,0 14,12 T28,12" />
+    
+    <!-- Checkmark -->
+    <path class="check" d="M8,12 L12,16 L18,10" />
+  </g>
+</svg>
+
