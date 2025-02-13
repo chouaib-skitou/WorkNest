@@ -37,9 +37,7 @@ export class LoginComponent {
         .login(this.loginForm.value.email, this.loginForm.value.password)
         .subscribe(
           () => {
-            this.router.navigate(['/login'], {
-              queryParams: { registered: 'true' },
-            });
+            this.router.navigate(['/projects']); // ✅ Redirect to /projects
           },
           (error) => {
             this.errorMessage =
@@ -48,4 +46,5 @@ export class LoginComponent {
         );
     }
   }
+
 }
