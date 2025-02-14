@@ -4,6 +4,7 @@ $secondary-color: #357abd;
 $text-color: #333;
 $light-bg: #f8f9fa;
 $border-radius: 8px;
+@use "sass:color";
 
 // Global Styles
 
@@ -119,7 +120,7 @@ section {
       border: none;
 
       &:hover {
-        background: darken($primary-color, 5%);
+        background: color.adjust($primary-color, $lightness: -5%);
         transform: translateY(-2px);
       }
     }
