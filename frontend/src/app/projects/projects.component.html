@@ -9,16 +9,24 @@
       (input)="applyFilters()"
       placeholder="Search projects..."
       class="search-input"
-    >
+    />
 
-    <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="filter-select">
+    <select
+      [(ngModel)]="statusFilter"
+      (change)="applyFilters()"
+      class="filter-select"
+    >
       <option value="All">All Statuses</option>
       <option value="In Progress">In Progress</option>
       <option value="Completed">Completed</option>
       <option value="On Hold">On Hold</option>
     </select>
 
-    <select [(ngModel)]="priorityFilter" (change)="applyFilters()" class="filter-select">
+    <select
+      [(ngModel)]="priorityFilter"
+      (change)="applyFilters()"
+      class="filter-select"
+    >
       <option value="All">All Priorities</option>
       <option value="Low">Low</option>
       <option value="Medium">Medium</option>
@@ -27,17 +35,27 @@
   </div>
 
   <div class="projects-grid">
-    <a *ngFor="let project of getCurrentPageProjects()"
-       [routerLink]="['/projects', project.id]"
-       class="project-card">
+    <a
+      *ngFor="let project of getCurrentPageProjects()"
+      [routerLink]="['/projects', project.id]"
+      class="project-card"
+    >
       <h2>{{ project.name }}</h2>
       <p>{{ project.description }}</p>
       <div class="project-details">
-        <span class="status" [ngClass]="project.status.toLowerCase().replace(' ', '-')">{{ project.status }}</span>
-        <span class="priority" [ngClass]="project.priority.toLowerCase()">{{ project.priority }}</span>
+        <span
+          class="status"
+          [ngClass]="project.status.toLowerCase().replace(' ', '-')"
+          >{{ project.status }}</span
+        >
+        <span class="priority" [ngClass]="project.priority.toLowerCase()">{{
+          project.priority
+        }}</span>
       </div>
       <div class="project-meta">
-        <span class="due-date">Due: {{ project.dueDate | date:'mediumDate' }}</span>
+        <span class="due-date"
+          >Due: {{ project.dueDate | date: 'mediumDate' }}</span
+        >
         <span class="assignee">Assigned to: {{ project.assignee }}</span>
       </div>
     </a>

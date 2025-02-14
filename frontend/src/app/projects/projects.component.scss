@@ -1,5 +1,5 @@
 // projects.component.scss
-@use "sass:color";
+@use 'sass:color';
 
 $primary-color: #4a90e2;
 $background-color: #f8f9fa;
@@ -62,7 +62,9 @@ $border-color: #e0e0e0;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   padding: 1.5rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   display: block;
   text-decoration: none;
   color: inherit;
@@ -99,15 +101,33 @@ $border-color: #e0e0e0;
   }
 
   .status {
-    &.in-progress { background-color: #ffd700; color: #000; }
-    &.completed { background-color: #4caf50; color: #fff; }
-    &.on-hold { background-color: #ff9800; color: #fff; }
+    &.in-progress {
+      background-color: #ffd700;
+      color: #000;
+    }
+    &.completed {
+      background-color: #4caf50;
+      color: #fff;
+    }
+    &.on-hold {
+      background-color: #ff9800;
+      color: #fff;
+    }
   }
 
   .priority {
-    &.low { background-color: #8bc34a; color: #fff; }
-    &.medium { background-color: #ffc107; color: #000; }
-    &.high { background-color: #f44336; color: #fff; }
+    &.low {
+      background-color: #8bc34a;
+      color: #fff;
+    }
+    &.medium {
+      background-color: #ffc107;
+      color: #000;
+    }
+    &.high {
+      background-color: #f44336;
+      color: #fff;
+    }
   }
 }
 
