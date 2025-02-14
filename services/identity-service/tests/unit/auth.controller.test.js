@@ -200,11 +200,17 @@ describe("🛂 Auth Controller Tests", () => {
     req.body.email = "john@example.com";
 
     prisma.user.findUnique.mockResolvedValue({ id: "1", email: req.body.email });
+
+    // 🔹 Mock deleteMany to prevent "is not a function" error
+    prisma.passwordResetToken.deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+
     prisma.passwordResetToken.create.mockResolvedValue({ token: "mockToken" });
     sendMail.mockResolvedValue();
 
     await authController.resetPasswordRequest(req, res);
 
+    expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: "1" } });
+    expect(prisma.passwordResetToken.create).toHaveBeenCalled();
     expect(sendMail).toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({ message: "Password reset link sent to your email." });
   });

@@ -6,14 +6,16 @@ import { ResetPasswordRequestComponent } from './auth/components/reset-password-
 import { ResetPasswordComponent } from './auth/components/reset-password/reset-password.component';
 import { ProjectsComponent } from './projects/projects.component';
 import { AuthGuard } from './core/guards/auth.guard';
+import { HomeComponent } from './home/home.component';
 
 export const routes: Routes = [
+  { path: '', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'reset-password-request', component: ResetPasswordRequestComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
-  { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // ✅ Protected
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // Protected
   { path: '**', redirectTo: '/login' },
 ];
 

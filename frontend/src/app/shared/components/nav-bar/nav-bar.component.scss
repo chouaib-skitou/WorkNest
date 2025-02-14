@@ -1,40 +1,114 @@
+// Variables
+$primary-color: #4a90e2;
+$secondary-color: #357abd;
+$text-color: #333;
+$light-bg: #f8f9fa;
+$border-radius: 8px;
+@use 'sass:color';
+
 .nav-container {
   background-color: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 
 .nav-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 1rem 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  height: 64px;
 }
 
-.nav-logo img {
-  height: 40px;
+.nav-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+
+  img {
+    height: 32px;
+    width: auto;
+  }
 }
 
 .menu-toggle {
   display: none;
+  padding: 0.5rem;
+  color: #4b5563;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $primary-color;
+  }
 }
 
 .nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   list-style-type: none;
   margin: 0;
   padding: 0;
+  align-items: center;
+
+  li {
+    position: relative;
+  }
 
   a {
-    color: #333;
+    color: #4b5563;
     text-decoration: none;
+    font-size: 0.9375rem;
     font-weight: 500;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
+    padding: 0.5rem 0;
 
     &:hover {
-      color: #4a90e2;
+      color: $primary-color;
+    }
+
+    &.active {
+      color: $primary-color;
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: $primary-color;
+      }
+    }
+  }
+
+  // Special styling for auth links
+  li:last-child a,
+  li:nth-last-child(2) a {
+    padding: 0.5rem 1rem;
+    border-radius: $border-radius;
+  }
+
+  li:last-child a {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover {
+      background-color: color.adjust($primary-color, $lightness: -5%);
+    }
+  }
+
+  li:nth-last-child(2) a {
+    border: 1px solid $primary-color;
+    color: $primary-color;
+
+    &:hover {
+      background-color: rgba($primary-color, 0.05);
     }
   }
 }
@@ -42,9 +116,6 @@
 @media (max-width: 768px) {
   .menu-toggle {
     display: block;
-    background: none;
-    border: none;
-    cursor: pointer;
   }
 
   .nav-links {
@@ -57,9 +128,64 @@
     background-color: #ffffff;
     padding: 1rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    gap: 1rem;
 
     &.active {
       display: flex;
     }
+
+    a {
+      display: block;
+      padding: 0.75rem 1rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    // Adjust auth buttons in mobile view
+    li:last-child a,
+    li:nth-last-child(2) a {
+      margin: 0.5rem 0;
+    }
+  }
+}
+
+// Updated Hero Section
+.landing-page {
+  padding-top: 64px; // Height of the navbar
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  padding: 6rem 0;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom right,
+      rgba(248, 249, 250, 0.5),
+      rgba(255, 255, 255, 1)
+    );
+    z-index: 0;
+  }
+
+  .hero-content,
+  .hero-image {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    text-align: center;
+    padding: 4rem 0;
   }
 }
