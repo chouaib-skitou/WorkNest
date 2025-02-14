@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import {
   FormBuilder,
   FormGroup,
@@ -13,7 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
   templateUrl: './reset-password-request.component.html',
   styleUrls: ['./reset-password-request.component.scss'],
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // ✅ Added CommonModule
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
 })
 export class ResetPasswordRequestComponent {
   resetForm: FormGroup;
