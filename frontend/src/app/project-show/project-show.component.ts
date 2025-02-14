@@ -1,4 +1,10 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -50,24 +56,69 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       id: 'backlog',
       name: 'Backlog',
       tasks: [
-        { id: 1, title: 'test', type: 'Draft', status: 'Backlog', projectId: 'WorkNest #29' },
-        { id: 2, title: 's;.xnskine', type: 'Draft', status: 'Backlog', projectId: 'WorkNest #30' },
+        {
+          id: 1,
+          title: 'test',
+          type: 'Draft',
+          status: 'Backlog',
+          projectId: 'WorkNest #29',
+        },
+        {
+          id: 2,
+          title: 's;.xnskine',
+          type: 'Draft',
+          status: 'Backlog',
+          projectId: 'WorkNest #30',
+        },
       ],
       total: 2,
       color: '#1a7f37',
       description: "This item hasn't been started",
       estimate: 0,
     },
-    { id: 'ready', name: 'Ready', tasks: [], total: 0, color: '#0969da', description: 'This is ready to be picked up', estimate: 0 },
-    { id: 'in-progress', name: 'In progress', tasks: [], total: 0, color: '#9a6700', description: 'This is actively being worked on', estimate: 0 },
-    { id: 'in-review', name: 'In review', tasks: [], total: 0, color: '#8250df', description: 'This item is in review', estimate: 0 },
-    { id: 'done', name: 'Done', tasks: [], total: 0, color: '#cf222e', description: 'This has been completed', estimate: 0 },
+    {
+      id: 'ready',
+      name: 'Ready',
+      tasks: [],
+      total: 0,
+      color: '#0969da',
+      description: 'This is ready to be picked up',
+      estimate: 0,
+    },
+    {
+      id: 'in-progress',
+      name: 'In progress',
+      tasks: [],
+      total: 0,
+      color: '#9a6700',
+      description: 'This is actively being worked on',
+      estimate: 0,
+    },
+    {
+      id: 'in-review',
+      name: 'In review',
+      tasks: [],
+      total: 0,
+      color: '#8250df',
+      description: 'This item is in review',
+      estimate: 0,
+    },
+    {
+      id: 'done',
+      name: 'Done',
+      tasks: [],
+      total: 0,
+      color: '#cf222e',
+      description: 'This has been completed',
+      estimate: 0,
+    },
   ];
 
   ngOnInit(): void {
     this.updateColumnTotals();
     this.columnIds = this.columns.map((c) => c.id);
-    this.nextTaskId = Math.max(...this.columns.flatMap((c) => c.tasks.map((t) => t.id)), 0) + 1;
+    this.nextTaskId =
+      Math.max(...this.columns.flatMap((c) => c.tasks.map((t) => t.id)), 0) + 1;
   }
 
   ngAfterViewInit(): void {
@@ -81,15 +132,27 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   private updateColumnTotals(): void {
     this.columns.forEach((column) => {
       column.total = column.tasks.length;
-      column.estimate = column.tasks.reduce((sum, task) => sum + (task.estimate || 0), 0);
+      column.estimate = column.tasks.reduce(
+        (sum, task) => sum + (task.estimate || 0),
+        0
+      );
     });
   }
 
   drop(event: CdkDragDrop<Task[]>): void {
     if (event.previousContainer === event.container) {
-      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
+      moveItemInArray(
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex
+      );
     } else {
-      transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
+      transferArrayItem(
+        event.previousContainer.data,
+        event.container.data,
+        event.previousIndex,
+        event.currentIndex
+      );
     }
     this.updateColumnTotals();
   }
@@ -112,9 +175,14 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           id: this.nextTaskId++,
           title: this.newTaskTitle.trim(),
           type: 'Task',
-          status: column.name as 'Backlog' | 'Ready' | 'In progress' | 'In review' | 'Done',
+          status: column.name as
+            | 'Backlog'
+            | 'Ready'
+            | 'In progress'
+            | 'In review'
+            | 'Done',
           projectId: `WorkNest #${this.nextTaskId}`,
-        };        
+        };
         column.tasks.push(newTask);
         this.updateColumnTotals();
         this.hideAddItem();
