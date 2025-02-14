@@ -11,8 +11,9 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'reset-password-request', component: ResetPasswordRequestComponent },
+  { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
-  { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // ✅ Protected
+  { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // Protected
   { path: '', redirectTo: '/login', pathMatch: 'full' },
   { path: '**', redirectTo: '/login' },
 ];

@@ -45,7 +45,7 @@ export const register = [
       await sendMail(
         user.email,
         "Verify Your Email",
-        `Click here to verify your email: ${process.env.BASE_URL}/auth/verify-email/${user.id}/${verificationToken}`,
+        `Click here to verify your email: ${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}`,
         `<a href="${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`
       );
 
@@ -120,21 +120,30 @@ export const resetPasswordRequest = async (req, res) => {
     return res.status(400).json({ error: "User with this email does not exist." });
   }
 
+  // 🔹 Delete any existing password reset token for the user
+  await prisma.passwordResetToken.deleteMany({
+    where: { userId: user.id }
+  });
+
+  // 🔹 Generate a new token
   const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // 🔹 Store new token in the database
   await prisma.passwordResetToken.create({
     data: { userId: user.id, token: resetToken, expiresAt: new Date(Date.now() + 3600000) }, // 1 hour expiry
   });
 
-  // Send password reset email
+  // 🔹 Send password reset email
   await sendMail(
-    user.email,
-    "Reset Your Password",
-    `Click here to reset your password: ${process.env.BASE_URL}/auth/reset-password/${resetToken}`,
-    `<a href="${process.env.BASE_URL}/auth/reset-password/${resetToken}">Reset Password</a>`
+      user.email,
+      "Reset Your Password",
+      `Click here to reset your password: ${process.env.FRONTEND_URL}/reset-password/${resetToken}`,
+      `<a href="${process.env.FRONTEND_URL}/reset-password/${resetToken}">Reset Password</a>`
   );
 
   res.json({ message: "Password reset link sent to your email." });
 };
+
 
 // 🔄 Reset Password
 export const resetPassword = async (req, res) => {
