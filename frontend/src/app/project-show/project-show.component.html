@@ -1,4 +1,3 @@
-<!-- project-show.component.html -->
 <div class="project-board">
   <div class="project-header">
     <div class="project-info">
@@ -17,7 +16,8 @@
         type="text"
         class="search-input"
         placeholder="Filter by keyword or by field"
-        [(ngModel)]="searchQuery">
+        [(ngModel)]="searchQuery"
+      />
     </div>
     <div class="filter-actions">
       <button class="btn-secondary">Sort</button>
@@ -29,7 +29,10 @@
     <div class="column" *ngFor="let column of columns">
       <div class="column-header">
         <div class="column-title">
-          <span class="status-dot" [style.backgroundColor]="column.color"></span>
+          <span
+            class="status-dot"
+            [style.backgroundColor]="column.color"
+          ></span>
           {{ column.name }}
           <span class="count">{{ column.total }}</span>
         </div>
@@ -46,12 +49,9 @@
         [id]="column.id"
         [cdkDropListData]="column.tasks"
         (cdkDropListDropped)="drop($event)"
-        [cdkDropListConnectedTo]="columnIds">
-
-        <div
-          class="task-card"
-          *ngFor="let task of column.tasks"
-          cdkDrag>
+        [cdkDropListConnectedTo]="columnIds"
+      >
+        <div class="task-card" *ngFor="let task of column.tasks" cdkDrag>
           <div class="task-header">
             <span class="task-id">{{ task.projectId }}</span>
             <span class="task-type" *ngIf="task.type === 'Draft'">
@@ -63,21 +63,20 @@
 
         <div class="add-item-container">
           <div *ngIf="activeColumn !== column.id">
-            <button
-              class="add-item-button"
-              (click)="showAddItem(column.id)">
+            <button class="add-item-button" (click)="showAddItem(column.id)">
               + Add item
             </button>
           </div>
 
           <div *ngIf="activeColumn === column.id" class="new-task-container">
             <input
+              #newTaskInput
               type="text"
               class="new-task-input"
               [(ngModel)]="newTaskTitle"
               placeholder="Start typing to create an item, or type # to select a repository"
               (keyup)="addItem(column.id, $event)"
-              autofocus>
+            />
           </div>
         </div>
       </div>

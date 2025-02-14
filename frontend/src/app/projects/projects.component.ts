@@ -19,7 +19,7 @@ interface Project {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './projects.component.html',
-  styleUrls: ['./projects.component.scss']
+  styleUrls: ['./projects.component.scss'],
 })
 export class ProjectsComponent implements OnInit {
   projects: Project[] = [
@@ -30,7 +30,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'High',
       dueDate: new Date('2023-12-31'),
-      assignee: 'John Doe'
+      assignee: 'John Doe',
     },
     {
       id: 2,
@@ -39,7 +39,7 @@ export class ProjectsComponent implements OnInit {
       status: 'On Hold',
       priority: 'Medium',
       dueDate: new Date('2024-03-15'),
-      assignee: 'Jane Smith'
+      assignee: 'Jane Smith',
     },
     {
       id: 3,
@@ -48,7 +48,7 @@ export class ProjectsComponent implements OnInit {
       status: 'Completed',
       priority: 'Low',
       dueDate: new Date('2023-11-30'),
-      assignee: 'Bob Johnson'
+      assignee: 'Bob Johnson',
     },
     {
       id: 4,
@@ -57,7 +57,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'High',
       dueDate: new Date('2024-01-15'),
-      assignee: 'Sarah Wilson'
+      assignee: 'Sarah Wilson',
     },
     {
       id: 5,
@@ -66,7 +66,7 @@ export class ProjectsComponent implements OnInit {
       status: 'Completed',
       priority: 'High',
       dueDate: new Date('2023-12-15'),
-      assignee: 'Mike Brown'
+      assignee: 'Mike Brown',
     },
     {
       id: 6,
@@ -75,7 +75,7 @@ export class ProjectsComponent implements OnInit {
       status: 'On Hold',
       priority: 'Medium',
       dueDate: new Date('2024-02-28'),
-      assignee: 'Emily Davis'
+      assignee: 'Emily Davis',
     },
     {
       id: 7,
@@ -84,7 +84,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'Medium',
       dueDate: new Date('2024-01-31'),
-      assignee: 'Chris Taylor'
+      assignee: 'Chris Taylor',
     },
     {
       id: 8,
@@ -93,7 +93,7 @@ export class ProjectsComponent implements OnInit {
       status: 'Completed',
       priority: 'High',
       dueDate: new Date('2023-12-20'),
-      assignee: 'Alex Johnson'
+      assignee: 'Alex Johnson',
     },
     {
       id: 9,
@@ -102,7 +102,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'Low',
       dueDate: new Date('2024-02-15'),
-      assignee: 'Lisa Anderson'
+      assignee: 'Lisa Anderson',
     },
     {
       id: 10,
@@ -111,7 +111,7 @@ export class ProjectsComponent implements OnInit {
       status: 'On Hold',
       priority: 'Medium',
       dueDate: new Date('2024-03-01'),
-      assignee: 'David Wilson'
+      assignee: 'David Wilson',
     },
     {
       id: 11,
@@ -120,7 +120,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'High',
       dueDate: new Date('2024-01-20'),
-      assignee: 'Rachel Green'
+      assignee: 'Rachel Green',
     },
     {
       id: 12,
@@ -129,7 +129,7 @@ export class ProjectsComponent implements OnInit {
       status: 'Completed',
       priority: 'Medium',
       dueDate: new Date('2023-12-25'),
-      assignee: 'Tom Harris'
+      assignee: 'Tom Harris',
     },
     {
       id: 13,
@@ -138,7 +138,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'High',
       dueDate: new Date('2024-02-10'),
-      assignee: 'Kevin Chen'
+      assignee: 'Kevin Chen',
     },
     {
       id: 14,
@@ -147,7 +147,7 @@ export class ProjectsComponent implements OnInit {
       status: 'On Hold',
       priority: 'Low',
       dueDate: new Date('2024-03-30'),
-      assignee: 'Maria Garcia'
+      assignee: 'Maria Garcia',
     },
     {
       id: 15,
@@ -156,7 +156,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'High',
       dueDate: new Date('2024-01-25'),
-      assignee: 'Paul Martin'
+      assignee: 'Paul Martin',
     },
     {
       id: 16,
@@ -165,7 +165,7 @@ export class ProjectsComponent implements OnInit {
       status: 'Completed',
       priority: 'Medium',
       dueDate: new Date('2023-12-10'),
-      assignee: 'Sophie Turner'
+      assignee: 'Sophie Turner',
     },
     {
       id: 17,
@@ -174,7 +174,7 @@ export class ProjectsComponent implements OnInit {
       status: 'In Progress',
       priority: 'Medium',
       dueDate: new Date('2024-02-20'),
-      assignee: 'James Wilson'
+      assignee: 'James Wilson',
     },
     {
       id: 18,
@@ -183,19 +183,19 @@ export class ProjectsComponent implements OnInit {
       status: 'On Hold',
       priority: 'High',
       dueDate: new Date('2024-04-15'),
-      assignee: 'Daniel Lee'
-    }
+      assignee: 'Daniel Lee',
+    },
   ];
 
   filteredProjects: Project[] = [];
-  statusFilter: string = 'All';
-  priorityFilter: string = 'All';
-  searchTerm: string = '';
+  statusFilter = 'All';
+  priorityFilter = 'All';
+  searchTerm = '';
 
   // Pagination
-  currentPage: number = 1;
-  itemsPerPage: number = 6;
-  totalPages: number = 0;
+  currentPage = 1;
+  itemsPerPage = 6;
+  totalPages = 0;
 
   ngOnInit() {
     this.filteredProjects = this.projects;
@@ -203,12 +203,17 @@ export class ProjectsComponent implements OnInit {
   }
 
   updateTotalPages() {
-    this.totalPages = Math.ceil(this.filteredProjects.length / this.itemsPerPage);
+    this.totalPages = Math.ceil(
+      this.filteredProjects.length / this.itemsPerPage
+    );
   }
 
   getCurrentPageProjects() {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    return this.filteredProjects.slice(startIndex, startIndex + this.itemsPerPage);
+    return this.filteredProjects.slice(
+      startIndex,
+      startIndex + this.itemsPerPage
+    );
   }
 
   getPages(): number[] {
@@ -222,11 +227,16 @@ export class ProjectsComponent implements OnInit {
   }
 
   applyFilters() {
-    this.filteredProjects = this.projects.filter(project => {
-      return (this.statusFilter === 'All' || project.status === this.statusFilter) &&
-        (this.priorityFilter === 'All' || project.priority === this.priorityFilter) &&
+    this.filteredProjects = this.projects.filter((project) => {
+      return (
+        (this.statusFilter === 'All' || project.status === this.statusFilter) &&
+        (this.priorityFilter === 'All' ||
+          project.priority === this.priorityFilter) &&
         (project.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-          project.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          project.description
+            .toLowerCase()
+            .includes(this.searchTerm.toLowerCase()))
+      );
     });
     this.currentPage = 1;
     this.updateTotalPages();
