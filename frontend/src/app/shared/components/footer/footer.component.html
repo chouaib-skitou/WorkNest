@@ -7,14 +7,17 @@
         <img src="./worknest-logo.svg" alt="WorkNest Logo" />
       </a>
       <p class="footer-description">
-        The all-in-one workspace for your tasks, projects, and team collaboration
+        The all-in-one workspace for your tasks, projects, and team
+        collaboration
       </p>
       <div class="social-links">
-        <a *ngFor="let social of socialLinks"
-           [href]="social.url"
-           target="_blank"
-           rel="noopener noreferrer"
-           [attr.aria-label]="social.name">
+        <a
+          *ngFor="let social of socialLinks"
+          [href]="social.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          [attr.aria-label]="social.name"
+        >
           <i [class]="'fas fa-' + social.icon"></i>
         </a>
       </div>

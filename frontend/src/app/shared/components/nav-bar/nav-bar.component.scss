@@ -39,7 +39,7 @@ $border-radius: 8px;
 .menu-toggle {
   display: none;
   padding: 0.5rem;
-  color: #4B5563;
+  color: #4b5563;
   transition: color 0.2s ease;
 
   &:hover {
@@ -60,7 +60,7 @@ $border-radius: 8px;
   }
 
   a {
-    color: #4B5563;
+    color: #4b5563;
     text-decoration: none;
     font-size: 0.9375rem;
     font-weight: 500;
@@ -169,9 +169,9 @@ $border-radius: 8px;
     right: 0;
     bottom: 0;
     background: linear-gradient(
-        to bottom right,
-        rgba(248, 249, 250, 0.5),
-        rgba(255, 255, 255, 1)
+      to bottom right,
+      rgba(248, 249, 250, 0.5),
+      rgba(255, 255, 255, 1)
     );
     z-index: 0;
   }

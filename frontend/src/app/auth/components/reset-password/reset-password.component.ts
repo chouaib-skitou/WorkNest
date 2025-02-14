@@ -1,7 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -22,14 +27,17 @@ export class ResetPasswordComponent implements OnInit {
     private route: ActivatedRoute,
     private authService: AuthService
   ) {
-    this.resetForm = this.fb.group({
-      newPassword: ['', [Validators.required, Validators.minLength(8)]],
-      confirmNewPassword: ['', [Validators.required]],
-    }, { validators: ResetPasswordComponent.passwordMatchValidator });
+    this.resetForm = this.fb.group(
+      {
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmNewPassword: ['', [Validators.required]],
+      },
+      { validators: ResetPasswordComponent.passwordMatchValidator }
+    );
   }
 
   ngOnInit() {
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.subscribe((params) => {
       this.token = params.get('token');
       console.log('Token:', this.token); // For debugging
     });
@@ -38,8 +46,11 @@ export class ResetPasswordComponent implements OnInit {
   static passwordMatchValidator(form: FormGroup) {
     const password = form.get('newPassword');
     const confirmPassword = form.get('confirmNewPassword');
-    return password && confirmPassword && password.value === confirmPassword.value
-      ? null : { mismatch: true };
+    return password &&
+      confirmPassword &&
+      password.value === confirmPassword.value
+      ? null
+      : { mismatch: true };
   }
 
   onSubmit() {
@@ -47,20 +58,25 @@ export class ResetPasswordComponent implements OnInit {
       const { newPassword, confirmNewPassword } = this.resetForm.value;
       if (this.token) {
         // If token exists, use it for password reset
-        this.authService.resetPassword(this.token, newPassword, confirmNewPassword)
+        this.authService
+          .resetPassword(this.token, newPassword, confirmNewPassword)
           .subscribe({
             next: () => {
-              this.message = 'Password reset successful. You can now login with your new password.';
+              this.message =
+                'Password reset successful. You can now login with your new password.';
               this.isError = false;
             },
             error: (error) => {
-              this.message = error.error?.message || 'Failed to reset password. Please try again.';
+              this.message =
+                error.error?.message ||
+                'Failed to reset password. Please try again.';
               this.isError = true;
-            }
+            },
           });
       } else {
         // If no token, handle as a password change request
-        this.message = 'No reset token provided. This might be a password change request.';
+        this.message =
+          'No reset token provided. This might be a password change request.';
         this.isError = true;
         // Implement password change logic here if needed
       }

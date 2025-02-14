@@ -41,9 +41,9 @@ section {
     right: 0;
     bottom: 0;
     background: linear-gradient(
-        to bottom right,
-        rgba(248, 249, 250, 0.5),
-        rgba(255, 255, 255, 1)
+      to bottom right,
+      rgba(248, 249, 250, 0.5),
+      rgba(255, 255, 255, 1)
     );
     z-index: 0;
   }
@@ -79,14 +79,14 @@ section {
   .hero-subtitle {
     font-size: 1.25rem;
     line-height: 1.6;
-    color: #4B5563;
+    color: #4b5563;
     margin-bottom: 2rem;
     max-width: 520px;
   }
 
   .hero-caption {
     margin-top: 1rem;
-    color: #6B7280;
+    color: #6b7280;
     font-size: 0.875rem;
   }
 
@@ -232,7 +232,9 @@ section {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s, transform 0.2s;
+  transition:
+    background-color 0.3s,
+    transform 0.2s;
 
   &:hover {
     background: $secondary-color;
@@ -270,7 +272,9 @@ section {
   background: white;
   border-radius: $border-radius;
   text-align: center;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 
   &:hover {
@@ -338,7 +342,9 @@ section {
   padding: 2rem;
   border-radius: $border-radius;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
 
   &:hover {
     transform: translateY(-5px);
