@@ -34,7 +34,7 @@
       <li *ngIf="authService.isLoggedIn()">
         <a href="/tasks">Tasks</a>
       </li>
-      <li *ngIf="authService.isLoggedIn()">
+      <li *ngIf="!authService.isLoggedIn()">
         <a href="/projects">Projects</a>
       </li>
       <li *ngIf="authService.isLoggedIn()">
