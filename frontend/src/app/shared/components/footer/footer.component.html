@@ -1,0 +1,80 @@
+<!-- footer.component.html -->
+<footer class="footer">
+  <div class="footer-content">
+    <!-- Company Info -->
+    <div class="footer-brand">
+      <a href="/" class="footer-logo">
+        <img src="./worknest-logo.svg" alt="WorkNest Logo" />
+      </a>
+      <p class="footer-description">
+        The all-in-one workspace for your tasks, projects, and team collaboration
+      </p>
+      <div class="social-links">
+        <a *ngFor="let social of socialLinks"
+           [href]="social.url"
+           target="_blank"
+           rel="noopener noreferrer"
+           [attr.aria-label]="social.name">
+          <i [class]="'fas fa-' + social.icon"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="footer-links">
+      <!-- Product Links -->
+      <div class="footer-section">
+        <h3>Product</h3>
+        <ul>
+          <li *ngFor="let link of footerLinks.product">
+            <a [href]="link.url">{{ link.name }}</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Company Links -->
+      <div class="footer-section">
+        <h3>Company</h3>
+        <ul>
+          <li *ngFor="let link of footerLinks.company">
+            <a [href]="link.url">{{ link.name }}</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Resources Links -->
+      <div class="footer-section">
+        <h3>Resources</h3>
+        <ul>
+          <li *ngFor="let link of footerLinks.resources">
+            <a [href]="link.url">{{ link.name }}</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Legal Links -->
+      <div class="footer-section">
+        <h3>Legal</h3>
+        <ul>
+          <li *ngFor="let link of footerLinks.legal">
+            <a [href]="link.url">{{ link.name }}</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Bottom -->
+  <div class="footer-bottom">
+    <div class="footer-bottom-content">
+      <p>&copy; {{ currentYear }} WorkNest. All rights reserved.</p>
+      <div class="language-selector">
+        <select aria-label="Select language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</footer>
