@@ -8,7 +8,7 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './profile.component.html',
-  styleUrls: ['./profile.component.scss']
+  styleUrls: ['./profile.component.scss'],
 })
 export class ProfileComponent implements OnInit {
   profile = {
@@ -19,7 +19,7 @@ export class ProfileComponent implements OnInit {
     role: 'ROLE_EMPLOYEE',
     isVerified: true,
     createdAt: new Date('2023-01-01T01:00:00'),
-    updatedAt: new Date('2023-06-15T02:00:00')
+    updatedAt: new Date('2023-06-15T02:00:00'),
   };
 
   isEditing = false;
