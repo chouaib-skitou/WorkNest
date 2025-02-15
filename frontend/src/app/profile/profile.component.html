@@ -1,0 +1,73 @@
+<!-- profile.component.html -->
+<div class="profile-container">
+  <div class="profile-picture">
+    <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="60" cy="60" r="58" fill="#F3F4F6" stroke="#E5E7EB" stroke-width="2"/>
+      <circle cx="60" cy="45" r="20" fill="#D1D5DB"/>
+      <path d="M60 70C43.4315 70 30 83.4315 30 100C30 106.627 35.3726 112 42 112H78C84.6274 112 90 106.627 90 100C90 83.4315 76.5685 70 60 70Z" fill="#D1D5DB"/>
+    </svg>
+  </div>
+
+  <form (ngSubmit)="onSubmit()" #profileForm="ngForm">
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="firstName">First Name</label>
+        <div class="input-wrapper">
+          <input type="text" id="firstName" name="firstName" [(ngModel)]="profile.firstName" [readonly]="!isEditing">
+          <button type="button" class="edit-button" (click)="toggleEdit()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name</label>
+        <div class="input-wrapper">
+          <input type="text" id="lastName" name="lastName" [(ngModel)]="profile.lastName" [readonly]="!isEditing">
+          <button type="button" class="edit-button" (click)="toggleEdit()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <div class="input-wrapper">
+          <input type="email" id="email" name="email" [(ngModel)]="profile.email" [readonly]="!isEditing">
+          <button type="button" class="edit-button" (click)="toggleEdit()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Rest of the form groups remain the same -->
+      <div class="form-group">
+        <label for="role">Role</label>
+        <input type="text" id="role" name="role" [ngModel]="profile.role" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="isVerified">Verified</label>
+        <input type="text" id="isVerified" name="isVerified" [ngModel]="profile.isVerified ? 'Yes' : 'No'" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="createdAt">Created At</label>
+        <input type="text" id="createdAt" name="createdAt" [ngModel]="profile.createdAt | date:'MMM d, yyyy, h:mm:ss a'" readonly>
+      </div>
+
+      <div class="form-group">
+        <label for="updatedAt">Updated At</label>
+        <input type="text" id="updatedAt" name="updatedAt" [ngModel]="profile.updatedAt | date:'MMM d, yyyy, h:mm:ss a'" readonly>
+      </div>
+    </div>
+
+    <button type="submit" *ngIf="showSaveButton" class="save-button">Save Changes</button>
+  </form>
+</div>
