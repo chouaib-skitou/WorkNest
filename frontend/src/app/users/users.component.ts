@@ -1,8 +1,6 @@
-// users.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
 
 interface User {
   id: string;
@@ -18,18 +16,19 @@ interface User {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './users.component.html',
-  styleUrls: ['./users.component.scss'],
+  styleUrls: ['./users.component.scss']
 })
 export class UsersComponent implements OnInit {
   users: User[] = [];
   filteredUsers: User[] = [];
-  pageSize = 6; // Changed to 6 users per page
+  pageSize = 6;
   currentPage = 1;
   totalPages = 1;
   searchTerm = '';
   roleFilter = 'ALL';
+  isAdmin = true;
 
   ngOnInit(): void {
     this.generateMockUsers();
@@ -37,11 +36,7 @@ export class UsersComponent implements OnInit {
   }
 
   generateMockUsers(): void {
-    const roles: User['role'][] = [
-      'ROLE_EMPLOYEE',
-      'ROLE_MANAGER',
-      'ROLE_ADMIN',
-    ];
+    const roles: User['role'][] = ['ROLE_EMPLOYEE', 'ROLE_MANAGER', 'ROLE_ADMIN'];
     for (let i = 1; i <= 18; i++) {
       this.users.push({
         id: `user-${i}`,
@@ -51,20 +46,15 @@ export class UsersComponent implements OnInit {
         role: roles[Math.floor(Math.random() * roles.length)],
         isVerified: Math.random() > 0.5,
         createdAt: new Date(Date.now() - Math.random() * 10000000000),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       });
     }
   }
 
   applyFilters(): void {
-    this.filteredUsers = this.users.filter(
-      (user) =>
-        (
-          user.firstName.toLowerCase() +
-          ' ' +
-          user.lastName.toLowerCase()
-        ).includes(this.searchTerm.toLowerCase()) &&
-        (this.roleFilter === 'ALL' || user.role === this.roleFilter)
+    this.filteredUsers = this.users.filter(user =>
+      (user.firstName.toLowerCase() + ' ' + user.lastName.toLowerCase()).includes(this.searchTerm.toLowerCase()) &&
+      (this.roleFilter === 'ALL' || user.role === this.roleFilter)
     );
     this.totalPages = Math.ceil(this.filteredUsers.length / this.pageSize);
     this.currentPage = Math.min(this.currentPage, this.totalPages);
@@ -83,5 +73,14 @@ export class UsersComponent implements OnInit {
     if (page >= 1 && page <= this.totalPages) {
       this.currentPage = page;
     }
+  }
+
+  isRoleEditable(role: string): boolean {
+    return role !== 'ROLE_ADMIN' && this.isAdmin;
+  }
+
+  onRoleChange(user: User, newRole: string): void {
+    user.role = newRole as 'ROLE_EMPLOYEE' | 'ROLE_MANAGER';
+    console.log(`Changed role for ${user.firstName} ${user.lastName} to ${user.role}`);
   }
 }

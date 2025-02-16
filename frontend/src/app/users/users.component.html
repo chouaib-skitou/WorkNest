@@ -1,4 +1,3 @@
-<!-- users.component.html -->
 <div class="users-container">
   <h1>Users</h1>
 
@@ -9,7 +8,7 @@
       (input)="applyFilters()"
       placeholder="Search users..."
       class="search-input"
-    />
+    >
     <select
       [(ngModel)]="roleFilter"
       (change)="applyFilters()"
@@ -25,27 +24,38 @@
   <div class="table-container">
     <table>
       <thead>
-        <tr>
-          <th>Full Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Verified</th>
-        </tr>
+      <tr>
+        <th>Full Name</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Verified</th>
+      </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of getCurrentPageUsers()">
-          <td>{{ user.firstName }} {{ user.lastName }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role.replace('ROLE_', '') | titlecase }}</td>
-          <td>
-            <span
-              [class.verified]="user.isVerified"
-              [class.not-verified]="!user.isVerified"
+      <tr *ngFor="let user of getCurrentPageUsers()">
+        <td>{{ user.firstName }} {{ user.lastName }}</td>
+        <td>{{ user.email }}</td>
+        <td>
+          <ng-container *ngIf="isRoleEditable(user.role); else staticRole">
+            <select
+              [ngModel]="user.role"
+              (ngModelChange)="onRoleChange(user, $event)"
+              class="role-select-inline"
             >
+              <option value="ROLE_EMPLOYEE">Employee</option>
+              <option value="ROLE_MANAGER">Manager</option>
+            </select>
+          </ng-container>
+          <ng-template #staticRole>
+            {{ user.role.replace('ROLE_', '') | titlecase }}
+          </ng-template>
+        </td>
+        <td>
+            <span [class.verified]="user.isVerified" [class.not-verified]="!user.isVerified">
               {{ user.isVerified ? 'Yes' : 'No' }}
             </span>
-          </td>
-        </tr>
+        </td>
+      </tr>
       </tbody>
     </table>
   </div>
