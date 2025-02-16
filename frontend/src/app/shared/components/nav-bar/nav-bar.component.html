@@ -28,8 +28,14 @@
     </button>
 
     <ul class="nav-links" [class.active]="isMenuOpen">
+      <li *ngIf="!authService.isLoggedIn()">
+        <a href="/">Home</a>
+      </li>
       <li *ngIf="authService.isLoggedIn()">
         <a href="/dashboard">Dashboard</a>
+      </li>
+      <li *ngIf="!authService.isLoggedIn()">
+        <a href="/profile">Profile</a>
       </li>
       <li *ngIf="authService.isLoggedIn()">
         <a href="/tasks">Tasks</a>
@@ -37,12 +43,13 @@
       <li *ngIf="!authService.isLoggedIn()">
         <a href="/projects">Projects</a>
       </li>
+      <li *ngIf="!authService.isLoggedIn()">
+        <a href="/users">Users</a>
+      </li>
       <li *ngIf="authService.isLoggedIn()">
         <a href="/team">Team</a>
       </li>
-      <li *ngIf="authService.isLoggedIn()">
-        <a href="/profile">Profile</a>
-      </li>
+
 
       <!-- Show Logout if user is logged in -->
       <li *ngIf="authService.isLoggedIn()">
