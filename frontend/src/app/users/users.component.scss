@@ -63,7 +63,8 @@ $border-color: #e0e0e0;
     border-collapse: separate;
     border-spacing: 0;
 
-    th, td {
+    th,
+    td {
       padding: 1rem;
       text-align: left;
       border-bottom: 1px solid $border-color;
@@ -91,7 +92,8 @@ $border-color: #e0e0e0;
   }
 }
 
-.verified, .not-verified {
+.verified,
+.not-verified {
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
@@ -100,13 +102,13 @@ $border-color: #e0e0e0;
 }
 
 .verified {
-  background-color: #DEF7EC;
-  color: #03543F;
+  background-color: #def7ec;
+  color: #03543f;
 }
 
 .not-verified {
-  background-color: #FDE8E8;
-  color: #9B1C1C;
+  background-color: #fde8e8;
+  color: #9b1c1c;
 }
 
 .pagination {
@@ -191,7 +193,8 @@ $border-color: #e0e0e0;
     table {
       font-size: 0.8rem;
 
-      th, td {
+      th,
+      td {
         padding: 0.75rem;
       }
     }

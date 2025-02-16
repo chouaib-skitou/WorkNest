@@ -9,7 +9,7 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { HomeComponent } from './home/home.component';
 import { ProjectShowComponent } from './project-show/project-show.component';
 import { ProfileComponent } from './profile/profile.component';
-import {UsersComponent} from './users/users.component';
+import { UsersComponent } from './users/users.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
