@@ -8,6 +8,8 @@ import { ProjectsComponent } from './projects/projects.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { HomeComponent } from './home/home.component';
 import { ProjectShowComponent } from './project-show/project-show.component';
+import { ProfileComponent } from './profile/profile.component';
+import { UsersComponent } from './users/users.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -16,9 +18,11 @@ export const routes: Routes = [
   { path: 'reset-password-request', component: ResetPasswordRequestComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
-  { path: 'profile', component: ProjectsComponent, canActivate: [AuthGuard] },
+  { path: 'profiles', component: ProjectsComponent, canActivate: [AuthGuard] },
   { path: 'projects', component: ProjectsComponent },
   { path: 'projects/:id', component: ProjectShowComponent },
+  { path: 'profile', component: ProfileComponent },
+  { path: 'users', component: UsersComponent },
   //{ path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // Protected
   { path: '**', redirectTo: '/login' },
 ];

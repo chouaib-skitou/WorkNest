@@ -1,0 +1,94 @@
+<div class="users-container">
+  <h1>Users</h1>
+
+  <div class="filters-container">
+    <input
+      type="text"
+      [(ngModel)]="searchTerm"
+      (input)="applyFilters()"
+      placeholder="Search users..."
+      class="search-input"
+    />
+    <select
+      [(ngModel)]="roleFilter"
+      (change)="applyFilters()"
+      class="role-select"
+    >
+      <option value="ALL">All Roles</option>
+      <option value="ROLE_EMPLOYEE">Employee</option>
+      <option value="ROLE_MANAGER">Manager</option>
+      <option value="ROLE_ADMIN">Admin</option>
+    </select>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Verified</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of getCurrentPageUsers()">
+          <td>{{ user.firstName }} {{ user.lastName }}</td>
+          <td>{{ user.email }}</td>
+          <td>
+            <ng-container *ngIf="isRoleEditable(user.role); else staticRole">
+              <select
+                [ngModel]="user.role"
+                (ngModelChange)="onRoleChange(user, $event)"
+                class="role-select-inline"
+              >
+                <option value="ROLE_EMPLOYEE">Employee</option>
+                <option value="ROLE_MANAGER">Manager</option>
+              </select>
+            </ng-container>
+            <ng-template #staticRole>
+              {{ user.role.replace('ROLE_', '') | titlecase }}
+            </ng-template>
+          </td>
+          <td>
+            <span
+              [class.verified]="user.isVerified"
+              [class.not-verified]="!user.isVerified"
+            >
+              {{ user.isVerified ? 'Yes' : 'No' }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <button
+      [disabled]="currentPage === 1"
+      (click)="setPage(currentPage - 1)"
+      class="pagination-button"
+    >
+      Previous
+    </button>
+
+    <div class="page-numbers">
+      <button
+        *ngFor="let page of getPages()"
+        (click)="setPage(page)"
+        class="page-number"
+        [class.active]="currentPage === page"
+      >
+        {{ page }}
+      </button>
+    </div>
+
+    <button
+      [disabled]="currentPage === totalPages"
+      (click)="setPage(currentPage + 1)"
+      class="pagination-button"
+    >
+      Next
+    </button>
+  </div>
+</div>
