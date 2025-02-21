@@ -1,5 +1,12 @@
 import express from "express";
-import { getUsers, getUserById, createUser, updateUser, patchUser, deleteUser } from "../controllers/user.controller.js";
+import {
+  getUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  patchUser,
+  deleteUser,
+} from "../controllers/user.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -16,10 +23,47 @@ const router = express.Router();
  * /api/users:
  *   get:
  *     summary: Get all users
- *     description: Retrieves a list of all users. Only accessible by ROLE_ADMIN and ROLE_MANAGER.
+ *     description: Retrieves a paginated list of users with optional filtering. Only accessible by ROLE_ADMIN and ROLE_MANAGER.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of users per page
+ *       - in: query
+ *         name: firstName
+ *         schema:
+ *           type: string
+ *         description: Filter by first name (case-insensitive)
+ *       - in: query
+ *         name: lastName
+ *         schema:
+ *           type: string
+ *         description: Filter by last name (case-insensitive)
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         description: Filter by email (case-insensitive)
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
+ *         description: Filter by user role
+ *       - in: query
+ *         name: isVerified
+ *         schema:
+ *           type: boolean
+ *         description: Filter by verification status
  *     responses:
  *       200:
  *         description: Successfully retrieved users list.
@@ -63,7 +107,7 @@ router.get("/:id", authMiddleware, getUserById);
  * /api/users:
  *   post:
  *     summary: Create a new user
- *     description: Creates a new user. Only accessible by ROLE_ADMIN.
+ *     description: Creates a new user. Only accessible by ROLE_ADMIN. Users cannot set their role, verification status, or manually specify an ID.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -73,6 +117,7 @@ router.get("/:id", authMiddleware, getUserById);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [firstName, lastName, email, password]
  *             properties:
  *               firstName:
  *                 type: string
@@ -82,9 +127,6 @@ router.get("/:id", authMiddleware, getUserById);
  *                 type: string
  *               password:
  *                 type: string
- *               role:
- *                 type: string
- *                 enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
  *     responses:
  *       201:
  *         description: User created successfully.
@@ -100,7 +142,7 @@ router.post("/", authMiddleware, createUser);
  * /api/users/{id}:
  *   put:
  *     summary: Update user information
- *     description: Updates a user's details. Only accessible by ROLE_ADMIN or the user himself.
+ *     description: Updates a user's details. Only accessible by ROLE_ADMIN or the user himself. Users cannot update their ID, role, verification status, or password.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -124,9 +166,6 @@ router.post("/", authMiddleware, createUser);
  *                 type: string
  *               email:
  *                 type: string
- *               role:
- *                 type: string
- *                 enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
  *     responses:
  *       200:
  *         description: User updated successfully.
@@ -143,8 +182,8 @@ router.put("/:id", authMiddleware, updateUser);
  * @swagger
  * /api/users/{id}:
  *   patch:
- *     summary: Partially update user details
- *     description: Allows partial update of a user's details. Only accessible by ROLE_ADMIN or the user himself.
+ *     summary: Partially update user information
+ *     description: Allows partial update of user details. Only accessible by ROLE_ADMIN or the user himself. Users cannot update their ID, role, verification status, or password.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -168,9 +207,6 @@ router.put("/:id", authMiddleware, updateUser);
  *                 type: string
  *               email:
  *                 type: string
- *               role:
- *                 type: string
- *                 enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
  *     responses:
  *       200:
  *         description: User updated successfully.
