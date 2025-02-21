@@ -20,7 +20,7 @@ export const register = [
       // Check if the email already exists
       const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
-        return res.status(400).json({ error: "Email already in use" });
+        return res.status(409).json({ error: "Email already in use" });
       }
 
       // Hash password
@@ -120,7 +120,7 @@ export const resetPasswordRequest = [
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      return res.status(400).json({ error: "User with this email does not exist." });
+      return res.status(404).json({ error: "User with this email does not exist." });
     }
 
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
@@ -155,7 +155,7 @@ export const resetPassword = [
     });
 
     if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
-      return res.status(401).json({ error: "Invalid or expired reset token." });
+      return res.status(400).json({ error: "Invalid or expired reset token." });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
