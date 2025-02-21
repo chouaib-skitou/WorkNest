@@ -6,6 +6,7 @@ import {
   resetPasswordRequest,
   resetPassword,
   refreshToken,
+  authorize,
 } from "../controllers/auth.controller.js";
 
 const router = express.Router();
@@ -215,5 +216,28 @@ router.post("/reset-password/:token", resetPassword);
  *         description: User not found.
  */
 router.post("/refresh", refreshToken);
+
+/**
+ * @swagger
+ * /auth/authorize:
+ *   get:
+ *     summary: Validate token and return user data
+ *     description: Checks if the provided JWT token is valid and returns the authenticated user's details.
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid, user data returned.
+ *       400:
+ *         description: Invalid or expired token.
+ *       401:
+ *         description: Unauthorized, token required.
+ *       403:
+ *         description: User is not verified.
+ *       404:
+ *         description: User not found.
+ */
+router.get("/authorize", authorize);
 
 export default router;
