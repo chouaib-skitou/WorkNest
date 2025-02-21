@@ -16,14 +16,65 @@ export const getUsers = [
   checkRole(["ROLE_ADMIN", "ROLE_MANAGER"]),
   async (req, res) => {
     try {
-      const users = await prisma.user.findMany();
-      const transformedUsers = users.map(user => new UserDTO(user));
-      res.json(transformedUsers);
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const where = {};
+
+      if (req.query.firstName) {
+        where.firstName = {
+          contains: req.query.firstName,
+          mode: "insensitive", // case-insensitive
+        };
+      }
+      
+      if (req.query.lastName) {
+        where.lastName = {
+          contains: req.query.lastName,
+          mode: "insensitive",
+        };
+      }
+      if (req.query.email) {
+        where.email = {
+          contains: req.query.email,
+          mode: "insensitive",
+        };
+      }
+
+      if (req.query.role) {
+        where.role = req.query.role;
+      }
+      if (req.query.isVerified !== undefined) {
+        // isVerified will be "true"/"false" as a string
+        where.isVerified = req.query.isVerified === "true";
+      }
+
+      const [users, totalCount] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" }, 
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      // Transform user data with UserDTO
+      const transformedUsers = users.map((user) => new UserDTO(user));
+
+      // Return pagination info + data
+      res.json({
+        data: transformedUsers,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      });
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 // Get a specific user by ID (Only ROLE_ADMIN or the user himself)
@@ -96,7 +147,7 @@ export const updateUser = [
 
 // Partially update user (PATCH)
 export const patchUser = [
-  // updateUserValidationRules,
+  updateUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {

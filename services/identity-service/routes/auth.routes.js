@@ -22,7 +22,7 @@ const router = express.Router();
  * /auth/register:
  *   post:
  *     summary: Register a new user
- *     description: Creates a new user account and sends an email verification link.
+ *     description: Creates a new user account and sends an email verification link. Users cannot manually set role or verification status.
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -49,8 +49,8 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: User registered successfully, verification email sent.
- *       400:
- *         description: Invalid input data.
+ *       409:
+ *         description: Email already in use.
  */
 router.post("/register", register);
 
@@ -59,7 +59,7 @@ router.post("/register", register);
  * /auth/login:
  *   post:
  *     summary: User login
- *     description: Authenticates a user and returns a JWT token.
+ *     description: Authenticates a user and returns a JWT token. User must be verified before logging in.
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -80,8 +80,12 @@ router.post("/register", register);
  *     responses:
  *       200:
  *         description: Login successful, JWT token returned.
+ *       400:
+ *         description: Missing required fields.
  *       401:
  *         description: Unauthorized, incorrect credentials.
+ *       403:
+ *         description: Forbidden, user not verified.
  */
 router.post("/login", login);
 
@@ -90,7 +94,7 @@ router.post("/login", login);
  * /auth/verify-email/{userId}/{token}:
  *   get:
  *     summary: Verify email
- *     description: Verifies a user's email address.
+ *     description: Verifies a user's email address using a verification token.
  *     tags: [Authentication]
  *     parameters:
  *       - in: path
@@ -115,50 +119,6 @@ router.get("/verify-email/:userId/:token", verifyEmail);
 
 /**
  * @swagger
- * /auth/refresh:
- *   post:
- *     summary: Refresh access token
- *     description: Generates a new access token if the provided refresh token is valid.
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *                 description: Valid refresh token to obtain a new access token.
- *     responses:
- *       200:
- *         description: New access token generated successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 accessToken:
- *                   type: string
- *                   description: The newly generated access token.
- *                 expiresIn:
- *                   type: string
- *                   description: The expiration time of the access token.
- *       400:
- *         description: Bad request, missing refresh token.
- *       401:
- *         description: Unauthorized, invalid or expired refresh token.
- *       403:
- *         description: Forbidden, user not verified.
- *       404:
- *         description: User not found.
- */
-router.post("/refresh", refreshToken);
-
-/**
- * @swagger
  * /auth/reset-password-request:
  *   post:
  *     summary: Request password reset
@@ -179,6 +139,8 @@ router.post("/refresh", refreshToken);
  *     responses:
  *       200:
  *         description: Password reset email sent if user exists.
+ *       404:
+ *         description: User with this email does not exist.
  */
 router.post("/reset-password-request", resetPasswordRequest);
 
@@ -187,7 +149,7 @@ router.post("/reset-password-request", resetPasswordRequest);
  * /auth/reset-password/{token}:
  *   post:
  *     summary: Reset password
- *     description: Resets a user's password using a valid reset token.
+ *     description: Resets a user's password using a valid reset token. Passwords must meet security requirements.
  *     tags: [Authentication]
  *     parameters:
  *       - in: path
@@ -209,9 +171,11 @@ router.post("/reset-password-request", resetPasswordRequest);
  *               newPassword:
  *                 type: string
  *                 format: password
+ *                 description: Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character.
  *               confirmNewPassword:
  *                 type: string
  *                 format: password
+ *                 description: Must match the new password.
  *     responses:
  *       200:
  *         description: Password successfully reset.
@@ -219,5 +183,37 @@ router.post("/reset-password-request", resetPasswordRequest);
  *         description: Invalid or expired token, or passwords do not match.
  */
 router.post("/reset-password/:token", resetPassword);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: Generates a new access token if the provided refresh token is valid.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: New access token generated successfully.
+ *       400:
+ *         description: Bad request, missing refresh token.
+ *       401:
+ *         description: Unauthorized, invalid or expired refresh token.
+ *       403:
+ *         description: Forbidden, user not verified.
+ *       404:
+ *         description: User not found.
+ */
+router.post("/refresh", refreshToken);
 
 export default router;
