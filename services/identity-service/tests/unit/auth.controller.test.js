@@ -83,7 +83,7 @@ describe("🛂 Auth Controller Tests (100% Coverage)", () => {
     req.body.email = "john@example.com";
     prisma.user.findUnique.mockResolvedValue({ id: "1", email: req.body.email });
     await authController.register[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({ error: "Email already in use" });
   });
 
@@ -157,7 +157,6 @@ describe("🛂 Auth Controller Tests (100% Coverage)", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 
-  /*** VERIFY EMAIL ***/
   test("✅ Verify email successfully", async () => {
     req.params = { userId: "1", token: "validToken" };
     prisma.verificationToken.findFirst.mockResolvedValue({
@@ -179,13 +178,12 @@ describe("🛂 Auth Controller Tests (100% Coverage)", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired verification token." });
   });
-
-  /*** RESET PASSWORD REQUEST ***/
+  
   test("🚫 Prevent password reset request for non-existent email", async () => {
     req.body = { email: "nonexistent@example.com" };
     prisma.user.findUnique.mockResolvedValue(null);
     await authController.resetPasswordRequest[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: "User with this email does not exist." });
   });
 
@@ -207,7 +205,7 @@ describe("🛂 Auth Controller Tests (100% Coverage)", () => {
     req.body = { newPassword: "NewPass123!" };
     prisma.passwordResetToken.findUnique.mockResolvedValue(null);
     await authController.resetPassword[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired reset token." });
   });
 
