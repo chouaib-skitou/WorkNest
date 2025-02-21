@@ -449,27 +449,19 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Only administrators can delete users" });
   });
 
-  /************************************
-  * Additional Pagination & Filter Tests
-  * for getUsers
-  ************************************/
   test("✅ getUsers with no query => default page=1, limit=10, no filters", async () => {
-    // 1) Manually call the checkRole middleware => getUsers[0]
     const mockNext = jest.fn();
     userController.getUsers[0](req, res, mockNext);
     expect(mockNext).toHaveBeenCalled();
 
-    // 2) Set up Prisma mock
     prisma.user.findMany.mockResolvedValue([
       { id: "1", firstName: "John" },
       { id: "2", firstName: "Jane" },
     ]);
     prisma.user.count.mockResolvedValue(2);
 
-    // 3) Call the final function => getUsers[1]
     await userController.getUsers[1](req, res);
 
-    // 4) Check the call
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: {},
       skip: 0,
@@ -477,8 +469,6 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
       orderBy: { createdAt: "desc" },
     });
     expect(prisma.user.count).toHaveBeenCalledWith({ where: {} });
-
-    // 5) Check the output
     expect(res.json).toHaveBeenCalledWith({
       data: expect.arrayContaining([expect.any(UserDTO)]),
       page: 1,
@@ -489,12 +479,10 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
   });
 
   test("✅ getUsers with custom page=2 & limit=5", async () => {
-    // role check
     const mockNext = jest.fn();
     userController.getUsers[0](req, res, mockNext);
     expect(mockNext).toHaveBeenCalled();
 
-    // 2) Provide pagination params
     req.query.page = "2";
     req.query.limit = "5";
 
@@ -521,12 +509,10 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
   });
 
   test("✅ getUsers filter by firstName, lastName, email => 'contains'", async () => {
-    // role check
     const mockNext = jest.fn();
     userController.getUsers[0](req, res, mockNext);
     expect(mockNext).toHaveBeenCalled();
   
-    // Provide filters
     req.query.firstName = "john";
     req.query.lastName = "doe";
     req.query.email = "@gmail.com";
@@ -543,7 +529,6 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
   
     await userController.getUsers[1](req, res);
   
-    // Should build a where object with 'contains'
     expect(prisma.user.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -563,8 +548,6 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
         email: { contains: "@gmail.com", mode: "insensitive" },
       }),
     });
-  
-    // check response
     expect(res.json).toHaveBeenCalledWith({
       data: expect.arrayContaining([
         expect.objectContaining({ id: "3" }),
@@ -577,12 +560,10 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
   });
 
   test("✅ getUsers with isVerified=false => boolean false", async () => {
-    // role check
     const mockNext = jest.fn();
     userController.getUsers[0](req, res, mockNext);
     expect(mockNext).toHaveBeenCalled();
 
-    // Provide isVerified="false"
     req.query.isVerified = "false";
 
     prisma.user.findMany.mockResolvedValue([]);
@@ -608,12 +589,10 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
   });
 
   test("✅ getUsers uses both pagination & filters together", async () => {
-    // Check role
     const mockNext = jest.fn();
     userController.getUsers[0](req, res, mockNext);
     expect(mockNext).toHaveBeenCalled();
 
-    // Provide combination of pagination + filters
     req.query.page = "3";
     req.query.limit = "2";
     req.query.firstName = "B";
@@ -622,7 +601,6 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
     req.query.role = "ROLE_MANAGER";
 
     prisma.user.findMany.mockResolvedValue([
-      // Suppose we only find 1 user on page 3
       {
         id: "5",
         firstName: "Bob",
@@ -637,7 +615,7 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: expect.objectContaining({
-        firstName: expect.any(Object), // e.g. startsWith or contains "B"
+        firstName: expect.any(Object), 
         email: { contains: "company.com", mode: "insensitive" },
         role: "ROLE_MANAGER",
         isVerified: true,
