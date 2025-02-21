@@ -4,12 +4,12 @@ import { generateToken, generateRefreshToken, verifyToken } from "../config/jwt.
 import { sendMail } from "../config/mail.js";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { loginValidationRules, registerValidationRules, refreshTokenRules } from "../validators/auth.validator.js";
+import { loginValidationRules, registerValidationRules, refreshTokenRules, resetPasswordRequestRules, resetPasswordRules } from "../validators/auth.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
 
 dotenv.config();
 
-// 📝 User Registration
+// User Registration
 export const register = [
   registerValidationRules,  // Apply validation rules
   validateRequest,          // Middleware to check validation results
@@ -59,7 +59,7 @@ export const register = [
   }
 ];
 
-// 📝 User Login
+// User Login
 export const login = [
   loginValidationRules, // Apply validation rules
   validateRequest,      // Middleware to check validation results
@@ -85,7 +85,7 @@ export const login = [
       res.json({
         accessToken,
         refreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+        expiresIn: process.env.JWT_EXPIRES_IN,
       });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
@@ -93,7 +93,7 @@ export const login = [
   }
 ];
 
-// 📝 Verify Email
+// Verify Email
 export const verifyEmail = async (req, res) => {
   const { userId, token } = req.params;
 
@@ -111,68 +111,66 @@ export const verifyEmail = async (req, res) => {
   res.redirect(`${process.env.FRONTEND_URL}/login`);
 };
 
-// 🔄 Request Password Reset
-export const resetPasswordRequest = async (req, res) => {
-  const { email } = req.body;
-  const user = await prisma.user.findUnique({ where: { email } });
+// Request Password Reset
+export const resetPasswordRequest = [
+  resetPasswordRequestRules,
+  validateRequest,  // Middleware to check validation results
+  async (req, res) => {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
-    return res.status(400).json({ error: "User with this email does not exist." });
-  }
+    if (!user) {
+      return res.status(400).json({ error: "User with this email does not exist." });
+    }
 
-  // 🔹 Delete any existing password reset token for the user
-  await prisma.passwordResetToken.deleteMany({
-    where: { userId: user.id }
-  });
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
-  // 🔹 Generate a new token
-  const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-  // 🔹 Store new token in the database
-  await prisma.passwordResetToken.create({
-    data: { userId: user.id, token: resetToken, expiresAt: new Date(Date.now() + 3600000) }, // 1 hour expiry
-  });
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, token: resetToken, expiresAt: new Date(Date.now() + 3600000) }, 
+    });
 
-  // 🔹 Send password reset email
-  await sendMail(
+    await sendMail(
       user.email,
       "Reset Your Password",
       `Click here to reset your password: ${process.env.FRONTEND_URL}/reset-password/${resetToken}`,
       `<a href="${process.env.FRONTEND_URL}/reset-password/${resetToken}">Reset Password</a>`
-  );
+    );
 
-  res.json({ message: "Password reset link sent to your email." });
-};
-
-
-// 🔄 Reset Password
-export const resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { newPassword, confirmNewPassword } = req.body;
-
-  if (newPassword !== confirmNewPassword) {
-    return res.status(400).json({ error: "Passwords do not match." });
+    res.json({ message: "Password reset link sent to your email." });
   }
+];
 
-  const resetTokenEntry = await prisma.passwordResetToken.findUnique({
-    where: { token },
-  });
+// Reset Password
+export const resetPassword = [
+  resetPasswordRules,
+  validateRequest,
+  async (req, res) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
 
-  if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
-    return res.status(400).json({ error: "Invalid or expired reset token." });
+    const resetTokenEntry = await prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
+
+    if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
+      return res.status(401).json({ error: "Invalid or expired reset token." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: resetTokenEntry.userId },
+      data: { password: hashedPassword },
+    });
+
+    await prisma.passwordResetToken.delete({ where: { token } });
+
+    res.status(200).json({ message: "Password reset successful. You can now log in with your new password." });
   }
+];
 
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
-    where: { id: resetTokenEntry.userId },
-    data: { password: hashedPassword },
-  });
-
-  await prisma.passwordResetToken.delete({ where: { token } });
-
-  res.status(200).json({ message: "Password reset successful. You can now log in with your new password." });
-};
-
+// Refresh Token
 export const refreshToken = [
   refreshTokenRules,  
   validateRequest, 
@@ -201,7 +199,7 @@ export const refreshToken = [
       res.json({
         accessToken,
         refreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+        expiresIn: process.env.JWT_EXPIRES_IN,
       });
     } catch (error) {
       res.status(500).json({ error: "Internal server error" });
