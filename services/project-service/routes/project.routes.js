@@ -84,7 +84,6 @@ const router = express.Router();
  */
 router.get("/", authMiddleware, getProjects);
 
-
 /**
  * @swagger
  * /api/projects/{id}:

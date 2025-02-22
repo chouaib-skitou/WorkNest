@@ -6,8 +6,8 @@ import helmet from "helmet";
 import { prisma } from "./config/database.js";
 import { setupSwagger } from "./docs/swagger.js";
 import projectRoutes from "./routes/project.routes.js";
-import stageRoutes from "./routes/stage.routes.js"; 
-import taskRoutes from "./routes/task.routes.js"; 
+import stageRoutes from "./routes/stage.routes.js";
+import taskRoutes from "./routes/task.routes.js";
 
 dotenv.config();
 

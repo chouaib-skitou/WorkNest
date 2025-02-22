@@ -13,7 +13,8 @@ const swaggerOptions = {
     openapi: "3.0.0",
     info: {
       title: "Project Service API",
-      description: "API documentation for managing projects and tasks within WorkNest",
+      description:
+        "API documentation for managing projects and tasks within WorkNest",
       version: "1.0.0",
       contact: {
         name: "WorkNest Team",

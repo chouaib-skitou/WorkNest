@@ -23,7 +23,7 @@ describe("✅ StageDTO Tests", () => {
       position: stageData.position,
       color: stageData.color,
       projectId: stageData.projectId,
-      tasks: stageData.tasks.map(task => new TaskDTO(task)), // ✅ Ensures TaskDTO mapping
+      tasks: stageData.tasks.map((task) => new TaskDTO(task)), // ✅ Ensures TaskDTO mapping
     });
   });
 

@@ -131,7 +131,9 @@ describe("🛠 Task Controller Tests", () => {
     await taskController.createTask[2](req, res);
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: "A task with this title already exists for this project" });
+    expect(res.json).toHaveBeenCalledWith({
+      error: "A task with this title already exists for this project",
+    });
   });
 
   test("✅ Update task (200)", async () => {
@@ -149,7 +151,11 @@ describe("🛠 Task Controller Tests", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Task updated successfully",
-      task: new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" }),
+      task: new TaskDTO({
+        ...taskData,
+        title: "updated task",
+        priority: "LOW",
+      }),
     });
   });
 
@@ -168,27 +174,26 @@ describe("🛠 Task Controller Tests", () => {
   test("✅ Patch task - Convert title to lowercase", async () => {
     req.params.id = taskData.id;
     req.body = { title: "UPDATED TASK" };
-  
+
     prisma.task.update.mockResolvedValue({
       ...taskData,
       title: "updated task",
     });
-  
+
     await taskController.patchTask[2](req, res);
-  
+
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: req.params.id },
       data: { title: "updated task" },
       include: { Project: true, Stage: true }, // Add this to match the actual function
     });
-  
+
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Task updated successfully",
       task: new TaskDTO({ ...taskData, title: "updated task" }),
     });
   });
-  
 
   test("🚫 Patch task - No valid fields provided (400)", async () => {
     req.params.id = taskData.id;
@@ -197,7 +202,9 @@ describe("🛠 Task Controller Tests", () => {
     await taskController.patchTask[2](req, res);
 
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "No valid fields provided for update" });
+    expect(res.json).toHaveBeenCalledWith({
+      error: "No valid fields provided for update",
+    });
   });
 
   test("✅ Delete task (200)", async () => {
@@ -207,7 +214,9 @@ describe("🛠 Task Controller Tests", () => {
     await taskController.deleteTask[2](req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ message: "Task deleted successfully" });
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Task deleted successfully",
+    });
   });
 
   test("🚫 Delete task - Internal Server Error (500)", async () => {
@@ -230,23 +239,23 @@ describe("🛠 Task Controller Tests", () => {
       assignedTo: "user-uuid",
       images: ["https://example.com/task-image.png"],
     };
-  
+
     prisma.task.create.mockRejectedValue(new Error("Database error"));
-  
+
     await taskController.createTask[2](req, res);
-  
+
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
-  
+
   test("🚫 Update task - Duplicate Title Conflict (409)", async () => {
     req.params.id = "task-uuid";
     req.body = { title: "Updated Task" };
-  
+
     prisma.task.update.mockRejectedValue({ code: "P2002" });
-  
+
     await taskController.updateTask[2](req, res);
-  
+
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({
       error: "A task with this title already exists for this project",
@@ -256,11 +265,11 @@ describe("🛠 Task Controller Tests", () => {
   test("🚫 Patch task - Duplicate Title Conflict (409)", async () => {
     req.params.id = "task-uuid";
     req.body = { title: "Updated Task" };
-  
+
     prisma.task.update.mockRejectedValue({ code: "P2002" });
-  
+
     await taskController.patchTask[2](req, res);
-  
+
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({
       error: "A task with this title already exists for this project",
@@ -270,11 +279,11 @@ describe("🛠 Task Controller Tests", () => {
   test("🚫 Patch task - Internal Server Error (500)", async () => {
     req.params.id = "task-uuid";
     req.body = { title: "Updated Task" };
-  
+
     prisma.task.update.mockRejectedValue(new Error("Database error"));
-  
+
     await taskController.patchTask[2](req, res);
-  
+
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
@@ -282,7 +291,7 @@ describe("🛠 Task Controller Tests", () => {
   test("✅ Patch task - Ignore undefined values", async () => {
     req.params.id = "task-uuid";
     req.body = { priority: "LOW", title: undefined }; // `title` is undefined and should be ignored
-  
+
     prisma.task.update.mockResolvedValue({
       id: "task-uuid",
       title: "existing task",
@@ -295,15 +304,15 @@ describe("🛠 Task Controller Tests", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-  
+
     await taskController.patchTask[2](req, res);
-  
+
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: req.params.id },
       data: { priority: "LOW" }, // `title` should NOT be in data
       include: { Stage: true, Project: true },
     });
-  
+
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Task updated successfully",
@@ -325,20 +334,20 @@ describe("🛠 Task Controller Tests", () => {
   test("✅ Update task - No title provided (else path)", async () => {
     req.params.id = "task-uuid";
     req.body = { priority: "LOW" }; // No title in the request
-  
+
     prisma.task.update.mockResolvedValue({
       ...taskData,
       priority: "LOW",
     });
-  
+
     await taskController.updateTask[2](req, res);
-  
+
     expect(prisma.task.update).toHaveBeenCalledWith({
       where: { id: req.params.id },
       data: { priority: "LOW" }, // Title should NOT be included
       include: { Stage: true, Project: true },
     });
-  
+
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Task updated successfully",
@@ -347,6 +356,5 @@ describe("🛠 Task Controller Tests", () => {
         priority: "LOW",
       }),
     });
-  });  
-  
+  });
 });

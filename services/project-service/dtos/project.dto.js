@@ -12,6 +12,8 @@ export class ProjectDTO {
     this.createdBy = project.createdBy;
     this.managerId = project.managerId;
     this.employeeIds = project.employeeIds;
-    this.stages = project.stages ? project.stages.map(stage => new StageDTO(stage)) : [];
+    this.stages = project.stages
+      ? project.stages.map((stage) => new StageDTO(stage))
+      : [];
   }
 }

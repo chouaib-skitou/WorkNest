@@ -33,7 +33,7 @@ describe("✅ ProjectDTO Tests", () => {
       createdBy: projectData.createdBy,
       managerId: projectData.managerId,
       employeeIds: projectData.employeeIds,
-      stages: projectData.stages.map(stage => new StageDTO(stage)), // ✅ Ensures StageDTO mapping
+      stages: projectData.stages.map((stage) => new StageDTO(stage)), // ✅ Ensures StageDTO mapping
     });
   });
 

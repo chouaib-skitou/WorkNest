@@ -1,14 +1,13 @@
 import { prisma } from "../config/database.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
-import { 
-  createStageValidation, 
-  updateStageValidation, 
-  patchStageValidation, 
-  deleteStageValidation, 
-  getStageByIdValidation 
+import {
+  createStageValidation,
+  updateStageValidation,
+  patchStageValidation,
+  deleteStageValidation,
+  getStageByIdValidation,
 } from "../validators/stage.validator.js";
 import { StageDTO } from "../dtos/stage.dto.js";
-
 
 /**
  * @desc Get all stages (with pagination)
@@ -16,66 +15,64 @@ import { StageDTO } from "../dtos/stage.dto.js";
  * @access Public
  */
 export const getStages = async (req, res) => {
-    try {
-      const parsedPage = parseInt(req.query.page);
-      const parsedLimit = parseInt(req.query.limit);
-      const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
-      const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
-      const skip = (page - 1) * limit;
-  
-      const [stages, totalCount] = await Promise.all([
-        prisma.stage.findMany({
-          skip,
-          take: limit,
-          include: { tasks: true }, // Include related tasks
-        }),
-        prisma.stage.count(),
-      ]);
-  
-      const transformedStages = stages.map((stage) => new StageDTO(stage));
-  
-      res.json({
-        data: transformedStages,
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      });
-    } catch (error) {
-      console.error("Error fetching stages", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  };
+  try {
+    const parsedPage = parseInt(req.query.page);
+    const parsedLimit = parseInt(req.query.limit);
+    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
+    const skip = (page - 1) * limit;
 
-  
+    const [stages, totalCount] = await Promise.all([
+      prisma.stage.findMany({
+        skip,
+        take: limit,
+        include: { tasks: true }, // Include related tasks
+      }),
+      prisma.stage.count(),
+    ]);
+
+    const transformedStages = stages.map((stage) => new StageDTO(stage));
+
+    res.json({
+      data: transformedStages,
+      page,
+      limit,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+    });
+  } catch (error) {
+    console.error("Error fetching stages", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 /**
  * @desc Get a stage by ID
  * @route GET /api/stages/:id
  * @access Public
  */
 export const getStageById = [
-    getStageByIdValidation,
-    validateRequest,
-    async (req, res) => {
-      try {
-        const { id } = req.params;
-        const stage = await prisma.stage.findUnique({
-          where: { id },
-          include: { tasks: true }, // Ensures tasks are retrieved
-        });
-  
-        if (!stage) {
-          return res.status(404).json({ error: "Stage not found" });
-        }
-  
-        res.status(200).json(new StageDTO(stage)); // Ensures tasks are transformed into DTO
-      } catch (error) {
-        console.error("Error fetching stage by ID:", error);
-        res.status(500).json({ error: "Internal server error" });
+  getStageByIdValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const stage = await prisma.stage.findUnique({
+        where: { id },
+        include: { tasks: true }, // Ensures tasks are retrieved
+      });
+
+      if (!stage) {
+        return res.status(404).json({ error: "Stage not found" });
       }
+
+      res.status(200).json(new StageDTO(stage)); // Ensures tasks are transformed into DTO
+    } catch (error) {
+      console.error("Error fetching stage by ID:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-  ];
-  
+  },
+];
 
 /**
  * @desc Create a new stage
@@ -83,32 +80,37 @@ export const getStageById = [
  * @access Public
  */
 export const createStage = [
-    createStageValidation,
-    validateRequest,
-    async (req, res) => {
-      try {
-        let { name, position, color, projectId } = req.body;
-        const normalizedName = name.toLowerCase();
-  
-        const stage = await prisma.stage.create({
-          data: { 
-            name: normalizedName, 
-            position, 
-            color, 
-            projectId 
-          },
-          include: { tasks: true } // Ensure tasks are included if needed
+  createStageValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      let { name, position, color, projectId } = req.body;
+      const normalizedName = name.toLowerCase();
+
+      const stage = await prisma.stage.create({
+        data: {
+          name: normalizedName,
+          position,
+          color,
+          projectId,
+        },
+        include: { tasks: true }, // Ensure tasks are included if needed
+      });
+
+      res.status(201).json({
+        message: "Stage created successfully",
+        stage: new StageDTO(stage),
+      });
+    } catch (error) {
+      if (error.code === "P2002") {
+        return res.status(409).json({
+          error: "A stage with this name already exists for this project",
         });
-  
-        res.status(201).json({ message: "Stage created successfully", stage: new StageDTO(stage) });
-      } catch (error) {
-        if (error.code === "P2002") {
-          return res.status(409).json({ error: "A stage with this name already exists for this project" });
-        }
-        res.status(500).json({ error: "Internal server error" });
       }
+      res.status(500).json({ error: "Internal server error" });
     }
-];  
+  },
+];
 
 /**
  * @desc Update a stage (PUT)
@@ -133,14 +135,19 @@ export const updateStage = [
         data: updateData,
       });
 
-      res.status(200).json({ message: "Stage updated successfully", stage: new StageDTO(stage) });
+      res.status(200).json({
+        message: "Stage updated successfully",
+        stage: new StageDTO(stage),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A stage with this name already exists for this project" });
+        return res.status(409).json({
+          error: "A stage with this name already exists for this project",
+        });
       }
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -163,7 +170,9 @@ export const patchStage = [
       });
 
       if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "No valid fields provided for update" });
+        return res
+          .status(400)
+          .json({ error: "No valid fields provided for update" });
       }
 
       if (updateData.name) {
@@ -175,14 +184,19 @@ export const patchStage = [
         data: updateData,
       });
 
-      res.status(200).json({ message: "Stage updated successfully", stage: new StageDTO(stage) });
+      res.status(200).json({
+        message: "Stage updated successfully",
+        stage: new StageDTO(stage),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A stage with this name already exists for this project" });
+        return res.status(409).json({
+          error: "A stage with this name already exists for this project",
+        });
       }
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -203,5 +217,5 @@ export const deleteStage = [
       console.error("Error deleting stage:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];

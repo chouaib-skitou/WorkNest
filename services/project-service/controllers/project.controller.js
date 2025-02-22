@@ -1,10 +1,10 @@
 import { prisma } from "../config/database.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
-import { 
-  createProjectValidation, 
-  updateProjectValidation, 
-  patchProjectValidation, 
-  deleteProjectValidation 
+import {
+  createProjectValidation,
+  updateProjectValidation,
+  patchProjectValidation,
+  deleteProjectValidation,
 } from "../validators/project.validator.js";
 import { ProjectDTO } from "../dtos/project.dto.js";
 
@@ -62,7 +62,9 @@ export const getProjects = async (req, res) => {
     ]);
 
     // Transform data using DTO
-    const transformedProjects = projects.map((project) => new ProjectDTO(project));
+    const transformedProjects = projects.map(
+      (project) => new ProjectDTO(project)
+    );
 
     res.json({
       data: transformedProjects,
@@ -117,22 +119,43 @@ export const createProject = [
   validateRequest,
   async (req, res) => {
     try {
-      let { name, description, image, documents, createdBy, managerId, employeeIds } = req.body;
+      let {
+        name,
+        description,
+        image,
+        documents,
+        createdBy,
+        managerId,
+        employeeIds,
+      } = req.body;
       const normalizedName = name.toLowerCase(); // Convert to lowercase before storing
 
       const project = await prisma.project.create({
-        data: { name: normalizedName, description, image, documents, createdBy, managerId, employeeIds },
+        data: {
+          name: normalizedName,
+          description,
+          image,
+          documents,
+          createdBy,
+          managerId,
+          employeeIds,
+        },
       });
 
-      res.status(201).json({ message: "Project created successfully", project: new ProjectDTO(project) });
+      res.status(201).json({
+        message: "Project created successfully",
+        project: new ProjectDTO(project),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A project with this name already exists for this user" });
+        return res.status(409).json({
+          error: "A project with this name already exists for this user",
+        });
       }
       console.error("Error creating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -146,9 +169,16 @@ export const updateProject = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      let { name, description, image, documents, managerId, employeeIds } = req.body;
+      let { name, description, image, documents, managerId, employeeIds } =
+        req.body;
 
-      const updateData = { description, image, documents, managerId, employeeIds };
+      const updateData = {
+        description,
+        image,
+        documents,
+        managerId,
+        employeeIds,
+      };
 
       if (name) {
         updateData.name = name.toLowerCase(); // Convert to lowercase before updating
@@ -159,15 +189,20 @@ export const updateProject = [
         data: updateData,
       });
 
-      res.status(200).json({ message: "Project updated successfully", project: new ProjectDTO(project) });
+      res.status(200).json({
+        message: "Project updated successfully",
+        project: new ProjectDTO(project),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A project with this name already exists for this user" });
+        return res.status(409).json({
+          error: "A project with this name already exists for this user",
+        });
       }
       console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -187,10 +222,12 @@ export const patchProject = [
         if (value !== undefined) {
           updateData[key] = value;
         }
-      });      
+      });
 
       if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "No valid fields provided for update" });
+        return res
+          .status(400)
+          .json({ error: "No valid fields provided for update" });
       }
 
       if (updateData.name) {
@@ -202,15 +239,20 @@ export const patchProject = [
         data: updateData,
       });
 
-      res.status(200).json({ message: "Project updated successfully", project: new ProjectDTO(project) });
+      res.status(200).json({
+        message: "Project updated successfully",
+        project: new ProjectDTO(project),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A project with this name already exists for this user" });
+        return res.status(409).json({
+          error: "A project with this name already exists for this user",
+        });
       }
       console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -232,5 +274,5 @@ export const deleteProject = [
       console.error("Error deleting project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];

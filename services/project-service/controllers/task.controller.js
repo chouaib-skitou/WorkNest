@@ -1,11 +1,11 @@
 import { prisma } from "../config/database.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
-import { 
-  createTaskValidation, 
-  updateTaskValidation, 
-  patchTaskValidation, 
-  deleteTaskValidation, 
-  getTaskByIdValidation 
+import {
+  createTaskValidation,
+  updateTaskValidation,
+  patchTaskValidation,
+  deleteTaskValidation,
+  getTaskByIdValidation,
 } from "../validators/task.validator.js";
 import { TaskDTO } from "../dtos/task.dto.js";
 
@@ -71,7 +71,7 @@ export const getTaskById = [
       console.error("Error fetching task by ID:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -84,30 +84,43 @@ export const createTask = [
   validateRequest,
   async (req, res) => {
     try {
-      let { title, description, priority, stageId, projectId, assignedTo, images } = req.body;
+      let {
+        title,
+        description,
+        priority,
+        stageId,
+        projectId,
+        assignedTo,
+        images,
+      } = req.body;
       const normalizedTitle = title.toLowerCase();
 
       const task = await prisma.task.create({
-        data: { 
-          title: normalizedTitle, 
-          description, 
-          priority, 
-          stageId, 
-          projectId, 
-          assignedTo, 
-          images 
+        data: {
+          title: normalizedTitle,
+          description,
+          priority,
+          stageId,
+          projectId,
+          assignedTo,
+          images,
         },
         include: { Stage: true, Project: true },
       });
 
-      res.status(201).json({ message: "Task created successfully", task: new TaskDTO(task) });
+      res.status(201).json({
+        message: "Task created successfully",
+        task: new TaskDTO(task),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A task with this title already exists for this project" });
+        return res.status(409).json({
+          error: "A task with this title already exists for this project",
+        });
       }
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -121,7 +134,8 @@ export const updateTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      let { title, description, priority, stageId, assignedTo, images } = req.body;
+      let { title, description, priority, stageId, assignedTo, images } =
+        req.body;
 
       const updateData = { description, priority, stageId, assignedTo, images };
       if (title) {
@@ -134,14 +148,19 @@ export const updateTask = [
         include: { Stage: true, Project: true },
       });
 
-      res.status(200).json({ message: "Task updated successfully", task: new TaskDTO(task) });
+      res.status(200).json({
+        message: "Task updated successfully",
+        task: new TaskDTO(task),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A task with this title already exists for this project" });
+        return res.status(409).json({
+          error: "A task with this title already exists for this project",
+        });
       }
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -164,7 +183,9 @@ export const patchTask = [
       });
 
       if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "No valid fields provided for update" });
+        return res
+          .status(400)
+          .json({ error: "No valid fields provided for update" });
       }
 
       if (updateData.title) {
@@ -177,14 +198,19 @@ export const patchTask = [
         include: { Stage: true, Project: true },
       });
 
-      res.status(200).json({ message: "Task updated successfully", task: new TaskDTO(task) });
+      res.status(200).json({
+        message: "Task updated successfully",
+        task: new TaskDTO(task),
+      });
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({ error: "A task with this title already exists for this project" });
+        return res.status(409).json({
+          error: "A task with this title already exists for this project",
+        });
       }
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 /**
@@ -205,5 +231,5 @@ export const deleteTask = [
       console.error("Error deleting task:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
