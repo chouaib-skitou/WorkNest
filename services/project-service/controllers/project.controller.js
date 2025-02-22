@@ -1,0 +1,162 @@
+import { prisma } from "../config/database.js";
+import { validateRequest } from "../middleware/validate.middleware.js";
+import { 
+  createProjectValidation, 
+  updateProjectValidation, 
+  patchProjectValidation, 
+  deleteProjectValidation 
+} from "../validators/project.validator.js";
+import { ProjectDTO } from "../dtos/project.dto.js";
+
+/**
+ * @desc Get all projects
+ * @route GET /api/projects
+ * @access Public (No restrictions for now)
+ */
+export const getProjects = async (req, res) => {
+  try {
+    const projects = await prisma.project.findMany();
+    const projectsDTO = projects.map(project => new ProjectDTO(project));
+    res.status(200).json(projectsDTO);
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * @desc Get a single project by ID
+ * @route GET /api/projects/:id
+ * @access Public (No restrictions for now)
+ */
+export const getProjectById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const project = await prisma.project.findUnique({ where: { id } });
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    res.status(200).json(new ProjectDTO(project));
+  } catch (error) {
+    console.error("Error fetching project:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * @desc Create a new project
+ * @route POST /api/projects
+ * @access Public (No restrictions for now)
+ */
+export const createProject = [
+  createProjectValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const { name, description, image, documents, createdBy, managerId, employeeIds } = req.body;
+
+      const project = await prisma.project.create({
+        data: { name, description, image, documents, createdBy, managerId, employeeIds },
+      });
+
+      res.status(201).json({ message: "Project created successfully", project: new ProjectDTO(project) });
+    } catch (error) {
+      if (error.code === "P2002") {
+        return res.status(409).json({ error: "A project with this name already exists for this user" });
+      }
+      console.error("Error creating project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+];
+
+/**
+ * @desc Update a project (Full Update - PUT)
+ * @route PUT /api/projects/:id
+ * @access Public (No restrictions for now)
+ */
+export const updateProject = [
+  updateProjectValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, description, image, documents, managerId, employeeIds } = req.body;
+
+      const project = await prisma.project.update({
+        where: { id },
+        data: { name, description, image, documents, managerId, employeeIds },
+      });
+
+      res.status(200).json({ message: "Project updated successfully", project: new ProjectDTO(project) });
+    } catch (error) {
+      if (error.code === "P2002") {
+        return res.status(409).json({ error: "A project with this name already exists for this user" });
+      }
+      console.error("Error updating project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+];
+
+/**
+ * @desc Partially update a project (PATCH)
+ * @route PATCH /api/projects/:id
+ * @access Public (No restrictions for now)
+ */
+export const patchProject = [
+  patchProjectValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Filter out only provided fields for update
+      const updateData = {};
+      Object.keys(req.body).forEach((key) => {
+        if (req.body[key] !== undefined) updateData[key] = req.body[key];
+      });
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "No valid fields provided for update" });
+      }
+
+      const project = await prisma.project.update({
+        where: { id },
+        data: updateData,
+      });
+
+      res.status(200).json({ message: "Project updated successfully", project: new ProjectDTO(project) });
+    } catch (error) {
+      if (error.code === "P2002") {
+        return res.status(409).json({ error: "A project with this name already exists for this user" });
+      }
+      console.error("Error updating project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+];
+
+/**
+ * @desc Delete a project
+ * @route DELETE /api/projects/:id
+ * @access Public (No restrictions for now)
+ */
+export const deleteProject = [
+  deleteProjectValidation,
+  validateRequest,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      await prisma.project.delete({ where: { id } });
+
+      res.status(200).json({ message: "Project deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+];
