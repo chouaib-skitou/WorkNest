@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String   @unique // Ensures project names are globally unique
+  description String?
+  image       String?   
+  documents   String[]  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   
+  managerId   String?  
+  employeeIds String[] 
+  stages      Stage[]
+  tasks       Task[] // One-to-many relationship with tasks
+}
+
+model Stage {
+  id        String   @id @default(uuid())
+  name      String
+  position  Int
+  color     String   @default("#FFFFFF") 
+  projectId String   @map("project_id") 
+  tasks     Task[]
+
+  Project   Project[]
+
+  @@unique([name, projectId]) // Ensures stage names are unique within a project
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  priority    String
+  stageId     String   // FK → Stage
+  projectId   String   // FK → Project (New Addition)
+  assignedTo  String?  
+  images      String[] 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Stage Stage[]
+  Project Project[]
+
+  @@unique([title, projectId]) // Ensures task titles are unique within a project
+}
