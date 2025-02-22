@@ -22,11 +22,54 @@ const router = express.Router();
  * @swagger
  * /api/projects:
  *   get:
- *     summary: Retrieve all projects
- *     description: Fetches a list of all projects.
+ *     summary: Retrieve all projects with filters and pagination
+ *     description: Fetches a list of projects with optional filters and sorting.
  *     tags: [Projects]
  *     security:
  *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of projects per page.
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter projects by name (case-insensitive search).
+ *       - in: query
+ *         name: description
+ *         schema:
+ *           type: string
+ *         description: Filter projects by description (case-insensitive search).
+ *       - in: query
+ *         name: createdAt
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter projects by creation date (YYYY-MM-DD).
+ *       - in: query
+ *         name: sortField
+ *         schema:
+ *           type: string
+ *           enum: [name, createdAt]
+ *           default: createdAt
+ *         description: Field to sort by.
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sorting order (ascending or descending).
  *     responses:
  *       200:
  *         description: A list of projects retrieved successfully.

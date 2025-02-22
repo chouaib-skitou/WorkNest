@@ -14,8 +14,10 @@
     "start": "node dist/server.js",
     "dev": "nodemon server.js",
     "build": "npx prisma generate && npm run transpile",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0 && echo ✅ All good 🎉",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "transpile": "babel . --out-dir dist --ignore node_modules",
     "generate:jwt": "mkdir config\\jwt 2>nul & openssl rand -hex 64 > config\\jwt\\JWT_SECRET & openssl rand -hex 64 > config\\jwt\\JWT_REFRESH_SECRET && echo ✅ JWT keys generated in /config/jwt/",
     "migrate:dev": "npx prisma migrate dev --name init",
@@ -51,6 +53,7 @@
     "globals": "^15.14.0",
     "jest": "^29.7.0",
     "nodemon": "^3.1.9",
+    "prettier": "^3.5.2",
     "prisma": "^6.3.1",
     "supertest": "^7.0.0"
   }
