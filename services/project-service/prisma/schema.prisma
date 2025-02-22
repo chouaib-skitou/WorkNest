@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String   // FK → User in identity_service
+  managerId   String?  // FK → Manager user ID from identity_service
+  employeeIds String[] // Array of User IDs
+  stages      Stage[]
+}
+
+model Stage {
+  id        String   @id @default(uuid())
+  name      String
+  position  Int
+  projectId String   @map("project_id") // FK → Project
+  tasks     Task[]
+
+  Project Project[]
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  priority    String
+  stageId     String   // FK → Stage
+  assignedTo  String?  // FK → Employee user ID from identity_service
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Stage Stage[]
+}
