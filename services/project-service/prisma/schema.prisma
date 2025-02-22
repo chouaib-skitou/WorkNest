@@ -30,7 +30,7 @@ model Stage {
   projectId String   @map("project_id") 
   tasks     Task[]
 
-  Project   Project[]
+  Project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([name, projectId]) // Ensures stage names are unique within a project
 }
@@ -40,15 +40,15 @@ model Task {
   title       String
   description String?
   priority    String
-  stageId     String   // FK → Stage
-  projectId   String   // FK → Project (New Addition)
+  stageId     String   @map("stage_id") 
+  projectId   String   @map("project_id") 
   assignedTo  String?  
   images      String[] 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  Stage Stage[]
-  Project Project[]
+  Stage   Stage   @relation(fields: [stageId], references: [id], onDelete: Cascade) // One-to-Many with Stage
+  Project Project @relation(fields: [projectId], references: [id], onDelete: Cascade) // One-to-Many with Project
 
   @@unique([title, projectId]) // Ensures task titles are unique within a project
 }
