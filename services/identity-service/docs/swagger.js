@@ -7,7 +7,7 @@ const options = {
     info: {
       title: "Identity Service API",
       version: "1.0.0",
-      description: "This API handles authentication and user management for the WorkNest application.",
+      description: "This API handles authentication and user management for WorkNest",
       contact: {
         name: "API Support",
         email: "support@worknest.com",
