@@ -442,4 +442,31 @@ describe("🛠 Project Controller Tests", () => {
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
+
+  test("✅ Patch project - Ignore undefined values", async () => {
+    req.params.id = projectData.id;
+    req.body = { name: undefined, description: "Updated project description" }; // `name` should be ignored
+  
+    prisma.project.update.mockResolvedValue({
+      ...projectData,
+      description: "Updated project description",
+    });
+  
+    await projectController.patchProject[2](req, res);
+  
+    expect(prisma.project.update).toHaveBeenCalledWith({
+      where: { id: req.params.id },
+      data: { description: "Updated project description" }, // `name` should NOT be included in `data`
+    });
+  
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Project updated successfully",
+      project: new ProjectDTO({
+        ...projectData,
+        description: "Updated project description",
+      }),
+    });
+  });
+  
 });
