@@ -26,7 +26,7 @@ export const createProject = async (req, res) => {
     
     // Extract user ID from authentication middleware
     // const createdBy = req.user?.id;
-    const createdBy = 'ghjksxjkzdhkezgdhezkhjdgz'; // TODO: This should come from auth middleware
+    const createdBy = "ghjksxjkzdhkezgdhezkhjdgz"; // TODO: This should come from auth middleware
 
     if (!name) {
       return res.status(400).json({ error: "Project name is required" });
