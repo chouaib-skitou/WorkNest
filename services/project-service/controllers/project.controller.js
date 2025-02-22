@@ -76,24 +76,31 @@ export const getProjects = async (req, res) => {
   }
 };
 
-
 /**
- * @desc Get a single project by ID
+ * @desc Get a single project by ID with stages
  * @route GET /api/projects/:id
- * @access Public (No restrictions for now)
+ * @access Public
  */
 export const getProjectById = async (req, res) => {
   try {
     const { id } = req.params;
-    const project = await prisma.project.findUnique({ where: { id } });
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        stages: {
+          include: {
+            tasks: true, // Ensures tasks are retrieved within each stage
+          },
+        },
+      },
+    });
 
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    res.status(200).json(new ProjectDTO(project));
+    res.status(200).json(new ProjectDTO(project)); // Ensures transformation to DTO
   } catch (error) {
-    // console.error("Error fetching project:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
