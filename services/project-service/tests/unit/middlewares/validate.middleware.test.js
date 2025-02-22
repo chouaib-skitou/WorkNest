@@ -1,4 +1,4 @@
-import { validateRequest } from "../../middleware/validate.middleware.js";
+import { validateRequest } from "../../../middleware/validate.middleware.js";
 import { validationResult } from "express-validator";
 
 jest.mock("express-validator", () => ({
