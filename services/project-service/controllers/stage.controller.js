@@ -42,6 +42,7 @@ export const getStages = async (req, res) => {
         totalPages: Math.ceil(totalCount / limit),
       });
     } catch (error) {
+      console.error("Error fetching stages", error);
       res.status(500).json({ error: "Internal server error" });
     }
   };
@@ -69,6 +70,7 @@ export const getStageById = [
   
         res.status(200).json(new StageDTO(stage)); // Ensures tasks are transformed into DTO
       } catch (error) {
+        console.error("Error fetching stage by ID:", error);
         res.status(500).json({ error: "Internal server error" });
       }
     }
@@ -198,6 +200,7 @@ export const deleteStage = [
 
       res.status(200).json({ message: "Stage deleted successfully" });
     } catch (error) {
+      console.error("Error deleting stage:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }

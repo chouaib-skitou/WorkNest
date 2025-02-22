@@ -41,6 +41,7 @@ export const getTasks = async (req, res) => {
       totalPages: Math.ceil(totalCount / limit),
     });
   } catch (error) {
+    console.error("Error fetching tasks", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -67,6 +68,7 @@ export const getTaskById = [
 
       res.status(200).json(new TaskDTO(task));
     } catch (error) {
+      console.error("Error fetching task by ID:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -200,6 +202,7 @@ export const deleteTask = [
 
       res.status(200).json({ message: "Task deleted successfully" });
     } catch (error) {
+      console.error("Error deleting task:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
