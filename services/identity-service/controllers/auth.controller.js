@@ -6,6 +6,8 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import { loginValidationRules, registerValidationRules, refreshTokenRules, resetPasswordRequestRules, resetPasswordRules } from "../validators/auth.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
+import { UserDTO } from "../dtos/user.dto.js";
+
 
 dotenv.config();
 
@@ -69,6 +71,7 @@ export const login = [
 
       // Find user by email
       const user = await prisma.user.findUnique({ where: { email } });
+
       if (!user || !(await bcrypt.compare(password, user.password))) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -82,7 +85,9 @@ export const login = [
       const accessToken = generateToken(user);
       const refreshToken = generateRefreshToken(user);
 
+      // Return user info using DTO
       res.json({
+        user: new UserDTO(user), // Ensures only safe fields are returned
         accessToken,
         refreshToken,
         expiresIn: process.env.JWT_EXPIRES_IN,
@@ -206,3 +211,40 @@ export const refreshToken = [
     }
   },
 ];
+
+
+export const authorize = async (req, res) => {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized, token required" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Verify token
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    // Find user
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!user.isVerified) {
+      return res.status(403).json({ error: "User is not verified" });
+    }
+
+    // Return user data using DTO
+    res.status(200).json({ user: new UserDTO(user) });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
