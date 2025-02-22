@@ -9,24 +9,30 @@ datasource db {
 
 model Project {
   id          String   @id @default(uuid())
-  name        String
+  name        String   @unique // Ensures project names are globally unique
   description String?
+  image       String?   
+  documents   String[]  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  createdBy   String   // FK → User in identity_service
-  managerId   String?  // FK → Manager user ID from identity_service
-  employeeIds String[] // Array of User IDs
+  createdBy   String   
+  managerId   String?  
+  employeeIds String[] 
   stages      Stage[]
+  tasks       Task[] // One-to-many relationship with tasks
 }
 
 model Stage {
   id        String   @id @default(uuid())
   name      String
   position  Int
-  projectId String   @map("project_id") // FK → Project
+  color     String   @default("#FFFFFF") 
+  projectId String   @map("project_id") 
   tasks     Task[]
 
-  Project Project[]
+  Project   Project[]
+
+  @@unique([name, projectId]) // Ensures stage names are unique within a project
 }
 
 model Task {
@@ -35,9 +41,14 @@ model Task {
   description String?
   priority    String
   stageId     String   // FK → Stage
-  assignedTo  String?  // FK → Employee user ID from identity_service
+  projectId   String   // FK → Project (New Addition)
+  assignedTo  String?  
+  images      String[] 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   Stage Stage[]
+  Project Project[]
+
+  @@unique([title, projectId]) // Ensures task titles are unique within a project
 }
