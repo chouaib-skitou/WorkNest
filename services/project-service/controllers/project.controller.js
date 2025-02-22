@@ -19,7 +19,7 @@ export const getProjects = async (req, res) => {
     const projectsDTO = projects.map(project => new ProjectDTO(project));
     res.status(200).json(projectsDTO);
   } catch (error) {
-    console.error("Error fetching projects:", error);
+    // console.error("Error fetching projects:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -40,7 +40,7 @@ export const getProjectById = async (req, res) => {
 
     res.status(200).json(new ProjectDTO(project));
   } catch (error) {
-    console.error("Error fetching project:", error);
+    // console.error("Error fetching project:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -55,10 +55,11 @@ export const createProject = [
   validateRequest,
   async (req, res) => {
     try {
-      const { name, description, image, documents, createdBy, managerId, employeeIds } = req.body;
+      let { name, description, image, documents, createdBy, managerId, employeeIds } = req.body;
+      const normalizedName = name.toLowerCase(); // Convert to lowercase before storing
 
       const project = await prisma.project.create({
-        data: { name, description, image, documents, createdBy, managerId, employeeIds },
+        data: { name: normalizedName, description, image, documents, createdBy, managerId, employeeIds },
       });
 
       res.status(201).json({ message: "Project created successfully", project: new ProjectDTO(project) });
@@ -66,7 +67,7 @@ export const createProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "A project with this name already exists for this user" });
       }
-      console.error("Error creating project:", error);
+      // console.error("Error creating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -83,11 +84,17 @@ export const updateProject = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, image, documents, managerId, employeeIds } = req.body;
+      let { name, description, image, documents, managerId, employeeIds } = req.body;
+
+      const updateData = { description, image, documents, managerId, employeeIds };
+
+      if (name) {
+        updateData.name = name.toLowerCase(); // Convert to lowercase before updating
+      }
 
       const project = await prisma.project.update({
         where: { id },
-        data: { name, description, image, documents, managerId, employeeIds },
+        data: updateData,
       });
 
       res.status(200).json({ message: "Project updated successfully", project: new ProjectDTO(project) });
@@ -95,7 +102,7 @@ export const updateProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "A project with this name already exists for this user" });
       }
-      console.error("Error updating project:", error);
+      // console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -112,15 +119,18 @@ export const patchProject = [
   async (req, res) => {
     try {
       const { id } = req.params;
-
-      // Filter out only provided fields for update
       const updateData = {};
+
       Object.keys(req.body).forEach((key) => {
         if (req.body[key] !== undefined) updateData[key] = req.body[key];
       });
 
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: "No valid fields provided for update" });
+      }
+
+      if (updateData.name) {
+        updateData.name = updateData.name.toLowerCase(); // Convert to lowercase before updating
       }
 
       const project = await prisma.project.update({
@@ -133,7 +143,7 @@ export const patchProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "A project with this name already exists for this user" });
       }
-      console.error("Error updating project:", error);
+      // console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }
@@ -155,7 +165,7 @@ export const deleteProject = [
 
       res.status(200).json({ message: "Project deleted successfully" });
     } catch (error) {
-      console.error("Error deleting project:", error);
+      // console.error("Error deleting project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   }

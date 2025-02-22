@@ -39,5 +39,7 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
  */
 export const setupSwagger = (app) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-  console.log(`📚 Swagger Docs available at: ${BASE_URL}/api/docs`);
+  if (process.env.NODE_ENV !== "test") {
+    console.log("📚 Swagger Docs available at: http://localhost:5001/api/docs");
+  }
 };
