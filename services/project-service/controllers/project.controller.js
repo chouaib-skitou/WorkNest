@@ -15,8 +15,10 @@ import { ProjectDTO } from "../dtos/project.dto.js";
  */
 export const getProjects = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const parsedPage = parseInt(req.query.page);
+    const parsedLimit = parseInt(req.query.limit);
+    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
     const skip = (page - 1) * limit;
     const where = {};
 
@@ -172,9 +174,11 @@ export const patchProject = [
       const { id } = req.params;
       const updateData = {};
 
-      Object.keys(req.body).forEach((key) => {
-        if (req.body[key] !== undefined) updateData[key] = req.body[key];
-      });
+      Object.entries(req.body).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updateData[key] = value;
+        }
+      });      
 
       if (Object.keys(updateData).length === 0) {
         return res.status(400).json({ error: "No valid fields provided for update" });
