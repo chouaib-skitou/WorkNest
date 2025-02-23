@@ -18,7 +18,7 @@ If you are using an unsupported version, please upgrade to the latest release to
 We take security seriously and appreciate any responsible disclosures.
 
 ### 📢 How to Report:
-1. **Email us at**: `security@worknest.com` (or replace with your actual contact).
+1. **Email us at**: `security@worknest.com`
 2. **Use a private disclosure**: Do **not** create a public GitHub issue for security vulnerabilities.
 3. **Provide details**: Include steps to reproduce the vulnerability, the impacted areas, and any potential fixes or mitigations.
 4. **PGP Encryption (if applicable)**: If sending sensitive information, use our PGP key _(add link if available)_.
