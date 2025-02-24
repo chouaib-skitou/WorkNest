@@ -11,6 +11,7 @@ import {
 jest.mock("../../../services/project.service.js");
 
 describe("🛠 Project Controller Tests", () => {
+  // eslint-disable-next-line no-unused-vars
   let req, res, next;
   const mockProject = {
     id: "123e4567-e89b-12d3-a456-426614174000",
