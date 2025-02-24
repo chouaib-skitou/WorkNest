@@ -1,3 +1,8 @@
+/**
+ * Project Controller Module
+ * Handles incoming requests related to projects and delegates operations to the project service.
+ */
+
 import { validateRequest } from "../middleware/validate.middleware.js";
 import {
   createProjectValidation,
@@ -15,113 +20,114 @@ import {
 } from "../services/project.service.js";
 
 /**
- * @desc Get all projects
+ * Get all projects with optional filters, pagination, and sorting.
  * @route GET /api/projects
  * @access Protected
  */
 export const getProjects = async (req, res) => {
   try {
-    res.json(await getProjectsService(req.user, req.query));
+    const projects = await getProjectsService(req.user, req.query);
+    res.status(200).json(projects);
   } catch (error) {
-    console.error("Error fetching projects", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error fetching projects:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
 
 /**
- * @desc Get a single project by ID with stages
+ * Get a single project by ID with its associated stages and tasks.
  * @route GET /api/projects/:id
  * @access Public
  */
 export const getProjectById = async (req, res) => {
   try {
-    const project = await getProjectByIdService(req.params.id);
+    const project = await getProjectByIdService(req.user, req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.status(200).json(project);
   } catch (error) {
     console.error("Error fetching project by ID:", error);
-    res.status(500).json({ error: "Internal server error" });
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
 
 /**
- * @desc Create a new project
+ * Create a new project. Accessible only by admins and managers.
  * @route POST /api/projects
- * @access Public (No restrictions for now)
+ * @access Protected
  */
 export const createProject = [
   createProjectValidation,
   validateRequest,
   async (req, res) => {
     try {
-      res.status(201).json(await createProjectService(req.body));
+      const project = await createProjectService(req.user, req.body);
+      res.status(201).json(project);
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({ error: "Project name already exists" });
-      }
-      console.error("Error creating project:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error creating project:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Update a project (Full Update - PUT)
+ * Fully update a project. Accessible by admins or managers who manage or created the project.
  * @route PUT /api/projects/:id
- * @access Public (No restrictions for now)
+ * @access Protected
  */
 export const updateProject = [
   updateProjectValidation,
   validateRequest,
   async (req, res) => {
     try {
-      res.status(200).json(await updateProjectService(req.params.id, req.body));
+      const project = await updateProjectService(req.user, req.params.id, req.body);
+      res.status(200).json(project);
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({ error: "Project name already exists" });
-      }
-      console.error("Error updating project:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error updating project:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Partially update a project (PATCH)
+ * Partially update a project. Accessible by admins or managers who manage or created the project.
  * @route PATCH /api/projects/:id
- * @access Public (No restrictions for now)
+ * @access Protected
  */
 export const patchProject = [
   patchProjectValidation,
   validateRequest,
   async (req, res) => {
     try {
-      res.status(200).json(await patchProjectService(req.params.id, req.body));
+      const project = await patchProjectService(req.user, req.params.id, req.body);
+      res.status(200).json(project);
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({ error: "Project name already exists" });
-      }
-      console.error("Error patching project:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error patching project:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Delete a project
+ * Delete a project. Accessible by admins or managers who created the project.
  * @route DELETE /api/projects/:id
- * @access Public (No restrictions for now)
+ * @access Protected
  */
 export const deleteProject = [
   deleteProjectValidation,
   validateRequest,
   async (req, res) => {
     try {
-      await deleteProjectService(req.params.id);
-      res.status(200).json({ message: "Project deleted successfully" });
+      const response = await deleteProjectService(req.user, req.params.id);
+      res.status(200).json(response);
     } catch (error) {
-      console.error("Error deleting project:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error deleting project:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];

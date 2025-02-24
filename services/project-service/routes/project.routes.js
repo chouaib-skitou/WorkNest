@@ -60,7 +60,7 @@ const router = express.Router();
  *         name: sortField
  *         schema:
  *           type: string
- *           enum: [name, createdAt]
+ *           enum: [name, createdAt, updatedAt]
  *           default: createdAt
  *         description: Field to sort by.
  *       - in: query
@@ -78,7 +78,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized.
  *       500:
  *         description: Internal server error.
  */
@@ -108,7 +108,7 @@ router.get("/", authMiddleware, getProjects);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to view the project.
  *       404:
  *         description: Project not found.
  *       500:
@@ -134,7 +134,6 @@ router.get("/:id", authMiddleware, getProjectById);
  *             required:
  *               - name
  *               - description
- *               - createdBy
  *             properties:
  *               name:
  *                 type: string
@@ -171,7 +170,7 @@ router.get("/:id", authMiddleware, getProjectById);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: Only admins or managers can create projects.
  *       409:
  *         description: A project with this name already exists for this user.
  *       500:
@@ -219,7 +218,7 @@ router.post("/", authMiddleware, createProject);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User not verified or not authorized to update the project.
  *       404:
  *         description: Project not found.
  *       409:
@@ -245,15 +244,28 @@ router.put("/:id", authMiddleware, updateProject);
  *         schema:
  *           type: string
  *         description: The ID of the project to update.
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Patch WorkNest Project"
+ *               description:
+ *                 type: string
+ *                 example: "Partially updated project description."
  *     responses:
  *       200:
  *         description: Project updated successfully.
  *       400:
- *         description: Invalid or expired token.
+ *         description: Invalid or expired token, or no valid fields provided for update.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User not verified or not authorized to update the project.
  *       404:
  *         description: Project not found.
  *       409:
@@ -287,7 +299,7 @@ router.patch("/:id", authMiddleware, patchProject);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User not verified or not authorized to delete the project.
  *       404:
  *         description: Project not found.
  *       500:
