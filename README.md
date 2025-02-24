@@ -44,7 +44,7 @@ WorkNest is built using a microservices architecture to ensure:
 ### **Backend**
 - ⚡ **Framework**: Express.js (Node.js)
 - 🔐 **Authentication**: JSON Web Tokens (JWT) & OAuth 2.0 (Google, GitHub)
-- 🗄️ **Database**: MySQL (for relational data)
+- 🗄️ **Database**: PostgreSQL (for relational data)
 - 🚀 **Caching**: Redis
 
 ### **Infrastructure & DevOps**
@@ -66,7 +66,6 @@ WorkNest/
 │   ├── project-service/     # Project management service
 │   ├── notification-service/ # Notification service
 │   └── analytics-service/    # Analytics service
-├── api-gateway/          # API gateway code
 ├── event-bus/            # Event bus setup
 ├── monitoring/           # Prometheus and Grafana setup
 ├── deployment/           # Kubernetes manifests and Dockerfiles
@@ -95,7 +94,7 @@ WorkNest/
    ```bash
    docker-compose up
    ```
-4. Access the frontend at `http://localhost:3000`.
+4. Access the frontend at `http://localhost:4200`.
 
 ---
 
