@@ -13,27 +13,12 @@ jest.mock("nodemailer", () => {
 });
 
 import nodemailer from "nodemailer";
-import { transporter, sendMail } from "../../config/mail.js";
+import { sendMail } from "../../config/mail.js"; // We don't import transporter here to force re-creation in isolated modules
 
 describe("📧 Mail Service Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
-  // test("✅ Ensure transporter is properly configured", () => {
-  //   expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
-  //   expect(nodemailer.createTransport).toHaveBeenCalledWith({
-  //     host: process.env.SMTP_HOST,
-  //     port: process.env.SMTP_PORT,
-  //     secure: false,
-  //     auth: process.env.SMTP_USER
-  //       ? {
-  //           user: process.env.SMTP_USER,
-  //           pass: process.env.SMTP_PASS,
-  //         }
-  //       : undefined,
-  //   });
-  // });
 
   test("✅ Successfully send an email", async () => {
     const mailOptions = {
@@ -62,5 +47,51 @@ describe("📧 Mail Service Tests", () => {
     );
 
     expect(nodemailer.__mockSendMail).toHaveBeenCalled();
+  });
+
+  describe("Transporter configuration", () => {
+    test("should create transporter with auth when SMTP_USER is defined", () => {
+      // Set environment variables so that SMTP_USER is defined
+      process.env.SMTP_HOST = "smtp.example.com";
+      process.env.SMTP_PORT = "587";
+      process.env.SMTP_USER = "myuser";
+      process.env.SMTP_PASS = "mypassword";
+      process.env.EMAIL_FROM = "from@example.com";
+
+      // Use isolateModules to force reimport of mail.js
+      jest.isolateModules(() => {
+        require("../../config/mail.js");
+      });
+
+      expect(nodemailer.createTransport).toHaveBeenCalledWith({
+        host: "smtp.example.com",
+        port: "587",
+        secure: false,
+        auth: {
+          user: "myuser",
+          pass: "mypassword",
+        },
+      });
+    });
+
+    test("should create transporter without auth when SMTP_USER is not defined", () => {
+      // Remove SMTP_USER and SMTP_PASS from env
+      process.env.SMTP_HOST = "smtp.example.com";
+      process.env.SMTP_PORT = "587";
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASS;
+      process.env.EMAIL_FROM = "from@example.com";
+
+      jest.isolateModules(() => {
+        require("../../config/mail.js");
+      });
+
+      expect(nodemailer.createTransport).toHaveBeenCalledWith({
+        host: "smtp.example.com",
+        port: "587",
+        secure: false,
+        auth: undefined,
+      });
+    });
   });
 });
