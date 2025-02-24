@@ -1,4 +1,3 @@
-import { prisma } from "../config/database.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
 import {
   createProjectValidation,
@@ -6,75 +5,25 @@ import {
   patchProjectValidation,
   deleteProjectValidation,
 } from "../validators/project.validator.js";
-import { ProjectDTO } from "../dtos/project.dto.js";
+import {
+  getProjectsService,
+  getProjectByIdService,
+  createProjectService,
+  updateProjectService,
+  patchProjectService,
+  deleteProjectService,
+} from "../services/project.service.js";
 
 /**
  * @desc Get all projects
  * @route GET /api/projects
- * @access Public (No restrictions for now)
+ * @access Protected
  */
 export const getProjects = async (req, res) => {
   try {
-    const parsedPage = parseInt(req.query.page);
-    const parsedLimit = parseInt(req.query.limit);
-    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
-    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
-    const skip = (page - 1) * limit;
-    const where = {};
-
-    // Filters
-    if (req.query.name) {
-      where.name = {
-        contains: req.query.name,
-        mode: "insensitive", // Case-insensitive search
-      };
-    }
-
-    if (req.query.description) {
-      where.description = {
-        contains: req.query.description,
-        mode: "insensitive",
-      };
-    }
-
-    if (req.query.createdAt) {
-      const createdAtDate = new Date(req.query.createdAt);
-      if (!isNaN(createdAtDate)) {
-        where.createdAt = {
-          gte: new Date(createdAtDate.setHours(0, 0, 0, 0)), // Start of the day
-          lte: new Date(createdAtDate.setHours(23, 59, 59, 999)), // End of the day
-        };
-      }
-    }
-
-    // Sorting
-    const sortField = req.query.sortField || "createdAt"; // Default sorting field
-    const sortOrder = req.query.sortOrder === "asc" ? "asc" : "desc"; // Default to descending
-
-    const [projects, totalCount] = await Promise.all([
-      prisma.project.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [sortField]: sortOrder },
-      }),
-      prisma.project.count({ where }),
-    ]);
-
-    // Transform data using DTO
-    const transformedProjects = projects.map(
-      (project) => new ProjectDTO(project)
-    );
-
-    res.json({
-      data: transformedProjects,
-      page,
-      limit,
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-    });
+    res.json(await getProjectsService(req.user, req.query));
   } catch (error) {
-    console.error("Error fetching projects", error);
+    // console.error("Error fetching projects", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -86,25 +35,11 @@ export const getProjects = async (req, res) => {
  */
 export const getProjectById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: {
-        stages: {
-          include: {
-            tasks: true, // Ensures tasks are retrieved within each stage
-          },
-        },
-      },
-    });
-
-    if (!project) {
-      return res.status(404).json({ error: "Project not found" });
-    }
-
-    res.status(200).json(new ProjectDTO(project)); // Ensures transformation to DTO
+    const project = await getProjectByIdService(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.status(200).json(project);
   } catch (error) {
-    console.error("Error fetching project by ID:", error);
+    // console.error("Error fetching project by ID:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -119,40 +54,12 @@ export const createProject = [
   validateRequest,
   async (req, res) => {
     try {
-      let {
-        name,
-        description,
-        image,
-        documents,
-        createdBy,
-        managerId,
-        employeeIds,
-      } = req.body;
-      const normalizedName = name.toLowerCase(); // Convert to lowercase before storing
-
-      const project = await prisma.project.create({
-        data: {
-          name: normalizedName,
-          description,
-          image,
-          documents,
-          createdBy,
-          managerId,
-          employeeIds,
-        },
-      });
-
-      res.status(201).json({
-        message: "Project created successfully",
-        project: new ProjectDTO(project),
-      });
+      res.status(201).json(await createProjectService(req.body));
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A project with this name already exists for this user",
-        });
+        return res.status(409).json({ error: "Project name already exists" });
       }
-      console.error("Error creating project:", error);
+      // console.error("Error creating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -168,38 +75,12 @@ export const updateProject = [
   validateRequest,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      let { name, description, image, documents, managerId, employeeIds } =
-        req.body;
-
-      const updateData = {
-        description,
-        image,
-        documents,
-        managerId,
-        employeeIds,
-      };
-
-      if (name) {
-        updateData.name = name.toLowerCase(); // Convert to lowercase before updating
-      }
-
-      const project = await prisma.project.update({
-        where: { id },
-        data: updateData,
-      });
-
-      res.status(200).json({
-        message: "Project updated successfully",
-        project: new ProjectDTO(project),
-      });
+      res.status(200).json(await updateProjectService(req.params.id, req.body));
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A project with this name already exists for this user",
-        });
+        return res.status(409).json({ error: "Project name already exists" });
       }
-      console.error("Error updating project:", error);
+      // console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -215,41 +96,12 @@ export const patchProject = [
   validateRequest,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const updateData = {};
-
-      Object.entries(req.body).forEach(([key, value]) => {
-        if (value !== undefined) {
-          updateData[key] = value;
-        }
-      });
-
-      if (Object.keys(updateData).length === 0) {
-        return res
-          .status(400)
-          .json({ error: "No valid fields provided for update" });
-      }
-
-      if (updateData.name) {
-        updateData.name = updateData.name.toLowerCase(); // Convert to lowercase before updating
-      }
-
-      const project = await prisma.project.update({
-        where: { id },
-        data: updateData,
-      });
-
-      res.status(200).json({
-        message: "Project updated successfully",
-        project: new ProjectDTO(project),
-      });
+      res.status(200).json(await patchProjectService(req.params.id, req.body));
     } catch (error) {
       if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A project with this name already exists for this user",
-        });
+        return res.status(409).json({ error: "Project name already exists" });
       }
-      console.error("Error updating project:", error);
+      // console.error("Error patching project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -265,13 +117,10 @@ export const deleteProject = [
   validateRequest,
   async (req, res) => {
     try {
-      const { id } = req.params;
-
-      await prisma.project.delete({ where: { id } });
-
+      await deleteProjectService(req.params.id);
       res.status(200).json({ message: "Project deleted successfully" });
     } catch (error) {
-      console.error("Error deleting project:", error);
+      // console.error("Error deleting project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
