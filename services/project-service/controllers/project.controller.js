@@ -23,7 +23,7 @@ export const getProjects = async (req, res) => {
   try {
     res.json(await getProjectsService(req.user, req.query));
   } catch (error) {
-    // console.error("Error fetching projects", error);
+    console.error("Error fetching projects", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -39,7 +39,7 @@ export const getProjectById = async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.status(200).json(project);
   } catch (error) {
-    // console.error("Error fetching project by ID:", error);
+    console.error("Error fetching project by ID:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -59,7 +59,7 @@ export const createProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "Project name already exists" });
       }
-      // console.error("Error creating project:", error);
+      console.error("Error creating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -80,7 +80,7 @@ export const updateProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "Project name already exists" });
       }
-      // console.error("Error updating project:", error);
+      console.error("Error updating project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -101,7 +101,7 @@ export const patchProject = [
       if (error.code === "P2002") {
         return res.status(409).json({ error: "Project name already exists" });
       }
-      // console.error("Error patching project:", error);
+      console.error("Error patching project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },
@@ -120,7 +120,7 @@ export const deleteProject = [
       await deleteProjectService(req.params.id);
       res.status(200).json({ message: "Project deleted successfully" });
     } catch (error) {
-      // console.error("Error deleting project:", error);
+      console.error("Error deleting project:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   },

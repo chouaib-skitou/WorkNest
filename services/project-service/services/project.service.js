@@ -86,6 +86,7 @@ export const getProjectsService = async (user, query) => {
       totalPages: Math.ceil(totalCount / limit),
     };
   } catch (error) {
+    console.error("Error fetching projects", error);
     throw { status: 500, message: "Internal server error" };
   }
 };
