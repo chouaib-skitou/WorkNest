@@ -23,7 +23,7 @@ const router = express.Router();
  * /api/stages:
  *   get:
  *     summary: Retrieve all stages with pagination
- *     description: Fetches a paginated list of stages. No filters are applied.
+ *     description: Fetches a paginated list of stages. Stages are filtered based on the user's role.
  *     tags: [Stages]
  *     security:
  *       - BearerAuth: []
@@ -42,7 +42,7 @@ const router = express.Router();
  *         description: The number of stages per page.
  *     responses:
  *       200:
- *         description: A list of stages retrieved successfully.
+ *         description: A paginated list of stages retrieved successfully.
  *         content:
  *           application/json:
  *             schema:
@@ -67,7 +67,7 @@ const router = express.Router();
  *                         example: "#FF5733"
  *                       projectId:
  *                         type: string
- *                         example: "p1q2r3s4-5678-9abc-defg-hijklmnopqrs"
+ *                         example: "d7d6f728-8e2d-4b8a-a349-fd1a534b7e5a"
  *                       createdAt:
  *                         type: string
  *                         format: date-time
@@ -93,7 +93,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized.
  *       500:
  *         description: Internal server error.
  */
@@ -104,7 +104,7 @@ router.get("/", authMiddleware, getStages);
  * /api/stages/{id}:
  *   get:
  *     summary: Get a stage by ID
- *     description: Fetches details of a specific stage.
+ *     description: Fetches details of a specific stage, including its tasks.
  *     tags: [Stages]
  *     security:
  *       - BearerAuth: []
@@ -123,7 +123,7 @@ router.get("/", authMiddleware, getStages);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to view the stage.
  *       404:
  *         description: Stage not found.
  *       500:
@@ -136,7 +136,7 @@ router.get("/:id", authMiddleware, getStageById);
  * /api/stages:
  *   post:
  *     summary: Create a new stage
- *     description: Creates a new stage within a project.
+ *     description: Creates a new stage within a project. Only Admins and Managers can create stages.
  *     tags: [Stages]
  *     security:
  *       - BearerAuth: []
@@ -224,7 +224,7 @@ router.post("/", authMiddleware, createStage);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to update the stage.
  *       404:
  *         description: Stage not found.
  *       409:
@@ -271,11 +271,11 @@ router.put("/:id", authMiddleware, updateStage);
  *       200:
  *         description: Stage updated successfully.
  *       400:
- *         description: Invalid or expired token.
+ *         description: Invalid or expired token, or no valid fields provided for update.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to update the stage.
  *       404:
  *         description: Stage not found.
  *       409:
@@ -290,7 +290,7 @@ router.patch("/:id", authMiddleware, patchStage);
  * /api/stages/{id}:
  *   delete:
  *     summary: Delete a stage
- *     description: Removes a stage from a project.
+ *     description: Removes a stage from a project. Only Admins can delete any stage; Managers can delete only stages from projects they created.
  *     tags: [Stages]
  *     security:
  *       - BearerAuth: []
@@ -304,12 +304,23 @@ router.patch("/:id", authMiddleware, patchStage);
  *     responses:
  *       200:
  *         description: Stage deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Stage deleted successfully"
  *       400:
  *         description: Invalid or expired token.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to delete the stage.
  *       404:
  *         description: Stage not found.
  *       500:
