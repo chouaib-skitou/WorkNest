@@ -35,7 +35,7 @@ WorkNest is built using a microservices architecture to ensure:
 ## 🖥️ Tech Stack
 
 ### **Frontend**
-- 🖼️ **Framework**: React.js
+- 🖼️ **Framework**: Angular 19
 - 🎨 **Styling**: Tailwind CSS
 - 🔄 **State Management**: Zustand
 - 🛠️ **Validation**: Zod
@@ -60,7 +60,7 @@ WorkNest is built using a microservices architecture to ensure:
 
 ```
 WorkNest/
-├── frontend/             # React.js application
+├── frontend/             # Angular 19 application
 ├── services/             # Microservices code
 │   ├── identity-service/ # Authentication and user management service
 │   ├── project-service/     # Project management service
