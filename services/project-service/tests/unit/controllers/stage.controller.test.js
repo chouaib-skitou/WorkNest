@@ -13,6 +13,7 @@ import {
 jest.mock("../../../services/stage.service.js");
 
 describe("🛠 Stage Controller Tests", () => {
+  // eslint-disable-next-line no-unused-vars
   let req, res, next;
   const mockStage = {
     id: "111e2227-e33b-44d3-a555-526614174000",
