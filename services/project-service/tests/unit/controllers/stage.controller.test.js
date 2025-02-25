@@ -1,354 +1,257 @@
-import * as stageController from "../../../controllers/stage.controller.js";
-import { prisma } from "../../../config/database.js";
-import { StageDTO } from "../../../dtos/stage.dto.js";
+// stage.controller.test.js
 
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    stage: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-  },
-}));
+import * as stageController from "../../../controllers/stage.controller.js";
+import {
+  getStagesService,
+  getStageByIdService,
+  createStageService,
+  updateStageService,
+  patchStageService,
+  deleteStageService,
+} from "../../../services/stage.service.js";
+
+jest.mock("../../../services/stage.service.js");
 
 describe("🛠 Stage Controller Tests", () => {
-  let req, res;
+  let req, res, next;
+  const mockStage = {
+    id: "111e2227-e33b-44d3-a555-526614174000",
+    name: "Planning",
+    description: "Stage for initial planning",
+    createdBy: "user-id-1",
+    projectId: "project-id-1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(() => {
-    req = { body: {}, params: {}, headers: {}, query: {} };
-    res = {
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
+    req = {
+      body: {},
+      params: {},
+      query: {},
+      user: { id: "user-id", role: "ROLE_ADMIN" },
     };
-
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    next = jest.fn();
     jest.clearAllMocks();
   });
 
-  const stageData = {
-    id: "0343d921-39a3-4d70-bb2e-1c2782741bc3",
-    name: "Design Phase",
-    position: 1,
-    color: "#FF5733",
-    projectId: "6ca55721-cf0b-419f-8c7d-266cc6432956",
-    tasks: [],
-  };
+  beforeAll(() => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
+  });
 
-  test("✅ Get all stages (200) - Success with pagination", async () => {
-    prisma.stage.findMany.mockResolvedValue([stageData]);
-    prisma.stage.count.mockResolvedValue(1);
+  afterAll(() => {
+    console.error.mockRestore();
+    console.warn.mockRestore();
+    console.log.mockRestore();
+  });
 
-    req.query.page = "1";
-    req.query.limit = "10";
+  describe("getStages", () => {
+    test("✅ should return stages successfully (200)", async () => {
+      getStagesService.mockResolvedValue({
+        data: [mockStage],
+        page: 1,
+        limit: 10,
+        totalCount: 1,
+        totalPages: 1,
+      });
 
-    await stageController.getStages(req, res);
+      await stageController.getStages(req, res);
 
-    expect(res.json).toHaveBeenCalledWith({
-      data: [new StageDTO(stageData)],
-      page: 1,
-      limit: 10,
-      totalCount: 1,
-      totalPages: 1,
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        data: [mockStage],
+        page: 1,
+        limit: 10,
+        totalCount: 1,
+        totalPages: 1,
+      });
+    });
+
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      getStagesService.mockRejectedValue(new Error("Database error"));
+
+      await stageController.getStages(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("✅ Get all stages (200) - No stages found", async () => {
-    prisma.stage.findMany.mockResolvedValue([]);
-    prisma.stage.count.mockResolvedValue(0);
+  describe("getStageById", () => {
+    test("✅ should return a stage by ID successfully (200)", async () => {
+      req.params.id = mockStage.id;
+      getStageByIdService.mockResolvedValue(mockStage);
 
-    await stageController.getStages(req, res);
+      // getStageById is an array with middlewares + the handler, invoke the handler last
+      await stageController.getStageById[2](req, res);
 
-    expect(res.json).toHaveBeenCalledWith({
-      data: [],
-      page: 1,
-      limit: 10,
-      totalCount: 0,
-      totalPages: 0,
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockStage);
+    });
+
+    test("🚫 should return 404 when stage is not found", async () => {
+      req.params.id = "non-existent-id";
+      getStageByIdService.mockResolvedValue(null);
+
+      await stageController.getStageById[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: "Stage not found" });
+    });
+
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      req.params.id = mockStage.id;
+      getStageByIdService.mockRejectedValue(new Error("Database error"));
+
+      await stageController.getStageById[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("🚫 Get all stages - Internal Server Error (500)", async () => {
-    prisma.stage.findMany.mockRejectedValue(new Error("Database error"));
+  describe("createStage", () => {
+    test("✅ should create a stage successfully (201)", async () => {
+      req.body = { name: "Design", description: "Design phase" };
+      createStageService.mockResolvedValue(mockStage);
 
-    await stageController.getStages(req, res);
+      await stageController.createStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Stage created successfully",
+        stage: mockStage,
+      });
+    });
 
-  test("✅ Get stage by ID (200)", async () => {
-    req.params.id = stageData.id;
-    prisma.stage.findUnique.mockResolvedValue(stageData);
+    test("🚫 should handle conflict error (409) on create", async () => {
+      req.body = { name: "Duplicate Stage", description: "Duplicate" };
+      createStageService.mockRejectedValue({
+        status: 409,
+        message: "Stage with this name already exists",
+      });
 
-    await stageController.getStageById[2](req, res);
+      await stageController.createStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(new StageDTO(stageData));
-  });
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Stage with this name already exists",
+      });
+    });
 
-  test("🚫 Get stage by ID - Not Found (404)", async () => {
-    req.params.id = stageData.id;
-    prisma.stage.findUnique.mockResolvedValue(null);
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      req.body = { name: "Stage 1", description: "Sample" };
+      createStageService.mockRejectedValue(new Error("Database error"));
 
-    await stageController.getStageById[2](req, res);
+      await stageController.createStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "Stage not found" });
-  });
-
-  test("🚫 Get stage by ID - Internal Server Error (500)", async () => {
-    req.params.id = stageData.id;
-    prisma.stage.findUnique.mockRejectedValue(new Error("Database error"));
-
-    await stageController.getStageById[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Create a stage (201)", async () => {
-    req.body = {
-      name: "Design Phase",
-      position: 1,
-      color: "#FF5733",
-      projectId: stageData.projectId,
-    };
-
-    prisma.stage.create.mockResolvedValue(stageData);
-
-    await stageController.createStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage created successfully",
-      stage: new StageDTO(stageData),
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("🚫 Create stage - Duplicate Name (409)", async () => {
-    req.body = {
-      name: "Design Phase",
-      position: 1,
-      color: "#FF5733",
-      projectId: stageData.projectId,
-    };
+  describe("updateStage", () => {
+    test("✅ should update a stage successfully (200)", async () => {
+      req.params.id = mockStage.id;
+      req.body = { name: "Updated Name" };
+      updateStageService.mockResolvedValue(mockStage);
 
-    prisma.stage.create.mockRejectedValue({ code: "P2002" });
+      await stageController.updateStage[2](req, res);
 
-    await stageController.createStage[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Stage updated successfully",
+        stage: mockStage,
+      });
+    });
 
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A stage with this name already exists for this project",
+    test("🚫 should handle conflict error (409) on update", async () => {
+      updateStageService.mockRejectedValue({
+        status: 409,
+        message: "Stage with this name already exists",
+      });
+
+      await stageController.updateStage[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Stage with this name already exists",
+      });
+    });
+
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      updateStageService.mockRejectedValue(new Error("Database error"));
+
+      await stageController.updateStage[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("🚫 Create stage - Internal Server Error (500)", async () => {
-    prisma.stage.create.mockRejectedValue(new Error("Database error"));
+  describe("patchStage", () => {
+    test("✅ should patch a stage successfully (200)", async () => {
+      req.params.id = mockStage.id;
+      req.body = { description: "New partial description" };
+      patchStageService.mockResolvedValue(mockStage);
 
-    await stageController.createStage[2](req, res);
+      await stageController.patchStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Update stage (200)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Updated Phase", position: 2 };
-
-    prisma.stage.update.mockResolvedValue({
-      ...stageData,
-      name: "Updated Phase",
-      position: 2,
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Stage updated successfully",
+        stage: mockStage,
+      });
     });
 
-    await stageController.updateStage[2](req, res);
+    test("🚫 should handle conflict error (409) on patch", async () => {
+      patchStageService.mockRejectedValue({
+        status: 409,
+        message: "Stage with this name already exists",
+      });
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage updated successfully",
-      stage: new StageDTO({ ...stageData, name: "Updated Phase", position: 2 }),
+      await stageController.patchStage[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Stage with this name already exists",
+      });
     });
-  });
 
-  test("🚫 Update stage - Internal Server Error (500)", async () => {
-    prisma.stage.update.mockRejectedValue(new Error("Database error"));
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      patchStageService.mockRejectedValue(new Error("Database error"));
 
-    await stageController.updateStage[2](req, res);
+      await stageController.patchStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Delete stage (200)", async () => {
-    req.params.id = stageData.id;
-    prisma.stage.delete.mockResolvedValue({});
-
-    await stageController.deleteStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage deleted successfully",
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("🚫 Delete stage - Internal Server Error (500)", async () => {
-    req.params.id = stageData.id;
-    prisma.stage.delete.mockRejectedValue(new Error("Database error"));
+  describe("deleteStage", () => {
+    test("✅ should delete a stage successfully (200)", async () => {
+      req.params.id = mockStage.id;
+      deleteStageService.mockResolvedValue({ message: "Stage deleted successfully" });
 
-    await stageController.deleteStage[2](req, res);
+      await stageController.deleteStage[2](req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("🚫 Create stage - Duplicate Name (409)", async () => {
-    req.body = {
-      name: "Design Phase",
-      position: 1,
-      color: "#FF5733",
-      projectId: "6ca55721-cf0b-419f-8c7d-266cc6432956",
-    };
-
-    prisma.stage.create.mockRejectedValue({ code: "P2002" });
-
-    await stageController.createStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A stage with this name already exists for this project",
-    });
-  });
-
-  test("✅ Patch stage - Ignore undefined values", async () => {
-    req.params.id = "0343d921-39a3-4d70-bb2e-1c2782741bc3";
-    req.body = { position: 2, color: undefined }; // `color` is undefined and should be ignored
-
-    prisma.stage.update.mockResolvedValue({
-      ...stageData,
-      position: 2,
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: "Stage deleted successfully" });
     });
 
-    await stageController.patchStage[2](req, res);
+    test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
+      deleteStageService.mockRejectedValue(new Error("Database error"));
 
-    expect(prisma.stage.update).toHaveBeenCalledWith({
-      where: { id: req.params.id },
-      data: { position: 2 }, // `color` should NOT be in data
+      await stageController.deleteStage[2](req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage updated successfully",
-      stage: new StageDTO({ ...stageData, position: 2 }),
-    });
-  });
-
-  test("🚫 Patch stage - No valid fields provided (400)", async () => {
-    req.params.id = "0343d921-39a3-4d70-bb2e-1c2782741bc3";
-    req.body = {}; // No fields provided
-
-    await stageController.patchStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "No valid fields provided for update",
-    });
-  });
-
-  test("✅ Patch stage - Convert name to lowercase", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "DESIGN PHASE" }; // Uppercase input
-
-    prisma.stage.update.mockResolvedValue({
-      ...stageData,
-      name: "design phase", // Should be converted
-    });
-
-    await stageController.patchStage[2](req, res);
-
-    expect(prisma.stage.update).toHaveBeenCalledWith({
-      where: { id: req.params.id },
-      data: { name: "design phase" }, // Converted to lowercase
-    });
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage updated successfully",
-      stage: new StageDTO({ ...stageData, name: "design phase" }),
-    });
-  });
-
-  test("✅ Update stage (200)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Updated Stage", position: 3 };
-
-    prisma.stage.update.mockResolvedValue({
-      ...stageData,
-      name: "updated stage",
-      position: 3,
-    });
-
-    await stageController.updateStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Stage updated successfully",
-      stage: new StageDTO({ ...stageData, name: "updated stage", position: 3 }),
-    });
-  });
-
-  test("🚫 Update stage - Internal Server Error (500)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Updated Stage" };
-
-    prisma.stage.update.mockRejectedValue(new Error("Database error"));
-
-    await stageController.updateStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("🚫 Update stage - Duplicate Name (409)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Existing Stage Name" };
-
-    prisma.stage.update.mockRejectedValue({ code: "P2002" });
-
-    await stageController.updateStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A stage with this name already exists for this project",
-    });
-  });
-
-  test("🚫 Patch stage - Duplicate Name (409)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Existing Stage Name" };
-
-    prisma.stage.update.mockRejectedValue({ code: "P2002" });
-
-    await stageController.patchStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A stage with this name already exists for this project",
-    });
-  });
-
-  test("🚫 Patch stage - Internal Server Error (500)", async () => {
-    req.params.id = stageData.id;
-    req.body = { name: "Updated Stage Name" };
-
-    prisma.stage.update.mockRejectedValue(new Error("Database error"));
-
-    await stageController.patchStage[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 });
