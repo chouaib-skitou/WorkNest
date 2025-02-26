@@ -3,14 +3,26 @@
       [
         "@babel/preset-env",
         {
-          "modules": false,
-          "targets": { "node": "18" }  // so Babel won't add older transforms
+          "targets": { "node": "18" },
+          "modules": false
         }
       ]
     ],
     "plugins": [
-      // Only if needed:
       ["@babel/plugin-transform-runtime", { "useESModules": true }]
-    ]
+    ],
+    "env": {
+      "test": {
+        "presets": [
+          [
+            "@babel/preset-env",
+            {
+              "targets": { "node": "current" },
+              "modules": "commonjs"
+            }
+          ]
+        ]
+      }
+    }
   }
   
