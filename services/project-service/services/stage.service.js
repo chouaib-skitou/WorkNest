@@ -293,6 +293,9 @@ export const createStageService = async (user, data) => {
     return new StageDTO(newStage);
   } catch (error) {
     console.error("Error creating stage:", error);
+    if (error && error.status) {
+      return Promise.reject(error);
+    }
     if (error.code === "P2002") {
       return Promise.reject({
         status: 409,
