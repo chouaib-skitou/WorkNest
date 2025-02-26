@@ -22,8 +22,14 @@ const router = express.Router();
  * @swagger
  * /api/tasks:
  *   get:
- *     summary: Retrieve all tasks with pagination
- *     description: Fetches a paginated list of tasks. Tasks are filtered based on the user's role.
+ *     summary: Retrieve all tasks with pagination and filtering
+ *     description: >
+ *       Fetches a paginated list of tasks, optionally filtered by title, priority, stageId, or projectId.  
+ *       Sort results by title, createdAt, or updatedAt.  
+ *       Tasks are further filtered based on the user's role:
+ *       - **ROLE_ADMIN**: sees all tasks
+ *       - **ROLE_MANAGER**: sees tasks where user is project manager, project creator, or in the project’s employeeIds
+ *       - **ROLE_EMPLOYEE**: sees tasks for projects in which the user is listed in employeeIds
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -40,9 +46,87 @@ const router = express.Router();
  *           type: integer
  *           default: 10
  *         description: The number of tasks per page.
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: Filter by a partial title match (case-insensitive).
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [LOW, MEDIUM, HIGH]
+ *         description: Filter by exact priority.
+ *       - in: query
+ *         name: stageId
+ *         schema:
+ *           type: string
+ *         description: Filter by a specific stage ID.
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           type: string
+ *         description: Filter by a specific project ID.
+ *       - in: query
+ *         name: sortField
+ *         schema:
+ *           type: string
+ *           enum: [title, createdAt, updatedAt]
+ *         description: Sort by title, createdAt, or updatedAt. Defaults to createdAt.
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort order (asc or desc). Defaults to desc.
  *     responses:
  *       200:
  *         description: A paginated list of tasks retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "abc123-task-uuid"
+ *                       title:
+ *                         type: string
+ *                         example: "Design UI"
+ *                       priority:
+ *                         type: string
+ *                         example: "HIGH"
+ *                       stageId:
+ *                         type: string
+ *                         example: "stage-uuid"
+ *                       projectId:
+ *                         type: string
+ *                         example: "project-uuid"
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-02-22T12:00:00Z"
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-02-23T14:30:00Z"
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalCount:
+ *                   type: integer
+ *                   example: 50
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 5
  *       400:
  *         description: Invalid request parameters.
  *       401:
@@ -59,7 +143,9 @@ router.get("/", authMiddleware, getTasks);
  * /api/tasks/{id}:
  *   get:
  *     summary: Get a task by ID
- *     description: Fetches details of a specific task, including any relevant stage/project info.
+ *     description: >
+ *       Fetches details of a specific task, including stage and project info.  
+ *       User must have permission to view tasks in the corresponding project (role-based).
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -91,7 +177,8 @@ router.get("/:id", authMiddleware, getTaskById);
  * /api/tasks:
  *   post:
  *     summary: Create a new task
- *     description: Creates a new task within a project stage. Only Admins and Managers can create tasks.
+ *     description: >
+ *       Creates a new task within a project stage. Only Admins and Managers can create tasks.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -153,7 +240,9 @@ router.post("/", authMiddleware, createTask);
  * /api/tasks/{id}:
  *   put:
  *     summary: Update a task (Full Update)
- *     description: Replaces all fields of an existing task.
+ *     description: >
+ *       Replaces all fields of an existing task.  
+ *       Only Admins and Managers (project manager or creator) can perform a full update.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -207,7 +296,10 @@ router.put("/:id", authMiddleware, updateTask);
  * /api/tasks/{id}:
  *   patch:
  *     summary: Partially update a task
- *     description: Updates specific fields of an existing task.
+ *     description: >
+ *       Updates specific fields of an existing task.  
+ *       Only Admins, Managers (project manager/creator, or manager in employee list can only patch stageId),  
+ *       or Employees (only patch stageId) can do partial updates.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -270,7 +362,11 @@ router.patch("/:id", authMiddleware, patchTask);
  * /api/tasks/{id}:
  *   delete:
  *     summary: Delete a task
- *     description: Removes a task from a project. Only Admins can delete any task; Managers can delete only tasks from projects they created.
+ *     description: >
+ *       Removes a task from a project.  
+ *       - Admins can delete any task  
+ *       - Managers can delete only tasks from projects they created  
+ *       - Employees cannot delete tasks
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
