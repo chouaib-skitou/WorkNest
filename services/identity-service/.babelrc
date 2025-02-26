@@ -1,4 +1,16 @@
 {
-"presets": ["@babel/preset-env"]
-}
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "modules": false,
+          "targets": { "node": "18" }  // so Babel won't add older transforms
+        }
+      ]
+    ],
+    "plugins": [
+      // Only if needed:
+      ["@babel/plugin-transform-runtime", { "useESModules": true }]
+    ]
+  }
   
