@@ -109,7 +109,7 @@ const authorizeTaskCreation = async (user, projectId) => {
  * @param {string} opType - Operation type ("update" or "patch").
  * @returns {Promise<Object>} - Resolves with the task if authorized.
  */
-const authorizeTaskModification = async (user, id, updateData, opType = "update") => {
+export const authorizeTaskModification = async (user, id, updateData, opType = "update") => {
   const task = await prisma.task.findUnique({
     where: { id },
     include: { Project: true },

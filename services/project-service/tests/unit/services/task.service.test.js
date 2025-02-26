@@ -1,5 +1,4 @@
 // tests/unit/services/task.service.test.js
-
 jest.mock("../../../config/database.js", () => ({
     prisma: {
       task: {
@@ -25,6 +24,7 @@ jest.mock("../../../config/database.js", () => ({
     updateTaskService,
     patchTaskService,
     deleteTaskService,
+    authorizeTaskModification,
   } from "../../../services/task.service.js";
   
   describe("🛠 Task Service Tests", () => {
@@ -410,6 +410,65 @@ jest.mock("../../../config/database.js", () => ({
         });
       });
 
+      test("✅ allows manager to fully update if they are project.createdBy", async () => {
+        const managerCreatedProject = {
+          ...mockProject,
+          // Manager is not the actual 'managerId' but is the 'createdBy'
+          managerId: "someone-else",
+          createdBy: managerUser.id,
+        };
+        const taskInThatProject = { ...mockTask, Project: managerCreatedProject };
+      
+        // Make the findUnique call return our special project
+        prisma.task.findUnique.mockResolvedValue(taskInThatProject);
+      
+        // Simulate a successful update
+        prisma.task.update.mockResolvedValue({
+          ...taskInThatProject,
+          title: "manager-updated",
+        });
+      
+        // Manager tries to update
+        const result = await updateTaskService(managerUser, mockTask.id, {
+          title: "MANAGER-UPDATED",
+        });
+      
+        // Confirm Prisma was called with updated data
+        expect(prisma.task.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: { title: "manager-updated" },
+            where: { id: mockTask.id },
+          })
+        );
+        // Confirm we get back the updated task
+        expect(result).toEqual(
+          new TaskDTO({
+            ...taskInThatProject,
+            title: "manager-updated",
+          })
+        );
+      });
+      
+      test("✅ skips undefined fields in patchTaskService", async () => {
+        // Provide a partial object with an undefined property
+        const partialData = { title: undefined, priority: "MEDIUM" };
+      
+        // The final updated record only changes priority
+        prisma.task.update.mockResolvedValue({ ...mockTask, priority: "MEDIUM" });
+      
+        const result = await patchTaskService(adminUser, mockTask.id, partialData);
+      
+        // Confirm prisma.task.update was *not* called with "title"
+        expect(prisma.task.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: { priority: "MEDIUM" },
+          })
+        );
+        expect(result).toEqual(
+          new TaskDTO({ ...mockTask, priority: "MEDIUM" })
+        );
+      });      
+
       test("🚫 rejects with 404 if task not found in updateTaskService", async () => {
         prisma.task.findUnique.mockResolvedValue(null); // no task
         await expect(
@@ -783,5 +842,25 @@ jest.mock("../../../config/database.js", () => ({
         });
       });
     });
+
+    describe("authorizeTaskModification direct tests", () => {
+        test("✅ covers default opType = 'update'", async () => {
+          prisma.task.findUnique.mockResolvedValue(mockTask);
+      
+          // Call WITHOUT the 4th param, so it defaults to "update"
+          const result = await authorizeTaskModification(adminUser, mockTask.id, { priority: "LOW" });
+          expect(result).toEqual(mockTask); // Should succeed for ROLE_ADMIN
+        });
+      
+        test("🚫 rejects if task not found (default opType = 'update')", async () => {
+          prisma.task.findUnique.mockResolvedValue(null);
+          await expect(
+            authorizeTaskModification(adminUser, "non-existent-id", { priority: "LOW" })
+          ).rejects.toEqual({
+            status: 404,
+            message: "Task not found",
+          });
+        });
+      });
   });
   
