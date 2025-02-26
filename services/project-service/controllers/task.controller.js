@@ -1,4 +1,4 @@
-import { prisma } from "../config/database.js";
+// task.controller.js
 import { validateRequest } from "../middleware/validate.middleware.js";
 import {
   createTaskValidation,
@@ -7,47 +7,33 @@ import {
   deleteTaskValidation,
   getTaskByIdValidation,
 } from "../validators/task.validator.js";
-import { TaskDTO } from "../dtos/task.dto.js";
+import {
+  getTasksService,
+  getTaskByIdService,
+  createTaskService,
+  updateTaskService,
+  patchTaskService,
+  deleteTaskService,
+} from "../services/task.service.js";
 
 /**
- * @desc Get all tasks (with pagination)
+ * Get all tasks with pagination and optional filtering.
  * @route GET /api/tasks
  * @access Public
  */
 export const getTasks = async (req, res) => {
   try {
-    const parsedPage = parseInt(req.query.page);
-    const parsedLimit = parseInt(req.query.limit);
-    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
-    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 10 : parsedLimit;
-    const skip = (page - 1) * limit;
-
-    const [tasks, totalCount] = await Promise.all([
-      prisma.task.findMany({
-        skip,
-        take: limit,
-        include: { Stage: true, Project: true },
-      }),
-      prisma.task.count(),
-    ]);
-
-    const transformedTasks = tasks.map((task) => new TaskDTO(task));
-
-    res.json({
-      data: transformedTasks,
-      page,
-      limit,
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-    });
+    const tasks = await getTasksService(req.user, req.query);
+    res.status(200).json(tasks);
   } catch (error) {
-    console.error("Error fetching tasks", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error fetching tasks:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };
 
 /**
- * @desc Get a task by ID
+ * Get a task by ID.
  * @route GET /api/tasks/:id
  * @access Public
  */
@@ -57,76 +43,44 @@ export const getTaskById = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const task = await prisma.task.findUnique({
-        where: { id },
-        include: { Stage: true, Project: true },
-      });
-
-      if (!task) {
-        return res.status(404).json({ error: "Task not found" });
-      }
-
-      res.status(200).json(new TaskDTO(task));
+      const task = await getTaskByIdService(req.user, id);
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      res.status(200).json(task);
     } catch (error) {
       console.error("Error fetching task by ID:", error);
-      res.status(500).json({ error: "Internal server error" });
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Create a new task
+ * Create a new task.
  * @route POST /api/tasks
- * @access Public
+ * @access Protected (Admins and Managers; only Managers with proper project authorization)
  */
 export const createTask = [
   createTaskValidation,
   validateRequest,
   async (req, res) => {
     try {
-      let {
-        title,
-        description,
-        priority,
-        stageId,
-        projectId,
-        assignedTo,
-        images,
-      } = req.body;
-      const normalizedTitle = title.toLowerCase();
-
-      const task = await prisma.task.create({
-        data: {
-          title: normalizedTitle,
-          description,
-          priority,
-          stageId,
-          projectId,
-          assignedTo,
-          images,
-        },
-        include: { Stage: true, Project: true },
-      });
-
+      const task = await createTaskService(req.user, req.body);
       res.status(201).json({
         message: "Task created successfully",
-        task: new TaskDTO(task),
+        task,
       });
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A task with this title already exists for this project",
-        });
-      }
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error creating task:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Update a task (PUT)
+ * Fully update a task.
  * @route PUT /api/tasks/:id
- * @access Public
+ * @access Protected (Admins and Managers with proper authorization)
  */
 export const updateTask = [
   updateTaskValidation,
@@ -134,39 +88,23 @@ export const updateTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      let { title, description, priority, stageId, assignedTo, images } =
-        req.body;
-
-      const updateData = { description, priority, stageId, assignedTo, images };
-      if (title) {
-        updateData.title = title.toLowerCase();
-      }
-
-      const task = await prisma.task.update({
-        where: { id },
-        data: updateData,
-        include: { Stage: true, Project: true },
-      });
-
+      const task = await updateTaskService(req.user, id, req.body);
       res.status(200).json({
         message: "Task updated successfully",
-        task: new TaskDTO(task),
+        task,
       });
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A task with this title already exists for this project",
-        });
-      }
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error updating task:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Partially update a task (PATCH)
+ * Partially update a task.
  * @route PATCH /api/tasks/:id
- * @access Public
+ * @access Protected (Admins, Managers, and Employees with proper authorization)
  */
 export const patchTask = [
   patchTaskValidation,
@@ -174,49 +112,23 @@ export const patchTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = {};
-
-      Object.entries(req.body).forEach(([key, value]) => {
-        if (value !== undefined) {
-          updateData[key] = value;
-        }
-      });
-
-      if (Object.keys(updateData).length === 0) {
-        return res
-          .status(400)
-          .json({ error: "No valid fields provided for update" });
-      }
-
-      if (updateData.title) {
-        updateData.title = updateData.title.toLowerCase();
-      }
-
-      const task = await prisma.task.update({
-        where: { id },
-        data: updateData,
-        include: { Stage: true, Project: true },
-      });
-
+      const task = await patchTaskService(req.user, id, req.body);
       res.status(200).json({
         message: "Task updated successfully",
-        task: new TaskDTO(task),
+        task,
       });
     } catch (error) {
-      if (error.code === "P2002") {
-        return res.status(409).json({
-          error: "A task with this title already exists for this project",
-        });
-      }
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error patching task:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
 /**
- * @desc Delete a task
+ * Delete a task.
  * @route DELETE /api/tasks/:id
- * @access Public
+ * @access Protected (Admins and Managers who created the associated project)
  */
 export const deleteTask = [
   deleteTaskValidation,
@@ -224,12 +136,12 @@ export const deleteTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      await prisma.task.delete({ where: { id } });
-
-      res.status(200).json({ message: "Task deleted successfully" });
+      const response = await deleteTaskService(req.user, id);
+      res.status(200).json(response);
     } catch (error) {
-      console.error("Error deleting task:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error deleting task:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
