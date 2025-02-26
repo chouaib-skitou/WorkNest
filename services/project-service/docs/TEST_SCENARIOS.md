@@ -1,6 +1,6 @@
-# 🚀 Project & Stage Modules – User Stories & Test Scenarios
+# 🚀 Project, Stage & Task Modules – User Stories & Test Scenarios
 
-This document describes the main user stories, acceptance criteria, and test scenarios for the **Project** and **Stage** modules. Both modules leverage role‐based access control and provide CRUD operations with validations, filters, and sorting.
+This document describes the main user stories, acceptance criteria, and test scenarios for the **Project**, **Stage**, and **Task** modules. All modules leverage role‐based access control and provide CRUD operations with validations, filters, and sorting.
 
 ---
 
@@ -24,6 +24,15 @@ This document describes the main user stories, acceptance criteria, and test sce
   - [Test Scenarios](#test-scenarios-stage)
     - [Service Layer Tests](#service-layer-tests-stage)
     - [Controller Layer Tests](#controller-layer-tests-stage)
+- [Task Module](#task-module)
+  - [User Stories](#user-stories-task)
+    - [1. View Tasks](#1-view-tasks)
+    - [2. Create a Task](#2-create-a-task)
+    - [3. Update a Task](#3-update-a-task)
+    - [4. Delete a Task](#4-delete-a-task)
+  - [Test Scenarios](#test-scenarios-task)
+    - [Service Layer Tests](#service-layer-tests-task)
+    - [Controller Layer Tests](#controller-layer-tests-task)
 - [How to Run Tests](#how-to-run-tests)
 - [Conclusion](#conclusion)
 
@@ -58,27 +67,27 @@ This document describes the main user stories, acceptance criteria, and test sce
   - **Acceptance Criteria:**
     - Only Admins and Managers can create projects.
     - The project name is normalized to lowercase.
-    - Duplicate project names are rejected with an appropriate error (e.g., **409**).
+    - Duplicate project names are rejected with an appropriate error (**409**).
 
 #### 3. Update a Project
 
 - **As an Admin or Manager,** I want to update an existing project so that I can change its details.
   - **Acceptance Criteria:**
     - **Full Update (PUT):** Replaces all fields; if the project name is provided, it is converted to lowercase.
-    - **Partial Update (PATCH):** Updates only specified fields, filtering out undefined values and converting the name to lowercase if provided.
+    - **Partial Update (PATCH):** Updates only specified fields, ignoring undefined; name is lowercased if provided.
     - If no valid fields are provided for patching, a **400** error is returned.
-    - Unauthorized updates return a **403** error.
-    - If the project is not found, a **404** error is returned.
-    - Duplicate project name errors return **409**, and generic errors return **500**.
+    - Unauthorized updates return a **403**.
+    - If the project is not found, return **404**.
+    - Duplicate project name => **409**; generic => **500**.
 
 #### 4. Delete a Project
 
 - **As an Admin or Manager,** I want to delete a project so that I can remove projects that are no longer needed.
   - **Acceptance Criteria:**
-    - Only Admins can delete any project, while Managers can delete **only projects they created**.
-    - If the project is not found, a **404** error is returned.
-    - Unauthorized deletion returns a **403** error.
-    - Generic errors return **500**.
+    - Admin can delete any project; Manager can delete only projects they created.
+    - If the project is not found => **404**.
+    - Unauthorized => **403**.
+    - Generic => **500**.
 
 ---
 
@@ -90,42 +99,40 @@ This document describes the main user stories, acceptance criteria, and test sce
    - **Success Cases:**
      - Returns projects successfully when projects exist.
      - Returns empty result when no projects found (`totalCount = 0`, `totalPages = 0`).
-     - Applies the **name** filter (case-insensitive).
-     - Applies the **description** filter.
-     - Applies **createdAt** filter to get projects within a specific day.
-     - Sorts properly or defaults to `createdAt desc` if invalid sort is provided.
-     - Pagination defaults to `page = 1` and `limit = 10` for invalid inputs; uses provided page/limit if valid.
+     - Applies **name**, **description**, **createdAt** filters (case-insensitive for `name`).
+     - Sorts by `name`, `createdAt`, or `updatedAt`, defaults if invalid.
+     - Pagination defaults to `(page=1, limit=10)` if invalid inputs.
    - **Error Cases:**
-     - If Prisma error code is `"P2025"`, reject with **403**.
-     - All other errors reject with **500**.
+     - Prisma error code `"P2025"` => **403**.
+     - Generic => **500**.
 
 2. **`getProjectByIdService`**
-   - **Success Case:** Returns the project (with its stages and tasks) as a `ProjectDTO`.
+   - **Success Case:** Returns the project (with stages/tasks) as a `ProjectDTO`.
    - **Error Cases:**
-     - If the user doesn't have permission but the project exists, reject with **403**.
-     - If the project is not found in the database, reject with **404**.
-     - Generic errors => **500**.
+     - Project found but user lacks permission => **403**.
+     - Project not found => **404**.
+     - Generic => **500**.
 
 3. **`createProjectService`**
-   - **Success Case:** Admin or Manager creates a project; name is lowercased; returns a `ProjectDTO`.
+   - **Success Case:** Admin/Manager creates project; name is lowercased; returns `ProjectDTO`.
    - **Error Cases:**
-     - If user is not Admin/Manager => **403**.
+     - Non-Admin/Manager => **403**.
      - Duplicate name => **409**.
      - Generic => **500**.
 
 4. **`updateProjectService`** / **`patchProjectService`**
    - **Success Cases:**
-     - Full update or partial update successfully modifies and returns a `ProjectDTO`.
-     - Name, if present, is lowercased.
+     - Updates project fully or partially, returns `ProjectDTO`.
+     - Name is lowercased if present.
    - **Error Cases:**
-     - No valid fields for patch => **400**.
+     - No valid patch fields => **400**.
      - Unauthorized => **403**.
      - Not found => **404**.
-     - Duplicate name => **409**.
+     - Duplicate => **409**.
      - Generic => **500**.
 
 5. **`deleteProjectService`**
-   - **Success Case:** Admin can delete any project; Manager can delete only projects they created.
+   - **Success Case:** Admin can delete any; Manager can delete if they created it.
    - **Error Cases:**
      - Not found => **404**.
      - Unauthorized => **403**.
@@ -133,11 +140,11 @@ This document describes the main user stories, acceptance criteria, and test sce
 
 #### Controller Layer Tests (Project)
 
-- **Success Paths:**  
-  - Controller responds with **200** (GET), **201** (POST), or **200** (PUT/PATCH/DELETE) on valid service responses.
-- **Error Handling:**  
-  - For custom errors with a `status` field, uses that status and error message.
-  - For plain `Error` objects, uses **500** as fallback.
+- **Success Paths:**
+  - Controllers respond with **200** (GET), **201** (POST), or **200** (PUT/PATCH/DELETE) on valid service responses.
+- **Error Handling:**
+  - For custom errors (`{ status, message }`), the controller uses that status.
+  - For plain `Error` objects, the controller uses **500**.
 
 ---
 
@@ -149,47 +156,46 @@ This document describes the main user stories, acceptance criteria, and test sce
 
 - **As an Admin,** I want to view all stages (with optional filters, pagination, and sorting) so that I can see progress across all projects.
   - **Acceptance Criteria:**
-    - Admins can see all stages.
-    - Can filter stages by **name**, **position**, **color** (hex code), and **projectId**.
-    - Can sort by **name**, **position**, **createdAt**, or **updatedAt**.
-    - Pagination defaults to `page = 1` and `limit = 10` if invalid values are provided.
+    - Admin sees all stages.
+    - Filters by **name**, **position**, **color**, **projectId**.
+    - Sorts by **name**, **position**, **createdAt**, or **updatedAt** (some modules default to certain fields if none provided).
+    - Pagination => defaults `(page=1, limit=10)` if invalid.
 
-- **As a Manager,** I want to view only the stages of projects that I manage, created, or am assigned to so that I can update them if needed.
+- **As a Manager,** I want to view only the stages of projects that I manage, created, or am assigned to.
   - **Acceptance Criteria:**
-    - Managers can see stages belonging to any project where `managerId` or `createdBy` is the Manager’s ID, or the manager is assigned as an employee.
-    - Sorting and pagination function the same as for Admin.
+    - Manager sees stages from any project where `managerId`, `createdBy`, or `employeeIds` includes them.
+    - Sorting and pagination function like Admin’s.
 
-- **As an Employee,** I only want to see stages that belong to projects in which I am an assigned employee so that I can track relevant tasks.
+- **As an Employee,** I want to see only stages from the projects in which I’m assigned so that I can track tasks relevant to me.
   - **Acceptance Criteria:**
-    - Employees see only stages from their assigned projects.
+    - Employee sees only stages for assigned projects.
 
 #### 2. Create a Stage
 
-- **As an Admin or Manager,** I want to create a new stage for a project so that the workflow can be defined.
+- **As an Admin or Manager,** I want to create a new stage for a project so that workflow steps can be defined.
   - **Acceptance Criteria:**
-    - Only Admins and Managers can create stages.
-    - Stage name is lowercased.
-    - If a stage with the same name already exists for the same project, reject with **409**.
-    - Color must be a valid hex code.
+    - Only Admins/Managers can create.
+    - Name is lowercased.
+    - Duplicate name => **409**.
 
 #### 3. Update a Stage
 
-- **As an Admin or Manager,** I want to update an existing stage so that I can rename it, reorder it, or change its color.
+- **As an Admin or Manager,** I want to update an existing stage so that I can rename it, reorder it, change its color, etc.
   - **Acceptance Criteria:**
-    - **Full Update (PUT):** Replaces all fields (name is lowercased if present).
-    - **Partial Update (PATCH):** Only specified fields are changed, ignoring undefined. Name is lowercased if present.
-    - If no valid fields are provided (PATCH), return **400**.
+    - **Full Update (PUT):** Replaces all fields; name is lowercased if present.
+    - **Partial Update (PATCH):** Only specified fields updated; name is lowercased if present.
+    - No valid patch fields => **400**.
     - Unauthorized => **403**.
-    - Stage not found => **404**.
-    - Duplicate name => **409**.
+    - Not found => **404**.
+    - Duplicate => **409**.
     - Generic => **500**.
 
 #### 4. Delete a Stage
 
-- **As an Admin or Manager,** I want to delete a stage so that I can remove unnecessary workflow steps.
+- **As an Admin or Manager,** I want to delete a stage so that I can remove unneeded workflow steps.
   - **Acceptance Criteria:**
     - Admin can delete any stage.
-    - Manager can delete a stage only if they **created** the associated project.
+    - Manager can delete only if they created the project.
     - Not found => **404**.
     - Unauthorized => **403**.
     - Generic => **500**.
@@ -202,57 +208,163 @@ This document describes the main user stories, acceptance criteria, and test sce
 
 1. **`getStagesService`**
    - **Success Cases:**
-     - Returns stages successfully (includes tasks if required).
-     - Filters by **name**, **position**, **color**, and **projectId**.
-     - Applies role-based filters:
-       - Admin sees all.
-       - Manager sees only stages from managed/created/assigned projects.
-       - Employee sees only stages from assigned projects.
-     - Sorting by **allowed fields** or default to `createdAt desc`.
-     - Pagination defaults to `(page=1, limit=10)` if invalid.
+     - Returns stages successfully with tasks included.
+     - Filters by name, position, color, projectId.
+     - Role-based filter: Admin sees all, Manager sees managed/created/assigned, Employee sees assigned.
+     - Sorting by name, position, etc., default if invalid.
+     - Pagination defaults `(page=1, limit=10)` if invalid.
    - **Error Cases:**
-     - If error code is `"P2025"`, reject with **403**.
+     - Prisma `"P2025"` => **403**.
      - Generic => **500**.
 
 2. **`getStageByIdService`**
-   - **Success Cases:**
-     - Returns the stage and its tasks if the user has access.
-   - **Error Cases:**
-     - If the user doesn’t have permission but the stage exists => **403**.
-     - Stage not found => **404**.
+   - **Success:** returns stage (and tasks) if user has permission.
+   - **Error:**
+     - If user lacks permission => **403**.
+     - Not found => **404**.
      - Generic => **500**.
 
 3. **`createStageService`**
-   - **Success Case:** Admin/Manager creates a stage (name lowercased). Returns a `StageDTO`.
-   - **Error Cases:**
-     - Employee attempts to create => **403**.
-     - Duplicate name => **409**.
+   - **Success:** Admin/Manager can create, name is lowercased => returns `StageDTO`.
+   - **Error:**
+     - Employee => **403**.
+     - Duplicate => **409**.
      - Generic => **500**.
 
 4. **`updateStageService`** / **`patchStageService`**
-   - **Success Cases:**
-     - Updates the stage fully or partially. Name is lowercased if present.
-     - If partial update has no valid fields => **400**.
-   - **Error Cases:**
-     - Unauthorized => **403** (manager does not match project).
-     - Stage not found => **404**.
-     - Duplicate name => **409**.
+   - **Success:** updates stage fully/partially; name lowercased if present; partial with no fields => **400**.
+   - **Error:**  
+     - Unauthorized => **403**.  
+     - Not found => **404**.  
+     - Duplicate => **409**.  
      - Generic => **500**.
 
 5. **`deleteStageService`**
-   - **Success Case:** Admin can delete any stage; Manager can delete if they created the project.
-   - **Error Cases:**
-     - Stage not found => **404**.
+   - **Success:** Admin can delete any, Manager only if they created the project.
+   - **Error:**
+     - Not found => **404**.
      - Unauthorized => **403**.
      - Generic => **500**.
 
 #### Controller Layer Tests (Stage)
 
-- **Success Paths:**  
-  - Controller calls the corresponding service and responds with 200 (for GET, PUT, PATCH, DELETE) or 201 (for POST) plus the JSON data.
-- **Error Handling:**  
-  - If the service returns a custom `{ status: ..., message: ... }`, the controller uses that status.  
-  - If the service throws a plain Error, the controller uses 500.
+- **Success Paths:**
+  - Responds with **200** (GET, PUT, PATCH, DELETE) or **201** (POST) plus JSON data.
+- **Error Handling:**
+  - Custom errors => matching status code.
+  - Plain `Error` => **500**.
+
+---
+
+## Task Module
+
+### User Stories (Task)
+
+#### 1. View Tasks
+
+- **As an Admin,** I want to view all tasks (with optional filters, sorting, pagination) so that I can oversee the entire system.
+  - **Acceptance Criteria:**
+    - Admin can see all tasks.
+    - Filters by **title**, **priority**, **stageId**, **projectId**.
+    - Sorting by **title**, **createdAt**, or **updatedAt**.
+    - Pagination defaults `(page=1, limit=10)` if invalid.
+
+- **As a Manager,** I want to view only tasks in projects I manage, created, or am assigned to so that I can update them as needed.
+  - **Acceptance Criteria:**
+    - Manager sees tasks where the project’s `managerId`, `createdBy`, or `employeeIds` includes them.
+    - Sorting/pagination function similarly to Admin.
+
+- **As an Employee,** I want to see tasks in projects where I am assigned so that I can focus on my work.
+  - **Acceptance Criteria:**
+    - Employee sees only tasks for assigned projects.
+
+#### 2. Create a Task
+
+- **As an Admin or Manager,** I want to create a new task so that I can add items to a stage.
+  - **Acceptance Criteria:**
+    - Only Admins/Managers can create.
+    - Task title is lowercased.
+    - If a task with this title already exists in the project => **409**.
+    - Priority must be one of LOW, MEDIUM, HIGH.
+
+#### 3. Update a Task
+
+- **As an Admin or Manager,** I want to update an existing task so that I can rename it, change its priority, or reassign it.
+  - **Acceptance Criteria:**
+    - **Full Update (PUT):** Replaces all fields; title is lowercased if present.
+    - **Partial Update (PATCH):** Only specified fields changed. Title is lowercased if present.
+    - If no valid patch fields => **400**.
+    - Unauthorized => **403**.
+    - Task not found => **404**.
+    - Duplicate => **409**.
+    - Generic => **500**.
+
+- **(Special Manager Case)** If the manager is only in `employeeIds` (and not the project’s manager or creator), they may only update `stageId` via PATCH.  
+- **(Employee)** can only patch the `stageId` if that is the only field.
+
+#### 4. Delete a Task
+
+- **As an Admin or Manager,** I want to delete tasks that are no longer necessary.
+  - **Acceptance Criteria:**
+    - Admin can delete any task.
+    - Manager can delete only if they **created** the associated project.
+    - Task not found => **404**.
+    - Unauthorized => **403**.
+    - Generic => **500**.
+
+---
+
+### Test Scenarios (Task)
+
+#### Service Layer Tests (Task)
+
+1. **`getTasksService`**
+   - **Success Cases:**
+     - Returns tasks successfully (with optional filtering by title, priority, stageId, projectId).
+     - Role-based filter: Admin sees all, Manager sees tasks in projects they manage/created/are assigned to, Employee sees tasks in assigned projects.
+     - Sorting by `title`, `createdAt`, or `updatedAt`; default if invalid.
+     - Pagination defaults `(page=1, limit=10)` if invalid inputs.
+   - **Error Cases:**
+     - Prisma `"P2025"` => **403**.
+     - Generic => **500**.
+
+2. **`getTaskByIdService`**
+   - **Success:** returns task (with stage/project) if user has permission.
+   - **Error:**
+     - If user lacks permission => **403**.
+     - Not found => **404**.
+     - Generic => **500**.
+
+3. **`createTaskService`**
+   - **Success:** Admin/Manager can create, title is lowercased => returns `TaskDTO`.
+   - **Error:**
+     - Employee => **403**.
+     - Duplicate => **409**.
+     - Generic => **500**.
+
+4. **`updateTaskService`** / **`patchTaskService`**
+   - **Success:** updates the task fully or partially (name is lowercased if present).  
+   - **Error:**  
+     - No valid patch fields => **400**.  
+     - Unauthorized => **403** (e.g., manager is not the project’s manager/creator, or employee attempts full update).  
+     - Task not found => **404**.  
+     - Duplicate => **409**.  
+     - Generic => **500**.
+
+5. **`deleteTaskService`**
+   - **Success:** Admin can delete any task; Manager only if they created the project.
+   - **Error:**
+     - Not found => **404**.
+     - Unauthorized => **403**.
+     - Generic => **500**.
+
+#### Controller Layer Tests (Task)
+
+- **Success Paths:**
+  - Returns **200** (GET, PUT, PATCH, DELETE) or **201** (POST) with JSON data from the service.
+- **Error Handling:**
+  - Custom errors `{ status, message }` => use `status`.
+  - Plain `Error` => **500** fallback.
 
 ---
 
@@ -268,12 +380,11 @@ npm run test ./tests/unit/services/project.service.test.js
 # Run tests with coverage
 npm run test:coverage
 ```
-
----
+--- 
 
 ## Conclusion
 
-This documentation provides comprehensive user stories and test scenarios for both the Project and Stage modules. It outlines:
+This documentation provides comprehensive user stories and test scenarios for both the Project, Stage and Task modules. It outlines:
 
 - **Role-Based Access Control** for Admin, Manager, and Employee roles.
 - **CRUD Operations** with robust checks for duplicates, invalid data, unauthorized access, and pagination defaults.
@@ -281,3 +392,5 @@ This documentation provides comprehensive user stories and test scenarios for bo
 - **Testing Strategies** covering both the service layer and controller layer, ensuring coverage of success paths and error paths alike.
 
 By following these guidelines, teams can maintain consistent behaviors, reduce regressions, and streamline development for both modules.
+
+
