@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  postgres-db:
+    image: postgres:14-alpine
+    container_name: "postgres-db"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: "mailhog"
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    networks:
+      - app-network
+
+  identity-service:
+    build:
+      context: ../services/identity-service
+      dockerfile: Dockerfile
+    container_name: "identity-service"
+    # Provide environment variables from your local shell or a .env file
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+
+      # Postgres connection
+      DATABASE_URL: "postgresql://root:root@postgres-db:5432/identity_service?schema=public"
+
+      # SMTP config for MailHog
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      EMAIL_FROM: "no-reply@worknest.com"
+
+      # JWT SECRETS & EXPIRES (read from local env or .env)
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRES_IN: "1h"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET}"
+      JWT_REFRESH_EXPIRES_IN: "7d"
+
+    depends_on:
+      - postgres-db
+      - mailhog
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  project-service:
+    build:
+      context: ../services/project-service
+      dockerfile: Dockerfile
+    container_name: "project-service"
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: "postgresql://root:root@postgres-db:5432/project_service?schema=public"
+      # Example: If you need JWT for project-service too, do something similar:
+      # JWT_SECRET: "${JWT_SECRET}"
+      # etc...
+    depends_on:
+      - postgres-db
+    ports:
+      - "5001:5001"
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: "frontend"
+    depends_on:
+      - identity-service
+      - project-service
+    ports:
+      - "4200:80"
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
