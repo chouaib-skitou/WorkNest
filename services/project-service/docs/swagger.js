@@ -27,6 +27,23 @@ const swaggerOptions = {
         description: "Development Server",
       },
     ],
+    components: {
+      securitySchemes: {
+        // Here we define the BearerAuth scheme
+        BearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
+    // Optionally, you can apply the security requirement globally
+    // to all endpoints. (You can also do this per-route in your .js docs.)
+    security: [
+      {
+        BearerAuth: [],
+      },
+    ],
   },
   apis: ["./routes/*.js"], // Scans all route files for Swagger comments
 };
@@ -41,6 +58,6 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 export const setupSwagger = (app) => {
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
   if (process.env.NODE_ENV !== "test") {
-    console.log("📚 Swagger Docs available at: http://localhost:5001/api/docs");
+    console.log(`📚 Swagger Docs available at: ${BASE_URL}/api/docs`);
   }
 };
