@@ -23,16 +23,15 @@ export const createStageValidation = [
 export const updateStageValidation = [
   isUUID("id"),
   body("name")
-    .optional()
     .isString()
     .trim()
     .notEmpty()
     .withMessage("Invalid name"),
   body("position")
-    .optional()
     .isInt({ min: 0 })
+    .notEmpty()
     .withMessage("Position must be a positive integer"),
-  body("color").optional().isHexColor().withMessage("Invalid color format"),
+  body("color").notEmpty().isHexColor().withMessage("Invalid color format"),
 ];
 
 export const patchStageValidation = [
