@@ -23,7 +23,7 @@ const router = express.Router();
  * /api/tasks:
  *   get:
  *     summary: Retrieve all tasks with pagination
- *     description: Fetches a paginated list of tasks. No filters are applied.
+ *     description: Fetches a paginated list of tasks. Tasks are filtered based on the user's role.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -42,13 +42,13 @@ const router = express.Router();
  *         description: The number of tasks per page.
  *     responses:
  *       200:
- *         description: A list of tasks retrieved successfully.
+ *         description: A paginated list of tasks retrieved successfully.
  *       400:
  *         description: Invalid request parameters.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized.
  *       500:
  *         description: Internal server error.
  */
@@ -59,7 +59,7 @@ router.get("/", authMiddleware, getTasks);
  * /api/tasks/{id}:
  *   get:
  *     summary: Get a task by ID
- *     description: Fetches details of a specific task.
+ *     description: Fetches details of a specific task, including any relevant stage/project info.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -78,7 +78,7 @@ router.get("/", authMiddleware, getTasks);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to view the task.
  *       404:
  *         description: Task not found.
  *       500:
@@ -91,7 +91,7 @@ router.get("/:id", authMiddleware, getTaskById);
  * /api/tasks:
  *   post:
  *     summary: Create a new task
- *     description: Creates a new task within a stage.
+ *     description: Creates a new task within a project stage. Only Admins and Managers can create tasks.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -192,9 +192,11 @@ router.post("/", authMiddleware, createTask);
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to update the task.
  *       404:
  *         description: Task not found.
+ *       409:
+ *         description: A task with this title already exists for this project.
  *       500:
  *         description: Internal server error.
  */
@@ -205,7 +207,7 @@ router.put("/:id", authMiddleware, updateTask);
  * /api/tasks/{id}:
  *   patch:
  *     summary: Partially update a task
- *     description: Updates specific fields of a task.
+ *     description: Updates specific fields of an existing task.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -216,17 +218,48 @@ router.put("/:id", authMiddleware, updateTask);
  *         schema:
  *           type: string
  *         description: The ID of the task to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Patched Task Title"
+ *               description:
+ *                 type: string
+ *                 example: "Patched description"
+ *               priority:
+ *                 type: string
+ *                 enum: [LOW, MEDIUM, HIGH]
+ *                 example: "LOW"
+ *               stageId:
+ *                 type: string
+ *                 example: "b7d6f111-8e2d-4b8a-a349-fd1a534b7e5a"
+ *               assignedTo:
+ *                 type: string
+ *                 example: "b1d2c3e4-5678-9fgh-ijkl-mnopqrstuvwx"
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: url
+ *                 example: ["https://example.com/task-patch-image.png"]
  *     responses:
  *       200:
  *         description: Task updated successfully.
  *       400:
- *         description: Invalid or expired token.
+ *         description: Invalid or expired token, or no valid fields provided for update.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to update the task.
  *       404:
  *         description: Task not found.
+ *       409:
+ *         description: A task with this title already exists for this project.
  *       500:
  *         description: Internal server error.
  */
@@ -237,7 +270,7 @@ router.patch("/:id", authMiddleware, patchTask);
  * /api/tasks/{id}:
  *   delete:
  *     summary: Delete a task
- *     description: Removes a task from the system.
+ *     description: Removes a task from a project. Only Admins can delete any task; Managers can delete only tasks from projects they created.
  *     tags: [Tasks]
  *     security:
  *       - BearerAuth: []
@@ -251,12 +284,23 @@ router.patch("/:id", authMiddleware, patchTask);
  *     responses:
  *       200:
  *         description: Task deleted successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Task deleted successfully"
  *       400:
  *         description: Invalid or expired token.
  *       401:
  *         description: Unauthorized, token required.
  *       403:
- *         description: User is not verified.
+ *         description: User is not verified or not authorized to delete the task.
  *       404:
  *         description: Task not found.
  *       500:
