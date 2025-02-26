@@ -30,11 +30,11 @@ const getDynamicFilters = (query) => {
  * @returns {Object} - Sorting options for Prisma query.
  */
 const getSortingOptions = (query) => {
-  const allowedFields = ["name", "position", "createdAt", "updatedAt"];
+  const allowedFields = ["name", "position"];
   const sortField = allowedFields.includes(query.sortField)
     ? query.sortField
-    : "createdAt";
-  const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
+    : "position";
+  const sortOrder = query.sortOrder === "desc" ? "desc" : "asc";
   return { [sortField]: sortOrder };
 };
 
@@ -125,6 +125,42 @@ const authorizeStageDeletion = async (user, id) => {
     status: 403,
     message: "Access denied: You do not have permission to delete this stage",
   });
+};
+
+/**
+ * Authorize stage creation based on user role.
+ * ROLE_ADMIN: allowed.
+ * ROLE_MANAGER: allowed if the related project's managerId or createdBy matches user.id.
+ * @param {Object} user - The user creating the stage.
+ * @param {string} projectId - The project ID for which the stage is being created.
+ * @returns {Promise<void>} - Resolves if authorized, otherwise rejects with an error.
+ */
+const authorizeStageCreation = async (user, projectId) => {
+  if (user.role === "ROLE_ADMIN") {
+    console.log(`Admin authorized to create stage for project: ${projectId}`);
+    return;
+  } else if (user.role === "ROLE_MANAGER") {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      return Promise.reject({ status: 404, message: "Project not found" });
+    }
+    if (project.managerId === user.id || project.createdBy === user.id) {
+      console.log(`Manager authorized to create stage for project: ${projectId}`);
+      return;
+    } else {
+      return Promise.reject({
+        status: 403,
+        message: "Access denied: You do not have permission to create a stage for this project",
+      });
+    }
+  } else {
+    return Promise.reject({
+      status: 403,
+      message: "Access denied: Only admins and managers can create stages",
+    });
+  }
 };
 
 /**
@@ -234,18 +270,15 @@ export const getStageByIdService = async (user, id) => {
 /**
  * Create a new stage.
  * Only Admins and Managers can create stages.
+ * For managers, creation is allowed only if they are the project's manager or creator.
  * @param {Object} user - The user creating the stage.
  * @param {Object} data - The stage data.
  * @returns {Promise<StageDTO>} - The created stage data transfer object.
  */
 export const createStageService = async (user, data) => {
   try {
-    if (!["ROLE_ADMIN", "ROLE_MANAGER"].includes(user.role)) {
-      return Promise.reject({
-        status: 403,
-        message: "Access denied: Only admins and managers can create stages",
-      });
-    }
+    // Authorize stage creation based on user role and project
+    await authorizeStageCreation(user, data.projectId);
 
     const stageData = {
       ...data,
