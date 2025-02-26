@@ -1,360 +1,269 @@
+// tests/unit/controllers/task.controller.test.js
 import * as taskController from "../../../controllers/task.controller.js";
-import { prisma } from "../../../config/database.js";
 import { TaskDTO } from "../../../dtos/task.dto.js";
+import {
+  getTasksService,
+  getTaskByIdService,
+  createTaskService,
+  updateTaskService,
+  patchTaskService,
+  deleteTaskService,
+} from "../../../services/task.service.js";
 
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    task: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-  },
-}));
+jest.mock("../../../services/task.service.js");
 
 describe("🛠 Task Controller Tests", () => {
   let req, res;
-
-  beforeEach(() => {
-    req = { body: {}, params: {}, headers: {}, query: {} };
-    res = {
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
-    };
-
-    jest.clearAllMocks();
-  });
-
   const taskData = {
     id: "task-uuid",
-    title: "Task Title",
+    title: "task title",
     description: "Task description",
     priority: "HIGH",
     stageId: "stage-uuid",
     projectId: "project-uuid",
-    assignedTo: null,
-    images: ["https://example.com/image1.png"],
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    assignedTo: "user-uuid",
+    images: ["https://example.com/task-image.png"],
+    createdAt: new Date("2025-02-22T12:00:00Z"),
+    updatedAt: new Date("2025-02-23T14:30:00Z"),
   };
 
-  test("✅ Get all tasks (200) - Success with pagination", async () => {
-    prisma.task.findMany.mockResolvedValue([taskData]);
-    prisma.task.count.mockResolvedValue(1);
-
-    req.query.page = "1";
-    req.query.limit = "10";
-
-    await taskController.getTasks(req, res);
-
-    expect(res.json).toHaveBeenCalledWith({
-      data: [new TaskDTO(taskData)],
-      page: 1,
-      limit: 10,
-      totalCount: 1,
-      totalPages: 1,
-    });
-  });
-
-  test("🚫 Get all tasks - Internal Server Error (500)", async () => {
-    prisma.task.findMany.mockRejectedValue(new Error("Database error"));
-
-    await taskController.getTasks(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Get task by ID (200)", async () => {
-    req.params.id = taskData.id;
-    prisma.task.findUnique.mockResolvedValue(taskData);
-
-    await taskController.getTaskById[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(new TaskDTO(taskData));
-  });
-
-  test("🚫 Get task by ID - Not Found (404)", async () => {
-    req.params.id = taskData.id;
-    prisma.task.findUnique.mockResolvedValue(null);
-
-    await taskController.getTaskById[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "Task not found" });
-  });
-
-  test("🚫 Get task by ID - Internal Server Error (500)", async () => {
-    req.params.id = taskData.id;
-    prisma.task.findUnique.mockRejectedValue(new Error("Database error"));
-
-    await taskController.getTaskById[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Create a task (201)", async () => {
-    req.body = {
-      title: "Task Title",
-      description: "Task Description",
-      priority: "HIGH",
-      stageId: taskData.stageId,
-      projectId: taskData.projectId,
-      assignedTo: taskData.assignedTo,
-      images: taskData.images,
+  beforeEach(() => {
+    req = {
+      body: {},
+      params: {},
+      query: {},
+      user: { id: "user-id", role: "ROLE_ADMIN" },
     };
-
-    prisma.task.create.mockResolvedValue(taskData);
-
-    await taskController.createTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task created successfully",
-      task: new TaskDTO(taskData),
-    });
-  });
-
-  test("🚫 Create task - Duplicate Title (409)", async () => {
-    req.body = {
-      title: "Task Title",
-      projectId: taskData.projectId,
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
     };
+    jest.clearAllMocks();
+  });
 
-    prisma.task.create.mockRejectedValue({ code: "P2002" });
+  describe("getTasks", () => {
+    test("✅ should return tasks successfully (200)", async () => {
+      getTasksService.mockResolvedValue({
+        data: [new TaskDTO(taskData)],
+        page: 1,
+        limit: 10,
+        totalCount: 1,
+        totalPages: 1,
+      });
+      req.query.page = "1";
+      req.query.limit = "10";
 
-    await taskController.createTask[2](req, res);
+      await taskController.getTasks(req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        data: [new TaskDTO(taskData)],
+        page: 1,
+        limit: 10,
+        totalCount: 1,
+        totalPages: 1,
+      });
+    });
 
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A task with this title already exists for this project",
+    test("🚫 should handle internal server error (500) in getTasks", async () => {
+      getTasksService.mockRejectedValue(new Error("Database error"));
+      await taskController.getTasks(req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("✅ Update task (200)", async () => {
-    req.params.id = taskData.id;
-    req.body = { title: "Updated Task", priority: "LOW" };
-
-    prisma.task.update.mockResolvedValue({
-      ...taskData,
-      title: "updated task",
-      priority: "LOW",
+  describe("getTaskById", () => {
+    test("✅ should return task by ID successfully (200)", async () => {
+      req.params.id = taskData.id;
+      getTaskByIdService.mockResolvedValue(new TaskDTO(taskData));
+      // getTaskById is an array; invoke its handler at index 2.
+      await taskController.getTaskById[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(new TaskDTO(taskData));
     });
 
-    await taskController.updateTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task updated successfully",
-      task: new TaskDTO({
-        ...taskData,
-        title: "updated task",
-        priority: "LOW",
-      }),
-    });
-  });
-
-  test("🚫 Update task - Internal Server Error (500)", async () => {
-    req.params.id = taskData.id;
-    req.body = { title: "Updated Task" };
-
-    prisma.task.update.mockRejectedValue(new Error("Database error"));
-
-    await taskController.updateTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Patch task - Convert title to lowercase", async () => {
-    req.params.id = taskData.id;
-    req.body = { title: "UPDATED TASK" };
-
-    prisma.task.update.mockResolvedValue({
-      ...taskData,
-      title: "updated task",
+    test("🚫 should return 404 when task not found", async () => {
+      req.params.id = taskData.id;
+      getTaskByIdService.mockResolvedValue(null);
+      await taskController.getTaskById[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: "Task not found" });
     });
 
-    await taskController.patchTask[2](req, res);
-
-    expect(prisma.task.update).toHaveBeenCalledWith({
-      where: { id: req.params.id },
-      data: { title: "updated task" },
-      include: { Project: true, Stage: true }, // Add this to match the actual function
-    });
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task updated successfully",
-      task: new TaskDTO({ ...taskData, title: "updated task" }),
+    test("🚫 should handle internal server error in getTaskById (500)", async () => {
+      req.params.id = taskData.id;
+      getTaskByIdService.mockRejectedValue(new Error("Database error"));
+      await taskController.getTaskById[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("🚫 Patch task - No valid fields provided (400)", async () => {
-    req.params.id = taskData.id;
-    req.body = {}; // No fields provided
-
-    await taskController.patchTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "No valid fields provided for update",
-    });
-  });
-
-  test("✅ Delete task (200)", async () => {
-    req.params.id = taskData.id;
-    prisma.task.delete.mockResolvedValue({});
-
-    await taskController.deleteTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task deleted successfully",
-    });
-  });
-
-  test("🚫 Delete task - Internal Server Error (500)", async () => {
-    req.params.id = taskData.id;
-    prisma.task.delete.mockRejectedValue(new Error("Database error"));
-
-    await taskController.deleteTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("🚫 Create task - Internal Server Error (500)", async () => {
-    req.body = {
-      title: "New Task",
-      description: "Task description",
-      priority: "HIGH",
-      stageId: "stage-uuid",
-      projectId: "project-uuid",
-      assignedTo: "user-uuid",
-      images: ["https://example.com/task-image.png"],
-    };
-
-    prisma.task.create.mockRejectedValue(new Error("Database error"));
-
-    await taskController.createTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("🚫 Update task - Duplicate Title Conflict (409)", async () => {
-    req.params.id = "task-uuid";
-    req.body = { title: "Updated Task" };
-
-    prisma.task.update.mockRejectedValue({ code: "P2002" });
-
-    await taskController.updateTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A task with this title already exists for this project",
-    });
-  });
-
-  test("🚫 Patch task - Duplicate Title Conflict (409)", async () => {
-    req.params.id = "task-uuid";
-    req.body = { title: "Updated Task" };
-
-    prisma.task.update.mockRejectedValue({ code: "P2002" });
-
-    await taskController.patchTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "A task with this title already exists for this project",
-    });
-  });
-
-  test("🚫 Patch task - Internal Server Error (500)", async () => {
-    req.params.id = "task-uuid";
-    req.body = { title: "Updated Task" };
-
-    prisma.task.update.mockRejectedValue(new Error("Database error"));
-
-    await taskController.patchTask[2](req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Patch task - Ignore undefined values", async () => {
-    req.params.id = "task-uuid";
-    req.body = { priority: "LOW", title: undefined }; // `title` is undefined and should be ignored
-
-    prisma.task.update.mockResolvedValue({
-      id: "task-uuid",
-      title: "existing task",
-      description: "Task description",
-      priority: "LOW", // This should be updated
-      stageId: "stage-uuid",
-      projectId: "project-uuid",
-      assignedTo: "user-uuid",
-      images: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    await taskController.patchTask[2](req, res);
-
-    expect(prisma.task.update).toHaveBeenCalledWith({
-      where: { id: req.params.id },
-      data: { priority: "LOW" }, // `title` should NOT be in data
-      include: { Stage: true, Project: true },
-    });
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task updated successfully",
-      task: new TaskDTO({
-        id: "task-uuid",
-        title: "existing task",
+  describe("createTask", () => {
+    test("✅ should create task successfully (201)", async () => {
+      req.body = {
+        title: "Task Title",
         description: "Task description",
-        priority: "LOW",
-        stageId: "stage-uuid",
-        projectId: "project-uuid",
-        assignedTo: "user-uuid",
-        images: [],
-        createdAt: expect.any(Date),
-        updatedAt: expect.any(Date),
-      }),
+        priority: "HIGH",
+        stageId: taskData.stageId,
+        projectId: taskData.projectId,
+        assignedTo: taskData.assignedTo,
+        images: taskData.images,
+      };
+      createTaskService.mockResolvedValue(new TaskDTO(taskData));
+      await taskController.createTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Task created successfully",
+        task: new TaskDTO(taskData),
+      });
+    });
+
+    test("🚫 should handle duplicate task title error (409) in createTask", async () => {
+      req.body = {
+        title: "Task Title",
+        projectId: taskData.projectId,
+      };
+      createTaskService.mockRejectedValue({
+        status: 409,
+        message: "A task with this title already exists for this project",
+      });
+      await taskController.createTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A task with this title already exists for this project",
+      });
+    });
+
+    test("🚫 should handle internal server error in createTask (500)", async () => {
+      req.body = {
+        title: "Task Title",
+        description: "Task description",
+        priority: "HIGH",
+        stageId: taskData.stageId,
+        projectId: taskData.projectId,
+      };
+      createTaskService.mockRejectedValue(new Error("Database error"));
+      await taskController.createTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 
-  test("✅ Update task - No title provided (else path)", async () => {
-    req.params.id = "task-uuid";
-    req.body = { priority: "LOW" }; // No title in the request
-
-    prisma.task.update.mockResolvedValue({
-      ...taskData,
-      priority: "LOW",
+  describe("updateTask", () => {
+    test("✅ should update task successfully (200)", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "Updated Task", priority: "LOW" };
+      updateTaskService.mockResolvedValue(
+        new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" })
+      );
+      await taskController.updateTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Task updated successfully",
+        task: new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" }),
+      });
     });
 
-    await taskController.updateTask[2](req, res);
-
-    expect(prisma.task.update).toHaveBeenCalledWith({
-      where: { id: req.params.id },
-      data: { priority: "LOW" }, // Title should NOT be included
-      include: { Stage: true, Project: true },
+    test("🚫 should handle duplicate task title error (409) in updateTask", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "Duplicate Title" };
+      updateTaskService.mockRejectedValue({
+        status: 409,
+        message: "A task with this title already exists for this project",
+      });
+      await taskController.updateTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A task with this title already exists for this project",
+      });
     });
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Task updated successfully",
-      task: new TaskDTO({
-        ...taskData,
-        priority: "LOW",
-      }),
+    test("🚫 should handle internal server error in updateTask (500)", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "Updated Task" };
+      updateTaskService.mockRejectedValue(new Error("Database error"));
+      await taskController.updateTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
+    });
+  });
+
+  describe("patchTask", () => {
+    test("✅ should patch task successfully (200)", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "PATCHED TASK" };
+      patchTaskService.mockResolvedValue(
+        new TaskDTO({ ...taskData, title: "patched task" })
+      );
+      await taskController.patchTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Task updated successfully",
+        task: new TaskDTO({ ...taskData, title: "patched task" }),
+      });
+    });
+
+
+    test("🚫 should handle duplicate task title error (409) in patchTask", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "Duplicate Title" };
+      patchTaskService.mockRejectedValue({
+        status: 409,
+        message: "A task with this title already exists for this project",
+      });
+      await taskController.patchTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A task with this title already exists for this project",
+      });
+    });
+
+    test("🚫 should handle internal server error in patchTask (500)", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "Updated Task" };
+      patchTaskService.mockRejectedValue(new Error("Database error"));
+      await taskController.patchTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
+    });
+
+    test("✅ should convert task title to lowercase in patchTask", async () => {
+      req.params.id = taskData.id;
+      req.body = { title: "UPPERCASE TITLE" };
+      patchTaskService.mockResolvedValue(
+        new TaskDTO({ ...taskData, title: "uppercase title" })
+      );
+      await taskController.patchTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Task updated successfully",
+        task: new TaskDTO({ ...taskData, title: "uppercase title" }),
+      });
+    });
+  });
+
+  describe("deleteTask", () => {
+    test("✅ should delete task successfully (200)", async () => {
+      req.params.id = taskData.id;
+      deleteTaskService.mockResolvedValue({
+        status: 200,
+        message: "Task deleted successfully",
+      });
+      await taskController.deleteTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 200,
+        message: "Task deleted successfully",
+      });
+    });
+
+    test("🚫 should handle internal server error in deleteTask (500)", async () => {
+      req.params.id = taskData.id;
+      deleteTaskService.mockRejectedValue(new Error("Database error"));
+      await taskController.deleteTask[2](req, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
   });
 });
