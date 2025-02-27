@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-STACK_NAME="my_stack"
+STACK_NAME="worknest"
 
 echo "Removing existing stack '${STACK_NAME}'..."
 docker stack rm ${STACK_NAME}
