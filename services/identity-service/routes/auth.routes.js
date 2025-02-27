@@ -20,7 +20,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/register:
+ * /api/auth/register:
  *   post:
  *     summary: Register a new user
  *     description: Creates a new user account and sends an email verification link. Users cannot manually set role or verification status.
@@ -57,7 +57,7 @@ router.post("/register", register);
 
 /**
  * @swagger
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: User login
  *     description: Authenticates a user and returns a JWT token. User must be verified before logging in.
@@ -92,7 +92,7 @@ router.post("/login", login);
 
 /**
  * @swagger
- * /auth/verify-email/{userId}/{token}:
+ * /api/auth/verify-email/{userId}/{token}:
  *   get:
  *     summary: Verify email
  *     description: Verifies a user's email address using a verification token.
@@ -120,7 +120,7 @@ router.get("/verify-email/:userId/:token", verifyEmail);
 
 /**
  * @swagger
- * /auth/reset-password-request:
+ * /api/auth/reset-password-request:
  *   post:
  *     summary: Request password reset
  *     description: Sends a password reset email if the user exists.
@@ -147,7 +147,7 @@ router.post("/reset-password-request", resetPasswordRequest);
 
 /**
  * @swagger
- * /auth/reset-password/{token}:
+ * /api/auth/reset-password/{token}:
  *   post:
  *     summary: Reset password
  *     description: Resets a user's password using a valid reset token. Passwords must meet security requirements.
@@ -187,7 +187,7 @@ router.post("/reset-password/:token", resetPassword);
 
 /**
  * @swagger
- * /auth/refresh:
+ * /api/auth/refresh:
  *   post:
  *     summary: Refresh access token
  *     description: Generates a new access token if the provided refresh token is valid.
@@ -219,7 +219,7 @@ router.post("/refresh", refreshToken);
 
 /**
  * @swagger
- * /auth/authorize:
+ * /api/auth/authorize:
  *   get:
  *     summary: Validate token and return user data
  *     description: Checks if the provided JWT token is valid and returns the authenticated user's details.
