@@ -1,4 +1,3 @@
-# project-service/Dockerfile
 FROM node:18-alpine
 
 WORKDIR /app
@@ -13,4 +12,4 @@ RUN npm run build
 
 EXPOSE 5001
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npm run migrate:prod && npm start"]
