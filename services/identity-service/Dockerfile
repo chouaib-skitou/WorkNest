@@ -1,5 +1,4 @@
 FROM node:18-alpine
-# or node:20-alpine
 
 WORKDIR /app
 
@@ -11,6 +10,6 @@ COPY . .
 
 RUN npm run build
 
-EXPOSE 5000
+EXPOSE 5001
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npm run migrate:prod && npm start"]
