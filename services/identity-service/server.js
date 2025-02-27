@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import helmet from "helmet";
-import { swaggerDocs } from "./docs/swagger.js"; // Ensure this path is correct
+import { setupSwagger } from "./docs/swagger.js"; 
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
@@ -23,7 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 
 // Initialize Swagger documentation
-swaggerDocs(app);
+setupSwagger(app);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API");
