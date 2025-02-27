@@ -1,0 +1,74 @@
+services:
+  postgres-db:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - app-network
+
+  identity-service:
+    build:
+      context: ../services/identity-service
+      dockerfile: Dockerfile
+    image: worknest/identity-service:latest
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: "postgresql://root:root@postgres-db:5432/identity_service?schema=public"
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      EMAIL_FROM: "no-reply@worknest.com"
+      JWT_EXPIRES_IN: "1h"
+      JWT_REFRESH_EXPIRES_IN: "7d"
+      # For local development, mount the JWT files as a volume:
+      JWT_SECRET_FILE: /config/jwt/JWT_SECRET
+      JWT_REFRESH_SECRET_FILE: /config/jwt/JWT_REFRESH_SECRET
+    volumes:
+      - ../services/identity-service/config/jwt:/config/jwt:ro
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  project-service:
+    build:
+      context: ../services/project-service
+      dockerfile: Dockerfile
+    image: worknest/project-service:latest
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: "postgresql://root:root@postgres-db:5432/project_service?schema=public"
+    ports:
+      - "5001:5001"
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: worknest/frontend:latest
+    ports:
+      - "4200:80"
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:

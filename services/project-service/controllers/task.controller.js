@@ -19,7 +19,7 @@ import {
 /**
  * Get all tasks with pagination and optional filtering.
  * @route GET /api/tasks
- * @access Public
+ * @access Protected
  */
 export const getTasks = async (req, res) => {
   try {
@@ -35,7 +35,7 @@ export const getTasks = async (req, res) => {
 /**
  * Get a task by ID.
  * @route GET /api/tasks/:id
- * @access Public
+ * @access Protected
  */
 export const getTaskById = [
   getTaskByIdValidation,

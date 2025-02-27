@@ -38,7 +38,7 @@ export const getProjects = async (req, res) => {
 /**
  * Get a single project by ID with its associated stages and tasks.
  * @route GET /api/projects/:id
- * @access Public
+ * @access Protected
  */
 export const getProjectById = async (req, res) => {
   try {
