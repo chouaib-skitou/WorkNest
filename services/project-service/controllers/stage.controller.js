@@ -19,7 +19,7 @@ import {
 /**
  * Get all stages with pagination and optional filtering.
  * @route GET /api/stages
- * @access Public
+ * @access Protected
  */
 export const getStages = async (req, res) => {
   try {
@@ -35,7 +35,7 @@ export const getStages = async (req, res) => {
 /**
  * Get a stage by ID.
  * @route GET /api/stages/:id
- * @access Public
+ * @access Protected
  */
 export const getStageById = [
   getStageByIdValidation,

@@ -1,7 +1,14 @@
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
+import dotenv from "dotenv";
 
-const options = {
+dotenv.config();
+
+const PORT = process.env.PORT || 5000;
+const BASE_URL = `http://localhost:${PORT}`;
+
+// Swagger configuration
+const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
@@ -16,8 +23,8 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:5000",
-        description: "Local development server",
+        url: BASE_URL,
+        description: "Local Development Server",
       },
     ],
     components: {
@@ -29,13 +36,32 @@ const options = {
         },
       },
     },
+    security: [
+      {
+        BearerAuth: [],
+      },
+    ],
   },
-  apis: ["./routes/*.js"], // Ensuring routes are documented
+  apis: ["./routes/*.js"], // Ensures routes are documented
 };
 
-const swaggerSpec = swaggerJSDoc(options);
+// Initialize Swagger Docs
+const swaggerDocs = swaggerJSDoc(swaggerOptions);
 
-export function swaggerDocs(app) {
-  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  console.log("📄 Swagger documentation available at http://localhost:5000/api/docs");
+/**
+ * @desc Sets up Swagger documentation in the Express app.
+ * @param {object} app - The Express application instance.
+ */
+export function setupSwagger(app) {
+  app.use(
+    "/api/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocs, {
+      customSiteTitle: "WorkNest - Identity Service", 
+    })
+  );
+
+  if (process.env.NODE_ENV !== "test") {
+    console.log(`📄 Swagger documentation available at: ${BASE_URL}/api/docs`);
+  }
 }

@@ -29,7 +29,6 @@ const swaggerOptions = {
     ],
     components: {
       securitySchemes: {
-        // Here we define the BearerAuth scheme
         BearerAuth: {
           type: "http",
           scheme: "bearer",
@@ -37,8 +36,6 @@ const swaggerOptions = {
         },
       },
     },
-    // Optionally, you can apply the security requirement globally
-    // to all endpoints. (You can also do this per-route in your .js docs.)
     security: [
       {
         BearerAuth: [],
@@ -56,7 +53,14 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
  * @param {object} app - The Express application instance.
  */
 export const setupSwagger = (app) => {
-  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+  app.use(
+    "/api/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocs, {
+      customSiteTitle: "WorkNest - Project Service",
+    })
+  );
+
   if (process.env.NODE_ENV !== "test") {
     console.log(`📚 Swagger Docs available at: ${BASE_URL}/api/docs`);
   }
