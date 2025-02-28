@@ -5,7 +5,7 @@ import {
   refreshTokenRules,
   resetPasswordRequestRules,
   resetPasswordRules,
-} from "../../validators/auth.validator.js";
+} from "../../../validators/auth.validator.js";
 
 /**
  * Helper to run an array of validation rules (express-validator) on a mock request.

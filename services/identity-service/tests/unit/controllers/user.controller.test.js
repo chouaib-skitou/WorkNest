@@ -1,10 +1,10 @@
-import * as userController from "../../controllers/user.controller.js";
-import { prisma } from "../../config/database.js";
-import { validateRequest } from "../../middleware/validate.middleware.js";
-import { authMiddleware } from "../../middleware/auth.middleware.js";
-import { UserDTO } from "../../dtos/user.dto.js";
+import * as userController from "../../../controllers/user.controller.js";
+import { prisma } from "../../../config/database.js";
+import { validateRequest } from "../../../middleware/validate.middleware.js";
+import { authMiddleware } from "../../../middleware/auth.middleware.js";
+import { UserDTO } from "../../../dtos/user.dto.js";
 
-jest.mock("../../config/database.js", () => ({
+jest.mock("../../../config/database.js", () => ({
   prisma: {
     user: {
       findMany: jest.fn(),
@@ -17,11 +17,11 @@ jest.mock("../../config/database.js", () => ({
   },
 }));
 
-jest.mock("../../middleware/validate.middleware.js", () => ({
+jest.mock("../../../middleware/validate.middleware.js", () => ({
   validateRequest: jest.fn((req, res, next) => next()),
 }));
 
-jest.mock("../../middleware/auth.middleware.js", () => ({
+jest.mock("../../../middleware/auth.middleware.js", () => ({
   authMiddleware: jest.fn((req, res, next) => {
     req.user = { id: "1", role: "ROLE_ADMIN" }; // Mock authenticated admin user
     next();
@@ -638,6 +638,39 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
       totalCount: 5,
       totalPages: 3,
     });
+  });
+
+  test("should return 400 if no ids provided", async () => {
+    req.body = { ids: [] };
+    await userController.getUsersByIds(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "No user ids provided" });
+  });
+
+  test("should return minimal user info for given ids", async () => {
+    const users = [
+      { id: "1", firstName: "John", lastName: "Doe", role: "ROLE_ADMIN" },
+      { id: "2", firstName: "Jane", lastName: "Smith", role: "ROLE_MANAGER" },
+    ];
+    prisma.user.findMany.mockResolvedValue(users);
+    req.body = { ids: ["1", "2"] };
+    await userController.getUsersByIds(req, res);
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: { id: { in: ["1", "2"] } },
+      select: { id: true, firstName: true, lastName: true, role: true },
+    });
+    expect(res.json).toHaveBeenCalledWith([
+      { id: "1", fullName: "John Doe", role: "ROLE_ADMIN" },
+      { id: "2", fullName: "Jane Smith", role: "ROLE_MANAGER" },
+    ]);
+  });
+
+  test("should handle errors and return 500", async () => {
+    prisma.user.findMany.mockRejectedValue(new Error("Database error"));
+    req.body = { ids: ["1", "2"] };
+    await userController.getUsersByIds(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });
 
 });
