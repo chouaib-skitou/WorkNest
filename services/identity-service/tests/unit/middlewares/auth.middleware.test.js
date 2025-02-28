@@ -1,12 +1,12 @@
-import { authMiddleware } from "../../middleware/auth.middleware.js";
-import { verifyToken } from "../../config/jwt.js";
-import { prisma } from "../../config/database.js";
+import { authMiddleware } from "../../../middleware/auth.middleware.js";
+import { verifyToken } from "../../../config/jwt.js";
+import { prisma } from "../../../config/database.js";
 
-jest.mock("../../config/jwt.js", () => ({
+jest.mock("../../../config/jwt.js", () => ({
   verifyToken: jest.fn(),
 }));
 
-jest.mock("../../config/database.js", () => ({
+jest.mock("../../../config/database.js", () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

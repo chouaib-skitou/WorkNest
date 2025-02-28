@@ -1,10 +1,10 @@
-import * as userController from "../../controllers/user.controller.js";
-import { prisma } from "../../config/database.js";
-import { validateRequest } from "../../middleware/validate.middleware.js";
-import { authMiddleware } from "../../middleware/auth.middleware.js";
-import { UserDTO } from "../../dtos/user.dto.js";
+import * as userController from "../../../controllers/user.controller.js";
+import { prisma } from "../../../config/database.js";
+import { validateRequest } from "../../../middleware/validate.middleware.js";
+import { authMiddleware } from "../../../middleware/auth.middleware.js";
+import { UserDTO } from "../../../dtos/user.dto.js";
 
-jest.mock("../../config/database.js", () => ({
+jest.mock("../../../config/database.js", () => ({
   prisma: {
     user: {
       findMany: jest.fn(),
@@ -17,11 +17,11 @@ jest.mock("../../config/database.js", () => ({
   },
 }));
 
-jest.mock("../../middleware/validate.middleware.js", () => ({
+jest.mock("../../../middleware/validate.middleware.js", () => ({
   validateRequest: jest.fn((req, res, next) => next()),
 }));
 
-jest.mock("../../middleware/auth.middleware.js", () => ({
+jest.mock("../../../middleware/auth.middleware.js", () => ({
   authMiddleware: jest.fn((req, res, next) => {
     req.user = { id: "1", role: "ROLE_ADMIN" }; // Mock authenticated admin user
     next();

@@ -13,7 +13,7 @@ jest.mock("nodemailer", () => {
 });
 
 import nodemailer from "nodemailer";
-import { sendMail } from "../../config/mail.js"; // We don't import transporter here to force re-creation in isolated modules
+import { sendMail } from "../../../config/mail.js"; // We don't import transporter here to force re-creation in isolated modules
 
 describe("📧 Mail Service Tests", () => {
   beforeEach(() => {
@@ -60,7 +60,7 @@ describe("📧 Mail Service Tests", () => {
 
       // Use isolateModules to force reimport of mail.js
       jest.isolateModules(() => {
-        require("../../config/mail.js");
+        require("../../../config/mail.js");
       });
 
       expect(nodemailer.createTransport).toHaveBeenCalledWith({
@@ -83,7 +83,7 @@ describe("📧 Mail Service Tests", () => {
       process.env.EMAIL_FROM = "from@example.com";
 
       jest.isolateModules(() => {
-        require("../../config/mail.js");
+        require("../../../config/mail.js");
       });
 
       expect(nodemailer.createTransport).toHaveBeenCalledWith({
