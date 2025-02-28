@@ -5,6 +5,8 @@
 
 import { prisma } from "../config/database.js";
 import { ProjectDTO, GetAllProjectsDTO } from "../dtos/project.dto.js";
+import { fetchUsersByIds } from "./helpers/user.enrichment.js";
+
 
 /**
  * Generate role-based filter conditions for project queries.
@@ -147,7 +149,7 @@ const authorizeProjectDeletion = async (user, id) => {
  * @param {Object} query - Query parameters for filtering, pagination, and sorting.
  * @returns {Promise<Object>} - Paginated projects data.
  */
-export const getProjectsService = async (user, query) => {
+export const getProjectsService = async (user, query, token) => {
   const parsedPage = parseInt(query.page);
   const parsedLimit = parseInt(query.limit);
   const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
@@ -178,8 +180,27 @@ export const getProjectsService = async (user, query) => {
       };
     }
 
+    // Get both managerIds and createdBy IDs
+    const managerIds = projects.filter((p) => p.managerId).map((p) => p.managerId);
+    const createdByIds = projects.filter((p) => p.createdBy).map((p) => p.createdBy);
+
+    // Merge and deduplicate IDs
+    const uniqueUserIds = [...new Set([...managerIds, ...createdByIds])];
+
+    // Fetch user details for both
+    const usersMap = await fetchUsersByIds(uniqueUserIds, token);
+    console.log("🔍 Debug: Users map", usersMap);
+
+    // Enrich each project with both manager and createdBy details
+    const enrichedProjects = projects.map((project) => ({
+      ...project,
+      manager: project.managerId ? usersMap[project.managerId] : null,
+      createdBy: project.createdBy ? usersMap[project.createdBy] : null,
+    }));
+    
+
     return {
-      data: projects.map((project) => new GetAllProjectsDTO(project)),
+      data: enrichedProjects.map((project) => new GetAllProjectsDTO(project)),
       page,
       limit,
       totalCount,
