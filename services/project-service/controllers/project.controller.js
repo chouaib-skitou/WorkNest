@@ -26,7 +26,7 @@ import {
  */
 export const getProjects = async (req, res) => {
   try {
-    const projects = await getProjectsService(req.user, req.query);
+    const projects = await getProjectsService(req.user, req.query, req.headers.authorization.split(" ")[1]);
     res.status(200).json(projects);
   } catch (error) {
     console.error("Error fetching projects:", error);

@@ -30,6 +30,7 @@ describe("🛠 Project Controller Tests", () => {
       params: {},
       query: {},
       user: { id: "user-id", role: "ROLE_ADMIN" },
+      headers: { authorization: "Bearer testtoken" },
     };
     res = {
       status: jest.fn().mockReturnThis(),
@@ -37,18 +38,6 @@ describe("🛠 Project Controller Tests", () => {
     };
     next = jest.fn();
     jest.clearAllMocks();
-  });
-
-  beforeAll(() => {
-    jest.spyOn(console, "error").mockImplementation(() => {});
-    jest.spyOn(console, "warn").mockImplementation(() => {});
-    jest.spyOn(console, "log").mockImplementation(() => {});
-  });
-  
-  afterAll(() => {
-    console.error.mockRestore();
-    console.warn.mockRestore();
-    console.log.mockRestore();
   });
   
 
@@ -61,9 +50,9 @@ describe("🛠 Project Controller Tests", () => {
         totalCount: 1,
         totalPages: 1,
       });
-
+  
       await projectController.getProjects(req, res);
-
+  
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         data: [mockProject],
@@ -77,9 +66,9 @@ describe("🛠 Project Controller Tests", () => {
     test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
       // Simulate a plain error with no status property.
       getProjectsService.mockRejectedValue(new Error("Database error"));
-
+  
       await projectController.getProjects(req, res);
-
+  
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
