@@ -25,6 +25,6 @@ export class GetAllProjectsDTO {
     this.image = project.image;
     this.createdAt = project.createdAt;
     this.createdBy = project.createdBy;
-    this.managerId = project.managerId;
+    this.manager = project.manager;
   }
 }
