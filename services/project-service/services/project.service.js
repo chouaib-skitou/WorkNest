@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "../config/database.js";
-import { ProjectDTO } from "../dtos/project.dto.js";
+import { ProjectDTO, GetAllProjectsDTO } from "../dtos/project.dto.js";
 
 /**
  * Generate role-based filter conditions for project queries.
@@ -179,7 +179,7 @@ export const getProjectsService = async (user, query) => {
     }
 
     return {
-      data: projects.map((project) => new ProjectDTO(project)),
+      data: projects.map((project) => new GetAllProjectsDTO(project)),
       page,
       limit,
       totalCount,

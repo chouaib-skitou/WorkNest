@@ -15,7 +15,7 @@ jest.mock("../../../config/database.js", () => ({
 }));
 
 import { prisma } from "../../../config/database.js";
-import { ProjectDTO } from "../../../dtos/project.dto.js";
+import { ProjectDTO, GetAllProjectsDTO } from "../../../dtos/project.dto.js";
 import {
   getProjectsService,
   getProjectByIdService,
@@ -28,17 +28,17 @@ import {
 describe("🛠 Project Service Tests", () => {
   let adminUser, employeeUser, managerUser, query, mockProject;
 
-  // beforeAll(() => {
-  //   jest.spyOn(console, "error").mockImplementation(() => {});
-  //   jest.spyOn(console, "warn").mockImplementation(() => {});
-  //   jest.spyOn(console, "log").mockImplementation(() => {});
-  // });
+  beforeAll(() => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    // jest.spyOn(console, "log").mockImplementation(() => {});
+  });
   
-  // afterAll(() => {
-  //   console.error.mockRestore();
-  //   console.warn.mockRestore();
-  //   console.log.mockRestore();
-  // });
+  afterAll(() => {
+    console.error.mockRestore();
+    console.warn.mockRestore();
+    // console.log.mockRestore();
+  });
   
   beforeEach(() => {
     adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
@@ -70,7 +70,7 @@ describe("🛠 Project Service Tests", () => {
       const result = await getProjectsService(adminUser, query);
 
       expect(result).toEqual({
-        data: [new ProjectDTO(mockProject)],
+        data: [new GetAllProjectsDTO(mockProject)],
         page: 1,
         limit: 10,
         totalCount: 1,
