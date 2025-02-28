@@ -1,7 +1,7 @@
 import { prisma } from "../config/database.js";
 import { updateUserValidationRules, deleteUserValidationRules } from "../validators/user.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
-import { UserDTO } from "../dtos/user.dto.js";
+import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
 
 // Middleware to check user role
 const checkRole = (roles) => (req, res, next) => {
@@ -215,3 +215,36 @@ export const deleteUser = [
   }
 ];
 
+
+/**
+ * Batch lookup: Returns minimal user info for an array of user IDs.
+ * @param {Object} req - Express request object.
+ * @param {Object} req.body - Object containing an array of user IDs.
+ * @param {string[]} req.body.ids - Array of user IDs.
+ * @param {Object} res - Express response object.
+ * @returns {void} JSON response with an array of UserBatchDTO.
+ */
+export const getUsersByIds = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "No user ids provided" });
+    }
+
+    const users = await prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
+
+    const result = users.map((user) => new UserBatchDTO(user));
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching users by ids:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};

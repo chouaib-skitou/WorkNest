@@ -10,3 +10,12 @@ export class UserDTO {
     this.updatedAt = user.updatedAt;
   }
 }
+
+
+export class UserBatchDTO {
+  constructor(user) {
+    this.id = user.id;
+    this.fullName = `${user.firstName} ${user.lastName}`;
+    this.role = user.role;
+  }
+}

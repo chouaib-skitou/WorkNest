@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres-db:
     image: postgres:14-alpine
@@ -20,9 +22,6 @@ services:
       - app-network
 
   identity-service:
-    build:
-      context: ../services/identity-service
-      dockerfile: Dockerfile
     image: worknest/identity-service:latest
     environment:
       NODE_ENV: production
@@ -33,20 +32,17 @@ services:
       EMAIL_FROM: "no-reply@worknest.com"
       JWT_EXPIRES_IN: "1h"
       JWT_REFRESH_EXPIRES_IN: "7d"
-      # For local development, mount the JWT files as a volume:
-      JWT_SECRET_FILE: /config/jwt/JWT_SECRET
-      JWT_REFRESH_SECRET_FILE: /config/jwt/JWT_REFRESH_SECRET
-    volumes:
-      - ../services/identity-service/config/jwt:/config/jwt:ro
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+    secrets:
+      - jwt_secret
+      - jwt_refresh_secret
     ports:
       - "5000:5000"
     networks:
       - app-network
 
   project-service:
-    build:
-      context: ../services/project-service
-      dockerfile: Dockerfile
     image: worknest/project-service:latest
     environment:
       NODE_ENV: production
@@ -58,9 +54,6 @@ services:
       - app-network
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
     image: worknest/frontend:latest
     ports:
       - "4200:80"
@@ -72,3 +65,10 @@ volumes:
 
 networks:
   app-network:
+
+secrets:
+  jwt_secret:
+    file: ../services/identity-service/config/jwt/JWT_SECRET
+  jwt_refresh_secret:
+    file: ../services/identity-service/config/jwt/JWT_REFRESH_SECRET
+

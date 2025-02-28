@@ -1,4 +1,4 @@
-import { generateToken, generateRefreshToken, verifyToken } from "../../config/jwt.js";
+import { generateToken, generateRefreshToken, verifyToken } from "../../../config/jwt.js";
 import jwt from "jsonwebtoken";
 
 jest.mock("jsonwebtoken");

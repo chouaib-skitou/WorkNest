@@ -9,7 +9,7 @@
   "scripts": {
     "test": "cross-env NODE_ENV=test jest --runInBand --forceExit --detectOpenHandles",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
-    "test:setup": "node tests/setupTestDB.js",
+    "test:setup": "node ./jest.setup.js",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "start": "node dist/server.js",
     "dev": "nodemon server.js",

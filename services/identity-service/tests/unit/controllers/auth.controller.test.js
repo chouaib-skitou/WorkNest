@@ -1,13 +1,12 @@
-import * as authController from "../../controllers/auth.controller.js";
-import { prisma } from "../../config/database.js";
-import { generateToken, generateRefreshToken, verifyToken } from "../../config/jwt.js";
-import { sendMail } from "../../config/mail.js";
+import * as authController from "../../../controllers/auth.controller.js";
+import { prisma } from "../../../config/database.js";
+import { verifyToken } from "../../../config/jwt.js";
+import { sendMail } from "../../../config/mail.js";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
-import { UserDTO } from "../../dtos/user.dto.js";
+import { UserDTO } from "../../../dtos/user.dto.js";
 
 // Mock dependencies
-jest.mock("../../config/database.js", () => ({
+jest.mock("../../../config/database.js", () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
@@ -28,7 +27,7 @@ jest.mock("../../config/database.js", () => ({
   },
 }));
 
-jest.mock("../../config/jwt.js", () => ({
+jest.mock("../../../config/jwt.js", () => ({
   generateToken: jest.fn(() => "mockAccessToken"),
   generateRefreshToken: jest.fn(() => "mockRefreshToken"),
   verifyToken: jest.fn((token) => {
@@ -37,7 +36,7 @@ jest.mock("../../config/jwt.js", () => ({
   }),
 }));
 
-jest.mock("../../config/mail.js", () => ({
+jest.mock("../../../config/mail.js", () => ({
   sendMail: jest.fn(),
 }));
 

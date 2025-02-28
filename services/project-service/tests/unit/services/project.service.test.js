@@ -15,7 +15,12 @@ jest.mock("../../../config/database.js", () => ({
 }));
 
 import { prisma } from "../../../config/database.js";
-import { ProjectDTO } from "../../../dtos/project.dto.js";
+import { ProjectDTO, GetAllProjectsDTO } from "../../../dtos/project.dto.js";
+import { fetchUsersByIds } from "../../../services/helpers/user.enrichment.js";
+jest.mock("../../../services/helpers/user.enrichment.js", () => ({
+  fetchUsersByIds: jest.fn(),
+}));
+
 import {
   getProjectsService,
   getProjectByIdService,
@@ -27,18 +32,6 @@ import {
 
 describe("🛠 Project Service Tests", () => {
   let adminUser, employeeUser, managerUser, query, mockProject;
-
-  // beforeAll(() => {
-  //   jest.spyOn(console, "error").mockImplementation(() => {});
-  //   jest.spyOn(console, "warn").mockImplementation(() => {});
-  //   jest.spyOn(console, "log").mockImplementation(() => {});
-  // });
-  
-  // afterAll(() => {
-  //   console.error.mockRestore();
-  //   console.warn.mockRestore();
-  //   console.log.mockRestore();
-  // });
   
   beforeEach(() => {
     adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
@@ -64,18 +57,35 @@ describe("🛠 Project Service Tests", () => {
   // --- getProjectsService ---
   describe("getProjectsService", () => {
     test("✅ returns projects successfully when projects exist", async () => {
+      // Arrange
       prisma.project.findMany.mockResolvedValue([mockProject]);
       prisma.project.count.mockResolvedValue(1);
-
-      const result = await getProjectsService(adminUser, query);
-
+    
+      // Simulate enriched data from the batch endpoint.
+      fetchUsersByIds.mockResolvedValue({
+        [mockProject.managerId]: { id: mockProject.managerId, fullName: "Manager Name", role: "ROLE_MANAGER" },
+        [mockProject.createdBy]: { id: mockProject.createdBy, fullName: "Creator Name", role: "ROLE_ADMIN" },
+      });
+    
+      // Act – pass a token (e.g., "testtoken")
+      const result = await getProjectsService(adminUser, query, "testtoken");
+    
+      // The expected project is enriched with both manager and createdBy data.
+      const expectedProject = new GetAllProjectsDTO({
+        ...mockProject,
+        manager: { id: mockProject.managerId, fullName: "Manager Name", role: "ROLE_MANAGER" },
+        createdBy: { id: mockProject.createdBy, fullName: "Creator Name", role: "ROLE_ADMIN" },
+      });
+    
+      // Assert
       expect(result).toEqual({
-        data: [new ProjectDTO(mockProject)],
+        data: [expectedProject],
         page: 1,
         limit: 10,
         totalCount: 1,
         totalPages: 1,
       });
+    
       // Admin has no role-based filter so check that employeeIds filter is not applied.
       expect(prisma.project.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -214,6 +224,68 @@ describe("🛠 Project Service Tests", () => {
         status: 500,
         message: "Internal server error",
       });
+    });
+  });
+
+  describe("getProjectsService edge cases for fetchUsersByIds", () => {
+    const adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
+  
+    beforeEach(() => {
+      jest.clearAllMocks();
+      prisma.project.findMany.mockResolvedValue([]);
+      prisma.project.count.mockResolvedValue(0);
+      fetchUsersByIds.mockResolvedValue({});
+    });
+  
+    test("managerId is undefined => manager should be null", async () => {
+      const mockProject = {
+        id: "project-1",
+        name: "No Manager Project",
+        managerId: undefined, // or null
+        createdBy: "creator-id",
+      };
+  
+      prisma.project.findMany.mockResolvedValue([mockProject]);
+      prisma.project.count.mockResolvedValue(1);
+  
+      // Suppose fetchUsersByIds only returns createdBy
+      fetchUsersByIds.mockResolvedValue({
+        "creator-id": { id: "creator-id", fullName: "Creator Name", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await getProjectsService(adminUser, {}, "testtoken");
+      expect(result.data[0]).toEqual(
+        new GetAllProjectsDTO({
+          ...mockProject,
+          manager: null, // Because managerId is undefined
+          createdBy: { id: "creator-id", fullName: "Creator Name", role: "ROLE_ADMIN" },
+        })
+      );
+    });
+  
+    test("createdBy is undefined => createdBy should be null", async () => {
+      const mockProject = {
+        id: "project-2",
+        name: "No CreatedBy Project",
+        managerId: "manager-id",
+        createdBy: undefined, // or null
+      };
+  
+      prisma.project.findMany.mockResolvedValue([mockProject]);
+      prisma.project.count.mockResolvedValue(1);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-id": { id: "manager-id", fullName: "Manager Name", role: "ROLE_MANAGER" },
+      });
+  
+      const result = await getProjectsService(adminUser, {}, "testtoken");
+      expect(result.data[0]).toEqual(
+        new GetAllProjectsDTO({
+          ...mockProject,
+          manager: { id: "manager-id", fullName: "Manager Name", role: "ROLE_MANAGER" },
+          createdBy: null, // Because createdBy is undefined
+        })
+      );
     });
   });
 

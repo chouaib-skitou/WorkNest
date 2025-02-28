@@ -6,6 +6,7 @@ import {
   updateUser,
   patchUser,
   deleteUser,
+  getUsersByIds,
 } from "../controllers/user.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -246,5 +247,57 @@ router.patch("/:id", authMiddleware, patchUser);
  *         description: Unauthorized, missing or invalid token.
  */
 router.delete("/:id", authMiddleware, deleteUser);
+
+/**
+ * @swagger
+ * /api/users/batch:
+ *   post:
+ *     summary: Batch lookup users
+ *     description: Retrieves minimal user information (id, fullName, role) for a given array of user IDs.
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       description: Array of user IDs to lookup.
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - ids
+ *             properties:
+ *               ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["user-id-1", "user-id-2"]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved batch user data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     example: "user-id-1"
+ *                   fullName:
+ *                     type: string
+ *                     example: "John Doe"
+ *                   role:
+ *                     type: string
+ *                     enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
+ *                     example: "ROLE_MANAGER"
+ *       400:
+ *         description: Bad request, no user ids provided.
+ *       500:
+ *         description: Internal server error.
+ */
+router.post("/batch", authMiddleware, getUsersByIds);
+
 
 export default router;
