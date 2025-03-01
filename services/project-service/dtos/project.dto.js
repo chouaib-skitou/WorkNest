@@ -10,8 +10,8 @@ export class ProjectDTO {
     this.createdAt = project.createdAt;
     this.updatedAt = project.updatedAt;
     this.createdBy = project.createdBy;
-    this.managerId = project.managerId;
-    this.employeeIds = project.employeeIds;
+    this.manager = project.manager;
+    this.employees = project.employees;
     this.stages = project.stages
       ? project.stages.map((stage) => new StageDTO(stage))
       : [];
