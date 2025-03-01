@@ -22,10 +22,8 @@ export const createProjectValidation = [
     .isURL()
     .withMessage("Each document must be a valid URL"),
   body("createdBy")
-    .notEmpty()
-    .withMessage("CreatedBy (User ID) is required")
-    .isString()
-    .withMessage("CreatedBy must be a string"),
+    .not().exists()
+    .withMessage("Cannot set createdBy manually"),
   body("managerId")
     .optional()
     .isString()
@@ -66,6 +64,9 @@ export const updateProjectValidation = [
     .optional()
     .isString()
     .withMessage("Manager ID must be a string"),
+  body("createdBy")
+    .not().exists()
+    .withMessage("Cannot set createdBy manually"),
   body("employeeIds")
     .optional()
     .isArray()
@@ -104,6 +105,9 @@ export const patchProjectValidation = [
     .optional()
     .isString()
     .withMessage("Manager ID must be a string"),
+  body("createdBy")
+    .not().exists()
+    .withMessage("Cannot set createdBy manually"),
   body("employeeIds")
     .optional()
     .isArray()
