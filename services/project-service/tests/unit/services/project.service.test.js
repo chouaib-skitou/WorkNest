@@ -830,6 +830,539 @@ describe("🛠 Project Service Tests", () => {
     });
     
   }); 
+  describe("getProjectByIdService - Branch Coverage Tests", () => {
+    const token = "testtoken";
+  
+    // Basic mock project structure
+    const baseProject = {
+      id: "proj-xyz",
+      name: "Test Project",
+      description: "Some description",
+      createdAt: new Date("2025-02-01T12:00:00.000Z"),
+      updatedAt: new Date("2025-02-02T12:00:00.000Z"),
+      // We'll override managerId, createdBy, employeeIds in each test as needed
+    };
+  
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+  
+    test("managerId is undefined => manager should be null", async () => {
+      const projectNoManager = {
+        ...baseProject,
+        managerId: undefined,  // or null
+        createdBy: "creator-123",
+        employeeIds: ["emp-1", "emp-2"],
+      };
+  
+      // Mock the DB call
+      prisma.project.findFirst.mockResolvedValue(projectNoManager);
+      // Suppose we only return the createdBy and employees
+      fetchUsersByIds.mockResolvedValue({
+        "creator-123": { id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        "emp-2": { id: "emp-2", fullName: "Employee Two", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await getProjectByIdService(adminUser, projectNoManager.id, token);
+  
+      expect(result.manager).toBeNull(); // manager was undefined
+      expect(result.createdBy).toEqual({ id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" });
+      expect(result.employees).toHaveLength(2);
+    });
+  
+    test("createdBy is undefined => createdBy should be null", async () => {
+      const projectNoCreator = {
+        ...baseProject,
+        managerId: "manager-123",
+        createdBy: undefined,
+        employeeIds: ["emp-1"],
+      };
+  
+      prisma.project.findFirst.mockResolvedValue(projectNoCreator);
+      fetchUsersByIds.mockResolvedValue({
+        "manager-123": { id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await getProjectByIdService(adminUser, projectNoCreator.id, token);
+  
+      expect(result.manager).toEqual({ id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toBeNull(); // createdBy was undefined
+      expect(result.employees).toHaveLength(1);
+    });
+  
+    test("employeeIds is undefined => employees => []", async () => {
+      const projectNoEmployees = {
+        ...baseProject,
+        managerId: "manager-123",
+        createdBy: "creator-123",
+        employeeIds: undefined, // or null
+      };
+  
+      prisma.project.findFirst.mockResolvedValue(projectNoEmployees);
+      // Only manager and creator exist
+      fetchUsersByIds.mockResolvedValue({
+        "manager-123": { id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" },
+        "creator-123": { id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await getProjectByIdService(adminUser, projectNoEmployees.id, token);
+  
+      expect(result.manager).toEqual({ id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toEqual({ id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" });
+      expect(result.employees).toEqual([]); // employees array is empty
+    });
+  
+    test("employeeIds is an empty array => employees => []", async () => {
+      const projectEmptyEmployees = {
+        ...baseProject,
+        managerId: "manager-123",
+        createdBy: "creator-123",
+        employeeIds: [],
+      };
+  
+      prisma.project.findFirst.mockResolvedValue(projectEmptyEmployees);
+      // We only have manager and creator
+      fetchUsersByIds.mockResolvedValue({
+        "manager-123": { id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" },
+        "creator-123": { id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await getProjectByIdService(adminUser, projectEmptyEmployees.id, token);
+  
+      expect(result.manager).toEqual({ id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toEqual({ id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" });
+      expect(result.employees).toEqual([]); // employees array is empty
+    });
+  
+    test("some employee IDs not found in usersMap => fallback to { id }", async () => {
+      const projectWithEmployees = {
+        ...baseProject,
+        managerId: "manager-123",
+        createdBy: "creator-123",
+        employeeIds: ["emp-1", "emp-2", "emp-unknown"],
+      };
+  
+      prisma.project.findFirst.mockResolvedValue(projectWithEmployees);
+      // Suppose only manager-123, creator-123, and emp-1 are found
+      fetchUsersByIds.mockResolvedValue({
+        "manager-123": { id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" },
+        "creator-123": { id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        // emp-2 and emp-unknown are not returned => fallback
+      });
+  
+      const result = await getProjectByIdService(adminUser, projectWithEmployees.id, token);
+  
+      // Manager & creator are found
+      expect(result.manager).toEqual({ id: "manager-123", fullName: "Manager Name", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toEqual({ id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" });
+      // For employees: emp-1 is found, emp-2 & emp-unknown fallback
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        { id: "emp-2" },         // fallback to { id: 'emp-2' }
+        { id: "emp-unknown" },   // fallback to { id: 'emp-unknown' }
+      ]);
+    });
+  });
+  describe("createProjectService - Branch Coverage Tests", () => {
+    const token = "testtoken";
+    
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+  
+    test("managerId is undefined => manager: null", async () => {
+      const projectWithoutManager = {
+        id: "proj-create-1",
+        name: "New Project Without Manager",
+        // managerId: undefined,
+        createdBy: "creator-123",
+        employeeIds: ["emp-1"],
+      };
+  
+      // Simulate Prisma returning a project with no managerId
+      prisma.project.create.mockResolvedValue(projectWithoutManager);
+  
+      // Suppose we only find the creator and one employee
+      fetchUsersByIds.mockResolvedValue({
+        "creator-123": { id: "creator-123", fullName: "Creator Name", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      });
+  
+      // Act
+      const inputData = { name: "Hello", employeeIds: ["emp-1"] };
+      const result = await createProjectService(adminUser, inputData, token);
+  
+      // Assert
+      expect(result.manager).toBeNull();
+      expect(result.createdBy).toEqual({
+        id: "creator-123",
+        fullName: "Creator Name",
+        role: "ROLE_ADMIN",
+      });
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      ]);
+    });
+  
+    test("createdBy is undefined => createdBy: null", async () => {
+      const projectNoCreator = {
+        id: "proj-create-2",
+        name: "New Project No Creator",
+        managerId: "manager-111",
+        // createdBy: undefined,
+        employeeIds: ["emp-1", "emp-2"],
+      };
+  
+      prisma.project.create.mockResolvedValue(projectNoCreator);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-111": { id: "manager-111", fullName: "Manager Name", role: "ROLE_MANAGER" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        "emp-2": { id: "emp-2", fullName: "Employee Two", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const inputData = { name: "Hello", managerId: "manager-111" };
+      const result = await createProjectService(adminUser, inputData, token);
+  
+      expect(result.manager).toEqual({
+        id: "manager-111",
+        fullName: "Manager Name",
+        role: "ROLE_MANAGER",
+      });
+      expect(result.createdBy).toBeNull();
+      expect(result.employees).toHaveLength(2);
+    });
+  
+    test("employeeIds is undefined => employees => []", async () => {
+      const projectNoEmployees = {
+        id: "proj-create-3",
+        name: "No Employees",
+        managerId: "manager-xyz",
+        createdBy: "creator-xyz",
+        // employeeIds: undefined,
+      };
+  
+      prisma.project.create.mockResolvedValue(projectNoEmployees);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-xyz": { id: "manager-xyz", fullName: "Some Manager", role: "ROLE_MANAGER" },
+        "creator-xyz": { id: "creator-xyz", fullName: "Some Creator", role: "ROLE_ADMIN" },
+      });
+  
+      const inputData = { name: "NoEmployeesProject" };
+      const result = await createProjectService(adminUser, inputData, token);
+  
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("employeeIds is an empty array => employees => []", async () => {
+      const projectEmptyEmployees = {
+        id: "proj-create-4",
+        name: "Empty Employees",
+        managerId: "manager-xyz",
+        createdBy: "creator-xyz",
+        employeeIds: [],
+      };
+  
+      prisma.project.create.mockResolvedValue(projectEmptyEmployees);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-xyz": { id: "manager-xyz", fullName: "Some Manager", role: "ROLE_MANAGER" },
+        "creator-xyz": { id: "creator-xyz", fullName: "Some Creator", role: "ROLE_ADMIN" },
+      });
+  
+      const inputData = { name: "EmptyEmployees", employeeIds: [] };
+      const result = await createProjectService(adminUser, inputData, token);
+  
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("some employees not found => fallback to { id }", async () => {
+      const projectSomeUnknown = {
+        id: "proj-create-5",
+        name: "Partial Employees",
+        managerId: "manager-xyz",
+        createdBy: "creator-xyz",
+        employeeIds: ["emp-1", "emp-unknown"],
+      };
+  
+      prisma.project.create.mockResolvedValue(projectSomeUnknown);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-xyz": { id: "manager-xyz", fullName: "Some Manager", role: "ROLE_MANAGER" },
+        "creator-xyz": { id: "creator-xyz", fullName: "Some Creator", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        // "emp-unknown" not returned => fallback
+      });
+  
+      const inputData = { name: "PartialEmployees", employeeIds: ["emp-1", "emp-unknown"] };
+      const result = await createProjectService(adminUser, inputData, token);
+  
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        { id: "emp-unknown" }, // fallback
+      ]);
+    });
+  });
+  
+  describe("updateProjectService - Branch Coverage Tests", () => {
+    const token = "testtoken";
+  
+    beforeEach(() => {
+      jest.clearAllMocks();
+      // Simulate an authorized project for each test
+      prisma.project.findUnique.mockResolvedValue({
+        id: "proj-up-1",
+        managerId: "manager-1",
+        createdBy: "admin-id",
+      });
+    });
+  
+    test("managerId is undefined => manager: null", async () => {
+      const updatedProject = {
+        id: "proj-up-1",
+        name: "Updated Name",
+        // managerId: undefined,
+        createdBy: "admin-id",
+        employeeIds: ["emp-1"],
+      };
+  
+      prisma.project.update.mockResolvedValue(updatedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await updateProjectService(adminUser, "proj-up-1", { name: "Updated Name" }, token);
+      expect(result.manager).toBeNull();
+      expect(result.createdBy).toEqual({
+        id: "admin-id",
+        fullName: "Admin User",
+        role: "ROLE_ADMIN",
+      });
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      ]);
+    });
+  
+    test("createdBy is undefined => createdBy: null", async () => {
+      const updatedProject = {
+        id: "proj-up-2",
+        name: "Updated Name",
+        managerId: "manager-2",
+        // createdBy: undefined,
+        employeeIds: ["emp-2"],
+      };
+  
+      prisma.project.update.mockResolvedValue(updatedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-2": { id: "manager-2", fullName: "Manager Two", role: "ROLE_MANAGER" },
+        "emp-2": { id: "emp-2", fullName: "Employee Two", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await updateProjectService(adminUser, "proj-up-2", { name: "Updated Name" }, token);
+      expect(result.manager).toEqual({ id: "manager-2", fullName: "Manager Two", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toBeNull();
+    });
+  
+    test("employeeIds is undefined => employees => []", async () => {
+      const updatedProject = {
+        id: "proj-up-3",
+        name: "No Employees",
+        managerId: "manager-3",
+        createdBy: "admin-id",
+        // employeeIds: undefined,
+      };
+  
+      prisma.project.update.mockResolvedValue(updatedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-3": { id: "manager-3", fullName: "Manager Three", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await updateProjectService(adminUser, "proj-up-3", { name: "No Employees" }, token);
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("employeeIds is an empty array => employees => []", async () => {
+      const updatedProject = {
+        id: "proj-up-4",
+        name: "Empty Employees",
+        managerId: "manager-4",
+        createdBy: "admin-id",
+        employeeIds: [],
+      };
+  
+      prisma.project.update.mockResolvedValue(updatedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-4": { id: "manager-4", fullName: "Manager Four", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await updateProjectService(adminUser, "proj-up-4", { name: "Empty Employees" }, token);
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("some employees not found => fallback to { id }", async () => {
+      const updatedProject = {
+        id: "proj-up-5",
+        name: "Partial Employees",
+        managerId: "manager-5",
+        createdBy: "admin-id",
+        employeeIds: ["emp-1", "emp-missing"],
+      };
+  
+      prisma.project.update.mockResolvedValue(updatedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-5": { id: "manager-5", fullName: "Manager Five", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        // emp-missing not found => fallback
+      });
+  
+      const result = await updateProjectService(adminUser, "proj-up-5", { name: "Partial Employees" }, token);
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        { id: "emp-missing" },
+      ]);
+    });
+  });
+  
+
+  describe("patchProjectService - Branch Coverage Tests", () => {
+    const token = "testtoken";
+  
+    beforeEach(() => {
+      jest.clearAllMocks();
+      // Simulate an authorized project for each test
+      prisma.project.findUnique.mockResolvedValue({
+        id: "proj-patch-1",
+        managerId: "manager-1",
+        createdBy: "admin-id",
+      });
+    });
+  
+    test("managerId is undefined => manager: null", async () => {
+      const patchedProject = {
+        id: "proj-patch-1",
+        name: "Patched Name",
+        // managerId: undefined,
+        createdBy: "admin-id",
+        employeeIds: ["emp-1"],
+      };
+  
+      prisma.project.update.mockResolvedValue(patchedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await patchProjectService(adminUser, "proj-patch-1", { name: "Patched Name" }, token);
+      expect(result.manager).toBeNull();
+      expect(result.createdBy).toEqual({
+        id: "admin-id",
+        fullName: "Admin User",
+        role: "ROLE_ADMIN",
+      });
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      ]);
+    });
+  
+    test("createdBy is undefined => createdBy: null", async () => {
+      const patchedProject = {
+        id: "proj-patch-2",
+        name: "Patched Name",
+        managerId: "manager-2",
+        // createdBy: undefined,
+        employeeIds: ["emp-2"],
+      };
+  
+      prisma.project.update.mockResolvedValue(patchedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-2": { id: "manager-2", fullName: "Manager Two", role: "ROLE_MANAGER" },
+        "emp-2": { id: "emp-2", fullName: "Employee Two", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await patchProjectService(adminUser, "proj-patch-2", { name: "Patched Name" }, token);
+      expect(result.manager).toEqual({ id: "manager-2", fullName: "Manager Two", role: "ROLE_MANAGER" });
+      expect(result.createdBy).toBeNull();
+    });
+  
+    test("employeeIds is undefined => employees => []", async () => {
+      const patchedProject = {
+        id: "proj-patch-3",
+        name: "No Employees Patch",
+        managerId: "manager-3",
+        createdBy: "admin-id",
+        // employeeIds: undefined
+      };
+  
+      prisma.project.update.mockResolvedValue(patchedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-3": { id: "manager-3", fullName: "Manager Three", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await patchProjectService(adminUser, "proj-patch-3", { description: "Patch" }, token);
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("employeeIds is empty => employees => []", async () => {
+      const patchedProject = {
+        id: "proj-patch-4",
+        name: "Empty Patch",
+        managerId: "manager-4",
+        createdBy: "admin-id",
+        employeeIds: [],
+      };
+  
+      prisma.project.update.mockResolvedValue(patchedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-4": { id: "manager-4", fullName: "Manager Four", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+      });
+  
+      const result = await patchProjectService(adminUser, "proj-patch-4", { description: "Empty Employees" }, token);
+      expect(result.employees).toEqual([]);
+    });
+  
+    test("some employees not found => fallback to { id }", async () => {
+      const patchedProject = {
+        id: "proj-patch-5",
+        name: "Partial Patch",
+        managerId: "manager-5",
+        createdBy: "admin-id",
+        employeeIds: ["emp-1", "emp-missing"],
+      };
+  
+      prisma.project.update.mockResolvedValue(patchedProject);
+  
+      fetchUsersByIds.mockResolvedValue({
+        "manager-5": { id: "manager-5", fullName: "Manager Five", role: "ROLE_MANAGER" },
+        "admin-id": { id: "admin-id", fullName: "Admin User", role: "ROLE_ADMIN" },
+        "emp-1": { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+      });
+  
+      const result = await patchProjectService(adminUser, "proj-patch-5", { name: "Partial Patch" }, token);
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        { id: "emp-missing" },
+      ]);
+    });
+  });
   
 });
 
