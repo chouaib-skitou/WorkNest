@@ -219,12 +219,13 @@ export const getProjectsService = async (user, query, token) => {
 };
 
 /**
- * Retrieve a single project by its ID with associated stages and tasks.
+ * Retrieve a single project by its ID with associated stages, tasks, and enriched user details.
  * @param {Object} user - The user making the request.
  * @param {string} id - The project ID.
- * @returns {Promise<ProjectDTO>} - The project data transfer object.
+ * @param {string} token - JWT token to authorize the request.
+ * @returns {Promise<ProjectDTO>} - The enriched project data transfer object.
  */
-export const getProjectByIdService = async (user, id) => {
+export const getProjectByIdService = async (user, id, token) => {
   try {
     const where = {
       id,
@@ -259,20 +260,45 @@ export const getProjectByIdService = async (user, id) => {
       }
     }
 
-    return new ProjectDTO(project);
+    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds
+    const userIds = [];
+    if (project.managerId) userIds.push(project.managerId);
+    if (project.createdBy) userIds.push(project.createdBy);
+    if (project.employeeIds && project.employeeIds.length > 0) {
+      userIds.push(...project.employeeIds);
+    }
+    const uniqueUserIds = [...new Set(userIds)];
+
+    // Fetch user details from the identity service
+    const usersMap = await fetchUsersByIds(uniqueUserIds, token);
+    console.log("🔍 Debug: Users map", usersMap);
+
+    // Enrich the project with the fetched user details
+    const enrichedProject = {
+      ...project,
+      manager: project.managerId ? usersMap[project.managerId] : null,
+      createdBy: project.createdBy ? usersMap[project.createdBy] : null,
+      employees: project.employeeIds
+        ? project.employeeIds.map((id) => usersMap[id] || { id })
+        : [],
+    };
+
+    return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error fetching project:", error);
     return Promise.reject(error);
   }
 };
 
+
 /**
  * Create a new project. Accessible only by admins and managers.
  * @param {Object} user - The user creating the project.
  * @param {Object} data - The project data.
+ * @param {string} token - JWT token to authorize the request.
  * @returns {Promise<ProjectDTO>} - The created project data transfer object.
  */
-export const createProjectService = async (user, data) => {
+export const createProjectService = async (user, data, token) => {
   try {
     if (!["ROLE_ADMIN", "ROLE_MANAGER"].includes(user.role)) {
       return Promise.reject({
@@ -283,15 +309,38 @@ export const createProjectService = async (user, data) => {
 
     const projectData = {
       ...data,
-      name: data.name.toLowerCase(), // Ensure project names are case-insensitive
-      createdBy: data.createdBy || user.id,
+      name: data.name.toLowerCase(), 
+      createdBy: user.id,
     };
 
     const newProject = await prisma.project.create({
       data: projectData,
     });
 
-    return new ProjectDTO(newProject);
+    // Collect user IDs for enrichment: manager, createdBy, and employeeIds if any.
+    const userIds = [];
+    if (newProject.managerId) userIds.push(newProject.managerId);
+    if (newProject.createdBy) userIds.push(newProject.createdBy);
+    if (newProject.employeeIds && newProject.employeeIds.length > 0) {
+      userIds.push(...newProject.employeeIds);
+    }
+    const uniqueUserIds = [...new Set(userIds)];
+
+    // Fetch user details from the identity service
+    const usersMap = await fetchUsersByIds(uniqueUserIds, token);
+    console.log("🔍 Debug: Users map", usersMap);
+
+    // Enrich the project with fetched user details
+    const enrichedProject = {
+      ...newProject,
+      manager: newProject.managerId ? usersMap[newProject.managerId] : null,
+      createdBy: newProject.createdBy ? usersMap[newProject.createdBy] : null,
+      employees: newProject.employeeIds
+        ? newProject.employeeIds.map((id) => usersMap[id] || { id })
+        : [],
+    };
+
+    return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error creating project:", error);
     if (error.code === "P2002") {
@@ -309,9 +358,10 @@ export const createProjectService = async (user, data) => {
  * @param {Object} user - The user updating the project.
  * @param {string} id - The project ID.
  * @param {Object} data - The updated project data.
+ * @param {string} token - JWT token for user enrichment.
  * @returns {Promise<ProjectDTO>} - The updated project data transfer object.
  */
-export const updateProjectService = async (user, id, data) => {
+export const updateProjectService = async (user, id, data, token) => {
   try {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
@@ -330,7 +380,29 @@ export const updateProjectService = async (user, id, data) => {
       data: updateData,
     });
 
-    return new ProjectDTO(updatedProject);
+    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds.
+    const userIds = [];
+    if (updatedProject.managerId) userIds.push(updatedProject.managerId);
+    if (updatedProject.createdBy) userIds.push(updatedProject.createdBy);
+    if (updatedProject.employeeIds && updatedProject.employeeIds.length > 0) {
+      userIds.push(...updatedProject.employeeIds);
+    }
+    const uniqueUserIds = [...new Set(userIds)];
+
+    // Fetch user details from the identity service.
+    const usersMap = await fetchUsersByIds(uniqueUserIds, token);
+
+    // Enrich the updated project with user details.
+    const enrichedProject = {
+      ...updatedProject,
+      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
+      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      employees: updatedProject.employeeIds
+        ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
+        : [],
+    };
+
+    return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error updating project:", error);
     // Propagate custom errors with a defined status
@@ -355,9 +427,10 @@ export const updateProjectService = async (user, id, data) => {
  * @param {Object} user - The user updating the project.
  * @param {string} id - The project ID.
  * @param {Object} data - The partial project data to update.
+ * @param {string} token - JWT token for user enrichment.
  * @returns {Promise<ProjectDTO>} - The updated project data transfer object.
  */
-export const patchProjectService = async (user, id, data) => {
+export const patchProjectService = async (user, id, data, token) => {
   try {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
@@ -390,7 +463,29 @@ export const patchProjectService = async (user, id, data) => {
       data: updateData,
     });
 
-    return new ProjectDTO(updatedProject);
+    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds.
+    const userIds = [];
+    if (updatedProject.managerId) userIds.push(updatedProject.managerId);
+    if (updatedProject.createdBy) userIds.push(updatedProject.createdBy);
+    if (updatedProject.employeeIds && updatedProject.employeeIds.length > 0) {
+      userIds.push(...updatedProject.employeeIds);
+    }
+    const uniqueUserIds = [...new Set(userIds)];
+
+    // Fetch user details from the identity service.
+    const usersMap = await fetchUsersByIds(uniqueUserIds, token);
+
+    // Enrich the updated project with user details.
+    const enrichedProject = {
+      ...updatedProject,
+      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
+      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      employees: updatedProject.employeeIds
+        ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
+        : [],
+    };
+
+    return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error updating project:", error);
     // Propagate custom errors with a defined status
