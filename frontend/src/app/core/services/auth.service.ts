@@ -42,7 +42,7 @@ export class AuthService {
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
   register(userData: { email: string; password: string }): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/register`, userData);
+    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/auth/register`, userData);
   }
 
   /**
@@ -52,7 +52,7 @@ export class AuthService {
    * @returns {Observable<LoginResponse>} Observable resolving to login response containing tokens and user info.
    */
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/login`, { email, password }).pipe(
+    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/auth/login`, { email, password }).pipe(
       tap((response) => {
         this.storeAuthData(response);
         this.isAuthenticatedSubject.next(true);
@@ -76,7 +76,7 @@ export class AuthService {
    */
   refreshToken(): Observable<LoginResponse> {
     const refreshToken = localStorage.getItem('refreshToken');
-    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/refresh`, { refreshToken }).pipe(
+    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/auth/refresh`, { refreshToken }).pipe(
       tap((tokens) => {
         this.storeAuthData(tokens);
       })
@@ -89,6 +89,18 @@ export class AuthService {
    */
   isLoggedIn(): boolean {
     return this.isAuthenticatedSubject.value;
+  }
+
+   /** Checks if the user has the Admin role */
+   isAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user ? user.role === 'ROLE_ADMIN' : false;
+  }
+
+  /** Checks if the user has the Manager role */
+  isManager(): boolean {
+    const user = this.getCurrentUser();
+    return user ? user.role === 'ROLE_MANAGER' : false;
   }
 
   /**
@@ -135,7 +147,7 @@ export class AuthService {
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
   resetPasswordRequest(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/reset-password-request`, { email });
+    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/auth/reset-password-request`, { email });
   }
 
   /**
@@ -146,7 +158,7 @@ export class AuthService {
    * @returns {Observable<{ success: boolean }>} Observable resolving to success status.
    */
   resetPassword(token: string, newPassword: string, confirmNewPassword: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.identityServiceUrl}/reset-password/${token}`, {
+    return this.http.post<{ success: boolean }>(`${this.identityServiceUrl}/auth/reset-password/${token}`, {
       newPassword,
       confirmNewPassword,
     });
