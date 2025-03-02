@@ -51,15 +51,18 @@ export class ProjectService {
    * @param limit - Number of projects per page.
    * @returns {Observable<ProjectResponse>} - Returns paginated projects.
    */
-  getAllProjects(page: number = 1, limit: number = 6): Observable<ProjectResponse> {
+  getAllProjects(page = 1, limit = 6): Observable<ProjectResponse> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
     });
 
-    return this.http.get<ProjectResponse>(`${this.projectServiceUrl}/projects?page=${page}&limit=${limit}`, {
-      headers,
-    });
+    return this.http.get<ProjectResponse>(
+      `${this.projectServiceUrl}/projects?page=${page}&limit=${limit}`,
+      {
+        headers,
+      }
+    );
   }
 
   /**
@@ -73,9 +76,12 @@ export class ProjectService {
       Authorization: `Bearer ${accessToken}`,
     });
 
-    return this.http.get<Project>(`${this.projectServiceUrl}/projects/${projectId}`, {
-      headers,
-    });
+    return this.http.get<Project>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      {
+        headers,
+      }
+    );
   }
 
   /**
@@ -90,9 +96,13 @@ export class ProjectService {
       'Content-Type': 'application/json',
     });
 
-    return this.http.post<Project>(`${this.projectServiceUrl}/projects`, projectData, {
-      headers,
-    });
+    return this.http.post<Project>(
+      `${this.projectServiceUrl}/projects`,
+      projectData,
+      {
+        headers,
+      }
+    );
   }
 
   /**
@@ -101,16 +111,23 @@ export class ProjectService {
    * @param projectData - The updated project data.
    * @returns {Observable<Project>} - Returns the updated project.
    */
-  updateProject(projectId: string, projectData: Partial<Project>): Observable<Project> {
+  updateProject(
+    projectId: string,
+    projectData: Partial<Project>
+  ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     });
 
-    return this.http.put<Project>(`${this.projectServiceUrl}/projects/${projectId}`, projectData, {
-      headers,
-    });
+    return this.http.put<Project>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      projectData,
+      {
+        headers,
+      }
+    );
   }
 
   /**
@@ -119,16 +136,23 @@ export class ProjectService {
    * @param partialData - The partial data to update.
    * @returns {Observable<Project>} - Returns the updated project.
    */
-  partialUpdateProject(projectId: string, partialData: Partial<Project>): Observable<Project> {
+  partialUpdateProject(
+    projectId: string,
+    partialData: Partial<Project>
+  ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     });
 
-    return this.http.patch<Project>(`${this.projectServiceUrl}/projects/${projectId}`, partialData, {
-      headers,
-    });
+    return this.http.patch<Project>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      partialData,
+      {
+        headers,
+      }
+    );
   }
 
   /**
@@ -142,8 +166,11 @@ export class ProjectService {
       Authorization: `Bearer ${accessToken}`,
     });
 
-    return this.http.delete<void>(`${this.projectServiceUrl}/projects/${projectId}`, {
-      headers,
-    });
+    return this.http.delete<void>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      {
+        headers,
+      }
+    );
   }
 }
