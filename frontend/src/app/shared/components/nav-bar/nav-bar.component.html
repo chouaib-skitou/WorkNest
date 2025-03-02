@@ -34,20 +34,17 @@
       <li *ngIf="authService.isLoggedIn()">
         <a href="/dashboard">Dashboard</a>
       </li>
-      <li *ngIf="!authService.isLoggedIn()">
+      <li *ngIf="authService.isLoggedIn()">
         <a href="/profile">Profile</a>
       </li>
-      <li *ngIf="authService.isLoggedIn()">
+      <!-- <li *ngIf="authService.isLoggedIn()">
         <a href="/tasks">Tasks</a>
-      </li>
-      <li *ngIf="!authService.isLoggedIn()">
+      </li> -->
+      <li *ngIf="authService.isLoggedIn()">
         <a href="/projects">Projects</a>
       </li>
-      <li *ngIf="!authService.isLoggedIn()">
+      <li *ngIf="authService.isLoggedIn() && authService.isAdmin()">
         <a href="/users">Users</a>
-      </li>
-      <li *ngIf="authService.isLoggedIn()">
-        <a href="/team">Team</a>
       </li>
 
       <!-- Show Logout if user is logged in -->
