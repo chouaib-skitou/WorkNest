@@ -21,7 +21,9 @@
     </select>
   </div>
 
-  <div class="table-container">
+  <div *ngIf="isLoading">Loading users...</div>
+
+  <div class="table-container" *ngIf="!isLoading && users.length > 0">
     <table>
       <thead>
         <tr>
@@ -32,7 +34,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let user of getCurrentPageUsers()">
+        <tr *ngFor="let user of users">
           <td>{{ user.firstName }} {{ user.lastName }}</td>
           <td>{{ user.email }}</td>
           <td>
@@ -63,7 +65,9 @@
     </table>
   </div>
 
-  <div class="pagination">
+  <div *ngIf="!isLoading && users.length === 0">No users found.</div>
+
+  <div class="pagination" *ngIf="totalPages > 1">
     <button
       [disabled]="currentPage === 1"
       (click)="setPage(currentPage - 1)"
@@ -74,12 +78,12 @@
 
     <div class="page-numbers">
       <button
-        *ngFor="let page of getPages()"
-        (click)="setPage(page)"
+        *ngFor="let page of [].constructor(totalPages); let i = index"
+        (click)="setPage(i + 1)"
         class="page-number"
-        [class.active]="currentPage === page"
+        [class.active]="currentPage === i + 1"
       >
-        {{ page }}
+        {{ i + 1 }}
       </button>
     </div>
 
