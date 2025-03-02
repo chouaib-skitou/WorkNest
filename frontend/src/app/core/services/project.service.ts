@@ -95,4 +95,23 @@ export class ProjectService {
     });
   }
 
+  /**
+   * Update an existing project.
+   * @param projectId - The ID of the project to update.
+   * @param projectData - The updated project data.
+   * @returns {Observable<Project>} - Returns the updated project.
+   */
+  updateProject(projectId: string, projectData: Partial<Project>): Observable<Project> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
+
+    return this.http.put<Project>(`${this.projectServiceUrl}/projects/${projectId}`, projectData, {
+      headers,
+    });
+  }
+
+
 }
