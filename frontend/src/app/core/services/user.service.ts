@@ -36,7 +36,7 @@ export class UserService {
    * @param limit - Number of users per page.
    * @returns {Observable<UserResponse>} - Returns paginated users.
    */
-  getAllUsers(page: number = 1, limit: number = 10): Observable<UserResponse> {
+  getAllUsers(page = 1, limit = 10): Observable<UserResponse> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
