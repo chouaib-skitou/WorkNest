@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../../app/core/services/auth.service'; // Import AuthService
-import { User } from '../../app/auth/interfaces/auth.interfaces'; // Import User interface
+import { AuthService } from '../../app/core/services/auth.service';
+import { User } from '../../app/auth/interfaces/auth.interfaces';
 
 @Component({
   selector: 'app-profile',
@@ -13,7 +13,16 @@ import { User } from '../../app/auth/interfaces/auth.interfaces'; // Import User
   styleUrls: ['./profile.component.scss'],
 })
 export class ProfileComponent implements OnInit {
-  profile: User | null = null; // User profile object
+  profile: User = {
+    id: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: '',
+    isVerified: false,
+    createdAt: '',
+    updatedAt: '',
+  }; // Prevents "null" errors
 
   isEditing = false;
   showSaveButton = false;
@@ -21,17 +30,19 @@ export class ProfileComponent implements OnInit {
   constructor(private authService: AuthService) {}
 
   ngOnInit(): void {
-    this.loadProfileData();
+    this.loadProfileFromStorage();
   }
 
-  private loadProfileData(): void {
-    this.authService.currentUser$.subscribe(user => {
-      if (user) {
-        this.profile = { ...user };
-      } else {
-        console.log('No user found in localStorage');
-      }
-    });
+  /**
+   * Loads the profile from localStorage.
+   */
+  private loadProfileFromStorage(): void {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      this.profile = JSON.parse(storedUser);
+    } else {
+      console.warn('No user profile found in localStorage');
+    }
   }
 
   toggleEdit(): void {
