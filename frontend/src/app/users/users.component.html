@@ -9,7 +9,11 @@
       placeholder="Search users..."
       class="search-input"
     />
-    <select [(ngModel)]="roleFilter" (change)="applyFilters()" class="role-select">
+    <select
+      [(ngModel)]="roleFilter"
+      (change)="applyFilters()"
+      class="role-select"
+    >
       <option value="ALL">All Roles</option>
       <option value="ROLE_EMPLOYEE">Employee</option>
       <option value="ROLE_MANAGER">Manager</option>

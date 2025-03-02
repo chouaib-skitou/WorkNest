@@ -76,6 +76,8 @@ export class UsersComponent implements OnInit {
    */
   onRoleChange(user: User, newRole: string): void {
     user.role = newRole as 'ROLE_EMPLOYEE' | 'ROLE_MANAGER';
-    console.log(`Changed role for ${user.firstName} ${user.lastName} to ${user.role}`);
+    console.log(
+      `Changed role for ${user.firstName} ${user.lastName} to ${user.role}`
+    );
   }
 }

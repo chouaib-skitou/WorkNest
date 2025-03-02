@@ -16,14 +16,18 @@ export class AuthService {
    * Tracks whether the user is authenticated.
    * Uses a BehaviorSubject to allow real-time updates across the application.
    */
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(
+    this.hasToken()
+  );
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   /**
    * Tracks the current user data.
    * Uses a BehaviorSubject to update components when the user data changes.
    */
-  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
+  private currentUserSubject = new BehaviorSubject<User | null>(
+    this.getStoredUser()
+  );
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {}
@@ -41,8 +45,14 @@ export class AuthService {
    * @param userData - Object containing `email` and `password`.
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
-  register(userData: { email: string; password: string }): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/auth/register`, userData);
+  register(userData: {
+    email: string;
+    password: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.identityServiceUrl}/auth/register`,
+      userData
+    );
   }
 
   /**
@@ -52,13 +62,18 @@ export class AuthService {
    * @returns {Observable<LoginResponse>} Observable resolving to login response containing tokens and user info.
    */
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/auth/login`, { email, password }).pipe(
-      tap((response) => {
-        this.storeAuthData(response);
-        this.isAuthenticatedSubject.next(true);
-        this.currentUserSubject.next(response.user);
+    return this.http
+      .post<LoginResponse>(`${this.identityServiceUrl}/auth/login`, {
+        email,
+        password,
       })
-    );
+      .pipe(
+        tap((response) => {
+          this.storeAuthData(response);
+          this.isAuthenticatedSubject.next(true);
+          this.currentUserSubject.next(response.user);
+        })
+      );
   }
 
   /**
@@ -76,11 +91,15 @@ export class AuthService {
    */
   refreshToken(): Observable<LoginResponse> {
     const refreshToken = localStorage.getItem('refreshToken');
-    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/auth/refresh`, { refreshToken }).pipe(
-      tap((tokens) => {
-        this.storeAuthData(tokens);
+    return this.http
+      .post<LoginResponse>(`${this.identityServiceUrl}/auth/refresh`, {
+        refreshToken,
       })
-    );
+      .pipe(
+        tap((tokens) => {
+          this.storeAuthData(tokens);
+        })
+      );
   }
 
   /**
@@ -91,8 +110,8 @@ export class AuthService {
     return this.isAuthenticatedSubject.value;
   }
 
-   /** Checks if the user has the Admin role */
-   isAdmin(): boolean {
+  /** Checks if the user has the Admin role */
+  isAdmin(): boolean {
     const user = this.getCurrentUser();
     return user ? user.role === 'ROLE_ADMIN' : false;
   }
@@ -147,7 +166,10 @@ export class AuthService {
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
   resetPasswordRequest(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/auth/reset-password-request`, { email });
+    return this.http.post<{ message: string }>(
+      `${this.identityServiceUrl}/auth/reset-password-request`,
+      { email }
+    );
   }
 
   /**
@@ -157,10 +179,17 @@ export class AuthService {
    * @param confirmNewPassword - Confirmation of the new password.
    * @returns {Observable<{ success: boolean }>} Observable resolving to success status.
    */
-  resetPassword(token: string, newPassword: string, confirmNewPassword: string): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(`${this.identityServiceUrl}/auth/reset-password/${token}`, {
-      newPassword,
-      confirmNewPassword,
-    });
+  resetPassword(
+    token: string,
+    newPassword: string,
+    confirmNewPassword: string
+  ): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(
+      `${this.identityServiceUrl}/auth/reset-password/${token}`,
+      {
+        newPassword,
+        confirmNewPassword,
+      }
+    );
   }
 }

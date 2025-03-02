@@ -42,8 +42,11 @@ export class UserService {
       Authorization: `Bearer ${accessToken}`,
     });
 
-    return this.http.get<UserResponse>(`${this.identityServiceUrl}/users?page=${page}&limit=${limit}`, {
-      headers,
-    });
+    return this.http.get<UserResponse>(
+      `${this.identityServiceUrl}/users?page=${page}&limit=${limit}`,
+      {
+        headers,
+      }
+    );
   }
 }
