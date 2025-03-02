@@ -24,7 +24,6 @@ const mockLoginResponse: LoginResponse = {
   },
 };
 
-
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
