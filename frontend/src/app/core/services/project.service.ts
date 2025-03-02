@@ -8,7 +8,7 @@ export interface Project {
   name: string;
   description?: string;
   image?: string | null;
-  documents?: any[];
+  documents?: Record<string, unknown>[]; // Instead of any[]
   createdAt: string;
   updatedAt?: string;
   createdBy?: {
@@ -26,7 +26,7 @@ export interface Project {
     fullName: string;
     role: string;
   }[];
-  stages?: any[];
+  stages?: Record<string, unknown>[]; // Instead of any[]
 }
 
 interface ProjectResponse {
