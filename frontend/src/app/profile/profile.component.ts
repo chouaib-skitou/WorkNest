@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '../../app/core/services/auth.service'; // Import AuthService
+import { User } from '../../app/auth/interfaces/auth.interfaces'; // Import User interface
 
 @Component({
   selector: 'app-profile',
@@ -11,29 +13,25 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./profile.component.scss'],
 })
 export class ProfileComponent implements OnInit {
-  profile = {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com',
-    role: 'ROLE_EMPLOYEE',
-    isVerified: true,
-    createdAt: new Date('2023-01-01T01:00:00'),
-    updatedAt: new Date('2023-06-15T02:00:00'),
-  };
+  profile: User | null = null; // User profile object
 
   isEditing = false;
   showSaveButton = false;
 
+  constructor(private authService: AuthService) {}
+
   ngOnInit(): void {
-    // Initialize profile data or fetch from service
     this.loadProfileData();
   }
 
   private loadProfileData(): void {
-    // In a real application, you would fetch the profile data from a service
-    // For now, we're using the hardcoded data
-    console.log('Profile data loaded');
+    this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        this.profile = { ...user };
+      } else {
+        console.log('No user found in localStorage');
+      }
+    });
   }
 
   toggleEdit(): void {
