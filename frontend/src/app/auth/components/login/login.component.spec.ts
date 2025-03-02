@@ -12,7 +12,18 @@ const mockLoginResponse: LoginResponse = {
   accessToken: 'fake-access-token',
   refreshToken: 'fake-refresh-token',
   expiresIn: '3600',
+  user: {
+    id: '123',
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john.doe@example.com',
+    role: 'ROLE_USER',
+    isVerified: true,
+    createdAt: '2025-02-28T17:04:10.583Z',
+    updatedAt: '2025-02-28T17:04:10.583Z',
+  },
 };
+
 
 describe('LoginComponent', () => {
   let component: LoginComponent;
