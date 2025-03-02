@@ -77,4 +77,22 @@ export class ProjectService {
       headers,
     });
   }
+
+  /**
+   * Create a new project.
+   * @param projectData - The project data to be created.
+   * @returns {Observable<Project>} - Returns the created project.
+   */
+  addProject(projectData: Partial<Project>): Observable<Project> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
+
+    return this.http.post<Project>(`${this.projectServiceUrl}/projects`, projectData, {
+      headers,
+    });
+  }
+
 }
