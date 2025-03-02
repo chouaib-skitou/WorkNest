@@ -113,5 +113,21 @@ export class ProjectService {
     });
   }
 
+  /**
+   * Partially update an existing project.
+   * @param projectId - The ID of the project to update.
+   * @param partialData - The partial data to update.
+   * @returns {Observable<Project>} - Returns the updated project.
+   */
+  partialUpdateProject(projectId: string, partialData: Partial<Project>): Observable<Project> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
 
+    return this.http.patch<Project>(`${this.projectServiceUrl}/projects/${projectId}`, partialData, {
+      headers,
+    });
+  }
 }
