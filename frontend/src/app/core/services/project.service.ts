@@ -130,4 +130,20 @@ export class ProjectService {
       headers,
     });
   }
+
+  /**
+   * Delete an existing project.
+   * @param projectId - The ID of the project to delete.
+   * @returns {Observable<void>} - Returns an observable indicating the operation success.
+   */
+  deleteProject(projectId: string): Observable<void> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+    });
+
+    return this.http.delete<void>(`${this.projectServiceUrl}/projects/${projectId}`, {
+      headers,
+    });
+  }
 }
