@@ -2,25 +2,29 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { LoginResponse } from '../../auth/interfaces/auth.interfaces'; // Import interface
+import { environment } from '../../../environments/environment'; // Import environment variables
+import { LoginResponse, User } from '../../auth/interfaces/auth.interfaces'; // Import interfaces
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   /** Base API URL for authentication endpoints */
-  private apiUrl = 'http://localhost:5000/api/auth';
+  private identityServiceUrl = environment.identityServiceUrl;
 
   /**
    * Tracks whether the user is authenticated.
    * Uses a BehaviorSubject to allow real-time updates across the application.
    */
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(
-    this.hasToken()
-  );
-
-  /** Observable to allow components to react to authentication state changes */
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken());
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+
+  /**
+   * Tracks the current user data.
+   * Uses a BehaviorSubject to update components when the user data changes.
+   */
+  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser());
+  public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -37,54 +41,46 @@ export class AuthService {
    * @param userData - Object containing `email` and `password`.
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
-  register(userData: {
-    email: string;
-    password: string;
-  }): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      `${this.apiUrl}/register`,
-      userData
-    );
+  register(userData: { email: string; password: string }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/register`, userData);
   }
 
   /**
    * Logs in a user with email and password.
    * @param email - User's email.
    * @param password - User's password.
-   * @returns {Observable<LoginResponse>} Observable resolving to login response containing tokens.
+   * @returns {Observable<LoginResponse>} Observable resolving to login response containing tokens and user info.
    */
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http
-      .post<LoginResponse>(`${this.apiUrl}/login`, { email, password })
-      .pipe(
-        tap((response) => {
-          this.storeTokens(response);
-          this.isAuthenticatedSubject.next(true);
-        })
-      );
+    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/login`, { email, password }).pipe(
+      tap((response) => {
+        this.storeAuthData(response);
+        this.isAuthenticatedSubject.next(true);
+        this.currentUserSubject.next(response.user);
+      })
+    );
   }
 
   /**
-   * Logs out the user by clearing tokens from localStorage and updating authentication state.
+   * Logs out the user by clearing tokens and user data from localStorage.
    */
   logout(): void {
-    this.clearTokens();
+    this.clearAuthData();
     this.isAuthenticatedSubject.next(false);
+    this.currentUserSubject.next(null);
   }
 
   /**
    * Refreshes the user's access token using the stored refresh token.
-   * @returns {Observable<LoginResponse>} Observable resolving to the new tokens.
+   * @returns {Observable<LoginResponse>} Observable resolving to the new tokens and user info.
    */
   refreshToken(): Observable<LoginResponse> {
     const refreshToken = localStorage.getItem('refreshToken');
-    return this.http
-      .post<LoginResponse>(`${this.apiUrl}/refresh`, { refreshToken })
-      .pipe(
-        tap((tokens) => {
-          this.storeTokens(tokens);
-        })
-      );
+    return this.http.post<LoginResponse>(`${this.identityServiceUrl}/refresh`, { refreshToken }).pipe(
+      tap((tokens) => {
+        this.storeAuthData(tokens);
+      })
+    );
   }
 
   /**
@@ -96,22 +92,41 @@ export class AuthService {
   }
 
   /**
-   * Stores authentication tokens in localStorage.
-   * @param response - The login response containing `accessToken`, `refreshToken`, and `expiresIn`.
+   * Stores authentication tokens and user data in localStorage.
+   * @param response - The login response containing user info, `accessToken`, `refreshToken`, and `expiresIn`.
    */
-  private storeTokens(response: LoginResponse): void {
+  private storeAuthData(response: LoginResponse): void {
     localStorage.setItem('accessToken', response.accessToken);
     localStorage.setItem('refreshToken', response.refreshToken);
     localStorage.setItem('expiresIn', response.expiresIn);
+    localStorage.setItem('user', JSON.stringify(response.user)); // Store user details
   }
 
   /**
-   * Clears authentication tokens from localStorage.
+   * Retrieves the stored user data from localStorage.
+   * @returns {User | null} The stored user object or null if not found.
    */
-  private clearTokens(): void {
+  private getStoredUser(): User | null {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  }
+
+  /**
+   * Clears authentication tokens and user data from localStorage.
+   */
+  private clearAuthData(): void {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('expiresIn');
+    localStorage.removeItem('user');
+  }
+
+  /**
+   * Returns the currently authenticated user.
+   * @returns {User | null} The user object if logged in, otherwise null.
+   */
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
   }
 
   /**
@@ -120,10 +135,7 @@ export class AuthService {
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
   resetPasswordRequest(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      `${this.apiUrl}/reset-password-request`,
-      { email }
-    );
+    return this.http.post<{ message: string }>(`${this.identityServiceUrl}/reset-password-request`, { email });
   }
 
   /**
@@ -133,17 +145,10 @@ export class AuthService {
    * @param confirmNewPassword - Confirmation of the new password.
    * @returns {Observable<{ success: boolean }>} Observable resolving to success status.
    */
-  resetPassword(
-    token: string,
-    newPassword: string,
-    confirmNewPassword: string
-  ): Observable<{ success: boolean }> {
-    return this.http.post<{ success: boolean }>(
-      `${this.apiUrl}/reset-password/${token}`,
-      {
-        newPassword,
-        confirmNewPassword,
-      }
-    );
+  resetPassword(token: string, newPassword: string, confirmNewPassword: string): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`${this.identityServiceUrl}/reset-password/${token}`, {
+      newPassword,
+      confirmNewPassword,
+    });
   }
 }
