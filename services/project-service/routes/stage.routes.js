@@ -24,11 +24,11 @@ const router = express.Router();
  *   get:
  *     summary: Retrieve all stages with pagination, filtering, and sorting
  *     description: >
- *       Fetches a paginated list of stages, optionally filtered by name, position, color, or projectId.  
- *       You can also sort by name or position, in ascending or descending order.  
+ *       Fetches a paginated list of stages, optionally filtered by name, position, color, or projectId.
+ *       You can also sort by name or position, in ascending or descending order.
  *       Stages are further filtered by the user's role:
- *       - **ROLE_ADMIN**: sees all stages  
- *       - **ROLE_MANAGER**: sees stages for projects where user is manager, creator, or in employeeIds  
+ *       - **ROLE_ADMIN**: sees all stages
+ *       - **ROLE_MANAGER**: sees stages for projects where user is manager, creator, or in employeeIds
  *       - **ROLE_EMPLOYEE**: sees stages for projects in which the user is in employeeIds
  *     tags: [Stages]
  *     security:
@@ -143,7 +143,7 @@ router.get("/", authMiddleware, getStages);
  *   get:
  *     summary: Get a stage by ID
  *     description: >
- *       Fetches details of a specific stage (and its tasks).  
+ *       Fetches details of a specific stage (and its tasks).
  *       Role-based filtering also applies.
  *     tags: [Stages]
  *     security:
@@ -177,7 +177,7 @@ router.get("/:id", authMiddleware, getStageById);
  *   post:
  *     summary: Create a new stage
  *     description: >
- *       Creates a new stage within a project. Only Admins and Managers can create stages.  
+ *       Creates a new stage within a project. Only Admins and Managers can create stages.
  *       A Manager can create a stage if they are the project’s manager or creator.
  *     tags: [Stages]
  *     security:
@@ -228,7 +228,7 @@ router.post("/", authMiddleware, createStage);
  *   put:
  *     summary: Update a stage (Full Update)
  *     description: >
- *       Replaces all fields of an existing stage.  
+ *       Replaces all fields of an existing stage.
  *       Only Admins or Managers (who are manager/creator of the project) can do a full update.
  *     tags: [Stages]
  *     security:
@@ -284,7 +284,7 @@ router.put("/:id", authMiddleware, updateStage);
  *   patch:
  *     summary: Partially update a stage
  *     description: >
- *       Updates specific fields of a stage.  
+ *       Updates specific fields of a stage.
  *       Only Admins or Managers (who manage/created the project) can do partial updates.
  *     tags: [Stages]
  *     security:
@@ -337,9 +337,9 @@ router.patch("/:id", authMiddleware, patchStage);
  *   delete:
  *     summary: Delete a stage
  *     description: >
- *       Removes a stage from a project.  
- *       - Admins can delete any stage  
- *       - Managers can delete a stage only if they are the project creator  
+ *       Removes a stage from a project.
+ *       - Admins can delete any stage
+ *       - Managers can delete a stage only if they are the project creator
  *       - Employees cannot delete
  *     tags: [Stages]
  *     security:

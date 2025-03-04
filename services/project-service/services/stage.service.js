@@ -147,12 +147,15 @@ const authorizeStageCreation = async (user, projectId) => {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(`Manager authorized to create stage for project: ${projectId}`);
+      console.log(
+        `Manager authorized to create stage for project: ${projectId}`
+      );
       return;
     } else {
       return Promise.reject({
         status: 403,
-        message: "Access denied: You do not have permission to create a stage for this project",
+        message:
+          "Access denied: You do not have permission to create a stage for this project",
       });
     }
   } else {
@@ -252,7 +255,8 @@ export const getStageByIdService = async (user, id) => {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message: "Access denied: You do not have permission to view this stage",
+          message:
+            "Access denied: You do not have permission to view this stage",
         });
       } else {
         console.warn("Stage not found in database");
@@ -320,8 +324,10 @@ export const updateStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
+      unauthorizedLog:
+        "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);
@@ -365,8 +371,10 @@ export const patchStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
+      unauthorizedLog:
+        "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);

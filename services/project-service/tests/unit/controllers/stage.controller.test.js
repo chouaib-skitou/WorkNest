@@ -238,12 +238,16 @@ describe("🛠 Stage Controller Tests", () => {
   describe("deleteStage", () => {
     test("✅ should delete a stage successfully (200)", async () => {
       req.params.id = mockStage.id;
-      deleteStageService.mockResolvedValue({ message: "Stage deleted successfully" });
+      deleteStageService.mockResolvedValue({
+        message: "Stage deleted successfully",
+      });
 
       await stageController.deleteStage[2](req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ message: "Stage deleted successfully" });
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Stage deleted successfully",
+      });
     });
 
     test("🚫 should handle internal server error (500) when error.status is undefined", async () => {

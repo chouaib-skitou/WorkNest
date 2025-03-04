@@ -29,10 +29,7 @@ export const createProjectValidation = [
     .isURL()
     .withMessage("Each document must be a valid URL"),
 
-  body("createdBy")
-    .not()
-    .exists()
-    .withMessage("Cannot set createdBy manually"),
+  body("createdBy").not().exists().withMessage("Cannot set createdBy manually"),
 
   body("managerId")
     .optional()
@@ -54,11 +51,15 @@ export const createProjectValidation = [
     .notEmpty()
     .withMessage("Due date is required")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .withMessage(
+      "Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)"
+    )
     .custom((value) => {
       const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
       if (!regex.test(value)) {
-        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+        throw new Error(
+          "Due date must be in the format YYYY-MM-DDT00:00:00.000Z"
+        );
       }
       return true;
     }),
@@ -111,10 +112,7 @@ export const updateProjectValidation = [
     .isString()
     .withMessage("Manager ID must be a string"),
 
-  body("createdBy")
-    .not()
-    .exists()
-    .withMessage("Cannot set createdBy manually"),
+  body("createdBy").not().exists().withMessage("Cannot set createdBy manually"),
 
   body("employeeIds")
     .optional()
@@ -131,11 +129,15 @@ export const updateProjectValidation = [
     .notEmpty()
     .withMessage("Due date is required")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .withMessage(
+      "Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)"
+    )
     .custom((value) => {
       const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
       if (!regex.test(value)) {
-        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+        throw new Error(
+          "Due date must be in the format YYYY-MM-DDT00:00:00.000Z"
+        );
       }
       return true;
     }),
@@ -190,10 +192,7 @@ export const patchProjectValidation = [
     .isString()
     .withMessage("Manager ID must be a string"),
 
-  body("createdBy")
-    .not()
-    .exists()
-    .withMessage("Cannot set createdBy manually"),
+  body("createdBy").not().exists().withMessage("Cannot set createdBy manually"),
 
   body("employeeIds")
     .optional()
@@ -211,11 +210,15 @@ export const patchProjectValidation = [
     .notEmpty()
     .withMessage("Due date cannot be empty")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .withMessage(
+      "Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)"
+    )
     .custom((value) => {
       const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
       if (!regex.test(value)) {
-        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+        throw new Error(
+          "Due date must be in the format YYYY-MM-DDT00:00:00.000Z"
+        );
       }
       return true;
     }),

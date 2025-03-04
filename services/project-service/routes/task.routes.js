@@ -24,8 +24,8 @@ const router = express.Router();
  *   get:
  *     summary: Retrieve all tasks with pagination and filtering
  *     description: >
- *       Fetches a paginated list of tasks, optionally filtered by title, priority, stageId, or projectId.  
- *       Sort results by title, createdAt, or updatedAt.  
+ *       Fetches a paginated list of tasks, optionally filtered by title, priority, stageId, or projectId.
+ *       Sort results by title, createdAt, or updatedAt.
  *       Tasks are further filtered based on the user's role:
  *       - **ROLE_ADMIN**: sees all tasks
  *       - **ROLE_MANAGER**: sees tasks where user is project manager, project creator, or in the project’s employeeIds
@@ -144,7 +144,7 @@ router.get("/", authMiddleware, getTasks);
  *   get:
  *     summary: Get a task by ID
  *     description: >
- *       Fetches details of a specific task, including stage and project info.  
+ *       Fetches details of a specific task, including stage and project info.
  *       User must have permission to view tasks in the corresponding project (role-based).
  *     tags: [Tasks]
  *     security:
@@ -241,7 +241,7 @@ router.post("/", authMiddleware, createTask);
  *   put:
  *     summary: Update a task (Full Update)
  *     description: >
- *       Replaces all fields of an existing task.  
+ *       Replaces all fields of an existing task.
  *       Only Admins and Managers (project manager or creator) can perform a full update.
  *     tags: [Tasks]
  *     security:
@@ -297,8 +297,8 @@ router.put("/:id", authMiddleware, updateTask);
  *   patch:
  *     summary: Partially update a task
  *     description: >
- *       Updates specific fields of an existing task.  
- *       Only Admins, Managers (project manager/creator, or manager in employee list can only patch stageId),  
+ *       Updates specific fields of an existing task.
+ *       Only Admins, Managers (project manager/creator, or manager in employee list can only patch stageId),
  *       or Employees (only patch stageId) can do partial updates.
  *     tags: [Tasks]
  *     security:
@@ -363,9 +363,9 @@ router.patch("/:id", authMiddleware, patchTask);
  *   delete:
  *     summary: Delete a task
  *     description: >
- *       Removes a task from a project.  
- *       - Admins can delete any task  
- *       - Managers can delete only tasks from projects they created  
+ *       Removes a task from a project.
+ *       - Admins can delete any task
+ *       - Managers can delete only tasks from projects they created
  *       - Employees cannot delete tasks
  *     tags: [Tasks]
  *     security:

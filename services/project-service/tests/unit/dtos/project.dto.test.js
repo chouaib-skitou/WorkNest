@@ -11,8 +11,16 @@ describe("✅ ProjectDTO Tests", () => {
     documents: ["https://example.com/doc1.pdf"],
     createdAt: new Date("2025-02-01T12:00:00.000Z"),
     updatedAt: new Date("2025-02-02T12:00:00.000Z"),
-    createdBy: { id: "user-id-1", fullName: "Test Creator", role: "ROLE_ADMIN" },
-    manager: { id: "manager-id-1", fullName: "Test Manager", role: "ROLE_MANAGER" },
+    createdBy: {
+      id: "user-id-1",
+      fullName: "Test Creator",
+      role: "ROLE_ADMIN",
+    },
+    manager: {
+      id: "manager-id-1",
+      fullName: "Test Manager",
+      role: "ROLE_MANAGER",
+    },
     employees: [
       { id: "employee-1", fullName: "Test Employee 1", role: "ROLE_EMPLOYEE" },
       { id: "employee-2", fullName: "Test Employee 2", role: "ROLE_EMPLOYEE" },

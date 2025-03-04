@@ -22,11 +22,7 @@ export const createStageValidation = [
 
 export const updateStageValidation = [
   isUUID("id"),
-  body("name")
-    .isString()
-    .trim()
-    .notEmpty()
-    .withMessage("Invalid name"),
+  body("name").isString().trim().notEmpty().withMessage("Invalid name"),
   body("position")
     .isInt({ min: 0 })
     .notEmpty()

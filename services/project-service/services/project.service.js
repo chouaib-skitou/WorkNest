@@ -7,7 +7,6 @@ import { prisma } from "../config/database.js";
 import { ProjectDTO, GetAllProjectsDTO } from "../dtos/project.dto.js";
 import { fetchUsersByIds } from "./helpers/user.enrichment.js";
 
-
 /**
  * Generate role-based filter conditions for project queries.
  * @param {Object} user - The user object containing role and id.
@@ -97,7 +96,8 @@ const authorizeProjectModification = async (user, id, logConfig) => {
 
   if (
     user.role === "ROLE_MANAGER" &&
-    (existingProject.managerId === user.id || existingProject.createdBy === user.id)
+    (existingProject.managerId === user.id ||
+      existingProject.createdBy === user.id)
   ) {
     console.log(logConfig.managerLog.replace("{id}", id));
     return existingProject;
@@ -181,8 +181,12 @@ export const getProjectsService = async (user, query, token) => {
     }
 
     // Get both managerIds and createdBy IDs
-    const managerIds = projects.filter((p) => p.managerId).map((p) => p.managerId);
-    const createdByIds = projects.filter((p) => p.createdBy).map((p) => p.createdBy);
+    const managerIds = projects
+      .filter((p) => p.managerId)
+      .map((p) => p.managerId);
+    const createdByIds = projects
+      .filter((p) => p.createdBy)
+      .map((p) => p.createdBy);
 
     // Merge and deduplicate IDs
     const uniqueUserIds = [...new Set([...managerIds, ...createdByIds])];
@@ -197,7 +201,6 @@ export const getProjectsService = async (user, query, token) => {
       manager: project.managerId ? usersMap[project.managerId] : null,
       createdBy: project.createdBy ? usersMap[project.createdBy] : null,
     }));
-    
 
     return {
       data: enrichedProjects.map((project) => new GetAllProjectsDTO(project)),
@@ -252,7 +255,8 @@ export const getProjectByIdService = async (user, id, token) => {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message: "Access denied: You do not have permission to view this project",
+          message:
+            "Access denied: You do not have permission to view this project",
         });
       } else {
         console.warn("Project not found in database");
@@ -290,7 +294,6 @@ export const getProjectByIdService = async (user, id, token) => {
   }
 };
 
-
 /**
  * Create a new project. Accessible only by admins and managers.
  * @param {Object} user - The user creating the project.
@@ -309,7 +312,7 @@ export const createProjectService = async (user, data, token) => {
 
     const projectData = {
       ...data,
-      name: data.name.toLowerCase(), 
+      name: data.name.toLowerCase(),
       createdBy: user.id,
     };
 
@@ -366,8 +369,10 @@ export const updateProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this project",
+      unauthorizedLog:
+        "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
@@ -395,8 +400,12 @@ export const updateProjectService = async (user, id, data, token) => {
     // Enrich the updated project with user details.
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
-      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      manager: updatedProject.managerId
+        ? usersMap[updatedProject.managerId]
+        : null,
+      createdBy: updatedProject.createdBy
+        ? usersMap[updatedProject.createdBy]
+        : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
@@ -435,8 +444,10 @@ export const patchProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this project",
+      unauthorizedLog:
+        "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
@@ -478,8 +489,12 @@ export const patchProjectService = async (user, id, data, token) => {
     // Enrich the updated project with user details.
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
-      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      manager: updatedProject.managerId
+        ? usersMap[updatedProject.managerId]
+        : null,
+      createdBy: updatedProject.createdBy
+        ? usersMap[updatedProject.createdBy]
+        : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
