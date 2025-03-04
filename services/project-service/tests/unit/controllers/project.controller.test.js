@@ -39,7 +39,6 @@ describe("🛠 Project Controller Tests", () => {
     next = jest.fn();
     jest.clearAllMocks();
   });
-  
 
   describe("getProjects", () => {
     test("✅ should return projects successfully (200)", async () => {
@@ -50,9 +49,9 @@ describe("🛠 Project Controller Tests", () => {
         totalCount: 1,
         totalPages: 1,
       });
-  
+
       await projectController.getProjects(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         data: [mockProject],
@@ -66,9 +65,9 @@ describe("🛠 Project Controller Tests", () => {
     test("🚫 should handle internal server error (500) when error.status is undefined", async () => {
       // Simulate a plain error with no status property.
       getProjectsService.mockRejectedValue(new Error("Database error"));
-  
+
       await projectController.getProjects(req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });
@@ -119,13 +118,21 @@ describe("🛠 Project Controller Tests", () => {
     });
 
     test("🚫 should handle duplicate project name error (409) on create", async () => {
-      req.body = { name: "Duplicate Project", description: "A duplicate project" };
-      createProjectService.mockRejectedValue({ status: 409, message: "A project with this name already exists" });
+      req.body = {
+        name: "Duplicate Project",
+        description: "A duplicate project",
+      };
+      createProjectService.mockRejectedValue({
+        status: 409,
+        message: "A project with this name already exists",
+      });
 
       await projectController.createProject[2](req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ error: "A project with this name already exists" });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A project with this name already exists",
+      });
     });
 
     test("🚫 should handle internal server error on create (500) when error.status is undefined", async () => {
@@ -152,12 +159,17 @@ describe("🛠 Project Controller Tests", () => {
     });
 
     test("🚫 should handle duplicate project name error (409) on update", async () => {
-      updateProjectService.mockRejectedValue({ status: 409, message: "A project with this name already exists" });
+      updateProjectService.mockRejectedValue({
+        status: 409,
+        message: "A project with this name already exists",
+      });
 
       await projectController.updateProject[2](req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ error: "A project with this name already exists" });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A project with this name already exists",
+      });
     });
 
     test("🚫 should handle internal server error on update (500) when error.status is undefined", async () => {
@@ -183,12 +195,17 @@ describe("🛠 Project Controller Tests", () => {
     });
 
     test("🚫 should handle duplicate project name error (409) on patch", async () => {
-      patchProjectService.mockRejectedValue({ status: 409, message: "A project with this name already exists" });
+      patchProjectService.mockRejectedValue({
+        status: 409,
+        message: "A project with this name already exists",
+      });
 
       await projectController.patchProject[2](req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ error: "A project with this name already exists" });
+      expect(res.json).toHaveBeenCalledWith({
+        error: "A project with this name already exists",
+      });
     });
 
     test("🚫 should handle internal server error on patch (500) when error.status is undefined", async () => {
@@ -204,12 +221,16 @@ describe("🛠 Project Controller Tests", () => {
   describe("deleteProject", () => {
     test("✅ should delete a project successfully (200)", async () => {
       req.params.id = mockProject.id;
-      deleteProjectService.mockResolvedValue({ message: "Project deleted successfully" });
+      deleteProjectService.mockResolvedValue({
+        message: "Project deleted successfully",
+      });
 
       await projectController.deleteProject[2](req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ message: "Project deleted successfully" });
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Project deleted successfully",
+      });
     });
 
     test("🚫 should handle internal server error on delete (500) when error.status is undefined", async () => {

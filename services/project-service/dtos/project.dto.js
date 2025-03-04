@@ -15,6 +15,9 @@ export class ProjectDTO {
     this.stages = project.stages
       ? project.stages.map((stage) => new StageDTO(stage))
       : [];
+    this.dueDate = project.dueDate;
+    this.status = project.status;
+    this.priority = project.priority;
   }
 }
 
@@ -26,5 +29,8 @@ export class GetAllProjectsDTO {
     this.createdAt = project.createdAt;
     this.createdBy = project.createdBy;
     this.manager = project.manager;
+    this.dueDate = project.dueDate;
+    this.status = project.status;
+    this.priority = project.priority;
   }
 }

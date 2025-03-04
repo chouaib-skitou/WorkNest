@@ -82,7 +82,9 @@ const authorizeTaskCreation = async (user, projectId) => {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(`Manager authorized to create task for project: ${projectId}`);
+      console.log(
+        `Manager authorized to create task for project: ${projectId}`
+      );
       return;
     }
     return Promise.reject({
@@ -109,7 +111,12 @@ const authorizeTaskCreation = async (user, projectId) => {
  * @param {string} opType - Operation type ("update" or "patch").
  * @returns {Promise<Object>} - Resolves with the task if authorized.
  */
-export const authorizeTaskModification = async (user, id, updateData, opType = "update") => {
+export const authorizeTaskModification = async (
+  user,
+  id,
+  updateData,
+  opType = "update"
+) => {
   const task = await prisma.task.findUnique({
     where: { id },
     include: { Project: true },
@@ -121,7 +128,10 @@ export const authorizeTaskModification = async (user, id, updateData, opType = "
     return task;
   }
   if (user.role === "ROLE_MANAGER") {
-    if (task.Project.managerId === user.id || task.Project.createdBy === user.id) {
+    if (
+      task.Project.managerId === user.id ||
+      task.Project.createdBy === user.id
+    ) {
       return task;
     }
     // Allow managers who are only in the employeeIds to patch the stageId
@@ -139,7 +149,11 @@ export const authorizeTaskModification = async (user, id, updateData, opType = "
   }
   if (user.role === "ROLE_EMPLOYEE") {
     // Allow employees to PATCH only the stageId (and nothing else)
-    if (opType === "patch" && Object.keys(updateData).length === 1 && updateData.stageId) {
+    if (
+      opType === "patch" &&
+      Object.keys(updateData).length === 1 &&
+      updateData.stageId
+    ) {
       return task;
     }
     return Promise.reject({
