@@ -5,6 +5,7 @@ const validPriorities = ["LOW", "MEDIUM", "HIGH"];
 
 // Validator for creating a project (Required fields must be present)
 export const createProjectValidation = [
+  body("id").not().exists().withMessage("Cannot set projectId manually"),
   body("name")
     .notEmpty()
     .withMessage("Project name is required")

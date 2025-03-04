@@ -8,6 +8,7 @@ export const getStageByIdValidation = [isUUID("id")];
 export const deleteStageValidation = [isUUID("id")];
 
 export const createStageValidation = [
+  body("id").not().exists().withMessage("Cannot set stageId manually"),
   body("name")
     .isString()
     .trim()

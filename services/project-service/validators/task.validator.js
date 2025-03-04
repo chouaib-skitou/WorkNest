@@ -9,6 +9,7 @@ const isUUID = param("id").isUUID().withMessage("Invalid task ID format");
  * Validation for creating a task
  */
 export const createTaskValidation = [
+  body("id").not().exists().withMessage("Cannot set taskId manually"),
   body("title").notEmpty().withMessage("Task title is required"),
   body("description")
     .optional()
