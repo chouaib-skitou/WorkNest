@@ -21,7 +21,8 @@ export const createStageValidation = [
 ];
 
 export const updateStageValidation = [
-  isUUID("id"),
+  param("id").isUUID().withMessage("Invalid project ID format"),
+  body("id").not().exists().withMessage("User ID cannot be changed"),
   body("name").isString().trim().notEmpty().withMessage("Invalid name"),
   body("position")
     .isInt({ min: 0 })
@@ -31,7 +32,8 @@ export const updateStageValidation = [
 ];
 
 export const patchStageValidation = [
-  isUUID("id"),
+  param("id").isUUID().withMessage("Invalid project ID format"),
+  body("id").not().exists().withMessage("User ID cannot be changed"),
   body("name")
     .optional()
     .isString()
