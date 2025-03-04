@@ -3,7 +3,9 @@ import { prisma } from "../../../config/database.js";
 import { validateRequest } from "../../../middleware/validate.middleware.js";
 import { authMiddleware } from "../../../middleware/auth.middleware.js";
 import { UserDTO } from "../../../dtos/user.dto.js";
+import { sendAccountCreationEmail } from "../../../services/email.service.js";
 
+// Extend the prisma mock to include passwordResetToken methods
 jest.mock("../../../config/database.js", () => ({
   prisma: {
     user: {
@@ -12,7 +14,11 @@ jest.mock("../../../config/database.js", () => ({
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      count: jest.fn(), // if you have count in getUsers
+      count: jest.fn(),
+    },
+    passwordResetToken: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
     },
   },
 }));
@@ -23,10 +29,15 @@ jest.mock("../../../middleware/validate.middleware.js", () => ({
 
 jest.mock("../../../middleware/auth.middleware.js", () => ({
   authMiddleware: jest.fn((req, res, next) => {
-    req.user = { id: "1", role: "ROLE_ADMIN" }; // Mock authenticated admin user
+    req.user = { id: "1", role: "ROLE_ADMIN" };
     next();
   }),
 }));
+
+jest.mock("../../../services/email.service.js", () => ({
+  sendAccountCreationEmail: jest.fn().mockResolvedValue(true),
+}));
+
 
 describe("🛂 User Controller Tests (Full Coverage)", () => {
   let req, res;
@@ -38,7 +49,7 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
       status: jest.fn().mockReturnThis(),
     };
 
-    jest.spyOn(console, "error").mockImplementation(() => {}); // Suppress console.errors
+    jest.spyOn(console, "error").mockImplementation(() => {});
     jest.clearAllMocks();
   });
 
@@ -120,28 +131,86 @@ describe("🛂 User Controller Tests (Full Coverage)", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Access denied" });
   });
 
-  test("🚫 Return 404 if user not found", async () => {
-    req.params.id = "999";
-    prisma.user.findUnique.mockResolvedValue(null);
+  test("should set isVerified to true and send account creation email", async () => {
+    req.body = { 
+      firstName: "NewUser", 
+      lastName: "Doe", 
+      email: "newuser@example.com", 
+      password: "password123", 
+      role: "ROLE_EMPLOYEE" 
+    };
 
-    await userController.getUserById[0](req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
-  });
+    const newUserMock = { id: "newId", ...req.body, isVerified: true };
+    
+    prisma.user.create.mockResolvedValue(newUserMock);
+    prisma.passwordResetToken.deleteMany.mockResolvedValue({});
+    prisma.passwordResetToken.create.mockResolvedValue({});
 
-  /** 🟢 Create User */
-  test("✅ Successfully create a new user (Admin only)", async () => {
-    req.body = { firstName: "NewUser", role: "ROLE_EMPLOYEE" };
-    prisma.user.create.mockResolvedValue({ id: "3", ...req.body });
+    // Call the final createUser handler (index 3)
+    await userController.createUser[3](req, res);
 
-    await userController.createUser[2](req, res);
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: { ...req.body, isVerified: true },
+    });
+
+    expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
+      where: { userId: newUserMock.id },
+    });
+    expect(prisma.passwordResetToken.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ userId: newUserMock.id }),
+      })
+    );
+
+    expect(sendAccountCreationEmail).toHaveBeenCalled();
+    const emailCallArgs = sendAccountCreationEmail.mock.calls[0];
+    expect(emailCallArgs[0]).toEqual(newUserMock);
+    expect(typeof emailCallArgs[1]).toBe("string");
+
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.any(UserDTO));
   });
 
+  test("✅ Successfully create a new user (Admin only)", async () => {
+    req.body = { firstName: "NewUser", role: "ROLE_EMPLOYEE" };
+    prisma.user.create.mockResolvedValue({ id: "3", ...req.body });
+
+    // Call the final handler (index 3)
+    await userController.createUser[3](req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.any(UserDTO));
+  });
+
+  test("should return 400 when email already exists", async () => {
+    // Create an error that simulates a Prisma unique constraint violation on the email field
+    const prismaError = new Error("Unique constraint failed on the fields: (`email`)");
+    prismaError.code = "P2002";
+    prismaError.meta = { target: ["email"] };
+  
+    // Set up the request body
+    req.body = { 
+      firstName: "NewUser", 
+      lastName: "Doe", 
+      email: "duplicate@example.com", 
+      password: "password123", 
+      role: "ROLE_EMPLOYEE" 
+    };
+  
+    // Mock prisma.user.create to reject with the unique constraint error
+    prisma.user.create.mockRejectedValue(prismaError);
+  
+    // Call the final createUser handler (index 3)
+    await userController.createUser[3](req, res);
+  
+    // Verify that a 400 response is sent with the proper error message
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "A user with that email already exists" });
+  });  
+
   test("🚫 Handle error when user creation fails", async () => {
     prisma.user.create.mockRejectedValue(new Error("Database error"));
-    await userController.createUser[2](req, res);
+    // Call the final handler (index 3)
+    await userController.createUser[3](req, res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
   });

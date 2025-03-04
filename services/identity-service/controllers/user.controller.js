@@ -1,7 +1,14 @@
 import { prisma } from "../config/database.js";
-import { updateUserValidationRules, deleteUserValidationRules } from "../validators/user.validator.js";
+import {
+  createUserValidationRules,
+  updateUserValidationRules,
+  patchUserValidationRules,
+  deleteUserValidationRules,
+} from "../validators/user.validator.js";
 import { validateRequest } from "../middleware/validate.middleware.js";
 import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
+import { sendAccountCreationEmail } from "../services/email.service.js";
+import crypto from "crypto";
 
 // Middleware to check user role
 const checkRole = (roles) => (req, res, next) => {
@@ -24,10 +31,9 @@ export const getUsers = [
       if (req.query.firstName) {
         where.firstName = {
           contains: req.query.firstName,
-          mode: "insensitive", // case-insensitive
+          mode: "insensitive",
         };
       }
-      
       if (req.query.lastName) {
         where.lastName = {
           contains: req.query.lastName,
@@ -40,12 +46,11 @@ export const getUsers = [
           mode: "insensitive",
         };
       }
-
       if (req.query.role) {
         where.role = req.query.role;
       }
       if (req.query.isVerified !== undefined) {
-        // isVerified will be "true"/"false" as a string
+        // Convert string to boolean
         where.isVerified = req.query.isVerified === "true";
       }
 
@@ -54,7 +59,7 @@ export const getUsers = [
           where,
           skip,
           take: limit,
-          orderBy: { createdAt: "desc" }, 
+          orderBy: { createdAt: "desc" },
         }),
         prisma.user.count({ where }),
       ]);
@@ -62,7 +67,6 @@ export const getUsers = [
       // Transform user data with UserDTO
       const transformedUsers = users.map((user) => new UserDTO(user));
 
-      // Return pagination info + data
       res.json({
         data: transformedUsers,
         page,
@@ -99,16 +103,48 @@ export const getUserById = [
 // Create a new user (Only ROLE_ADMIN)
 export const createUser = [
   checkRole(["ROLE_ADMIN"]),
+  createUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {
-      const newUser = await prisma.user.create({ data: req.body });
+      // Création de l'utilisateur avec isVerified forcé à true
+      const newUser = await prisma.user.create({
+        data: { ...req.body, isVerified: true },
+      });
+
+      // Suppression des anciens tokens de réinitialisation pour cet utilisateur
+      await prisma.passwordResetToken.deleteMany({ where: { userId: newUser.id } });
+
+      // Génération d'un token de réinitialisation
+      const resetToken = crypto.randomBytes(32).toString("hex");
+
+      // Enregistrement du token dans la base de données avec une expiration d'une heure
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: newUser.id,
+          token: resetToken,
+          expiresAt: new Date(Date.now() + 3600000),
+        },
+      });
+
+      // Envoi de l'email de réinitialisation de mot de passe via le service
+      await sendAccountCreationEmail(newUser, resetToken);
+
       res.status(201).json(new UserDTO(newUser));
     } catch (error) {
+      // Gestion spécifique de l'erreur de contrainte d'unicité sur email
+      if (
+        error.code === "P2002" &&
+        error.meta &&
+        error.meta.target &&
+        error.meta.target.includes("email")
+      ) {
+        return res.status(400).json({ error: "A user with that email already exists" });
+      }
       console.error("Error creating user:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
 // Update User (Only the user himself OR ROLE_ADMIN)
@@ -121,10 +157,11 @@ export const updateUser = [
       const isAdmin = req.user.role === "ROLE_ADMIN";
 
       if (!isAdmin && req.user.id !== id) {
-        return res.status(403).json({ error: "You can only update your own profile" });
+        return res
+          .status(403)
+          .json({ error: "You can only update your own profile" });
       }
 
-      // Check if the user exists
       const userExists = await prisma.user.findUnique({ where: { id } });
       if (!userExists) {
         return res.status(404).json({ error: "User not found" });
@@ -141,89 +178,71 @@ export const updateUser = [
       console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
-
 
 // Partially update user (PATCH)
 export const patchUser = [
-  updateUserValidationRules,
+  patchUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {
       const { id } = req.params;
       if (req.user.role !== "ROLE_ADMIN" && req.user.id !== id) {
-        return res.status(403).json({ error: "You can only update your own profile" });
+        return res
+          .status(403)
+          .json({ error: "You can only update your own profile" });
       }
 
-      // Check if user exists
       const userExists = await prisma.user.findUnique({ where: { id } });
       if (!userExists) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      try {
-        const updatedUser = await prisma.user.update({
-          where: { id },
-          data: req.body,
-        });
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: req.body,
+      });
 
-        delete updatedUser.password;
-        res.json(new UserDTO(updatedUser));
-      } catch (error) {
-        console.error("Database error updating user:", error);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-
+      delete updatedUser.password;
+      res.json(new UserDTO(updatedUser));
     } catch (error) {
-      console.error("Unexpected error in patchUser:", error);
+      console.error("Error updating user:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
-
-
-
-// Delete User (Only ROLE_ADMIN, but check if user exists first)
+// Delete User (Only ROLE_ADMIN)
 export const deleteUser = [
   deleteUserValidationRules,
   validateRequest,
-  async (req, res, next) => {
+  async (req, res) => {
     try {
       const { id } = req.params;
 
-      // Check if the user exists **before checking roles**
+      // Check if the user exists before role validation
       const userToDelete = await prisma.user.findUnique({ where: { id } });
       if (!userToDelete) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Check if requester has ROLE_ADMIN
       if (req.user.role !== "ROLE_ADMIN") {
-        return res.status(403).json({ error: "Only administrators can delete users" });
+        return res
+          .status(403)
+          .json({ error: "Only administrators can delete users" });
       }
 
-      // Proceed with deletion
       await prisma.user.delete({ where: { id } });
       res.json({ message: "User deleted successfully" });
-
     } catch (error) {
       console.error("Error deleting user:", error);
       res.status(500).json({ error: "Internal server error" });
     }
-  }
+  },
 ];
 
-
-/**
- * Batch lookup: Returns minimal user info for an array of user IDs.
- * @param {Object} req - Express request object.
- * @param {Object} req.body - Object containing an array of user IDs.
- * @param {string[]} req.body.ids - Array of user IDs.
- * @param {Object} res - Express response object.
- * @returns {void} JSON response with an array of UserBatchDTO.
- */
+// Batch lookup: Returns minimal user info for an array of user IDs.
 export const getUsersByIds = async (req, res) => {
   try {
     const { ids } = req.body;
