@@ -5,7 +5,7 @@ const validPriorities = ["LOW", "MEDIUM", "HIGH"];
 
 // Validator for creating a project (Required fields must be present)
 export const createProjectValidation = [
-  body("id").not().exists().withMessage("Cannot set projectId manually"),
+  body("id").not().exists().withMessage("Cannot set Project ID manually"),
   body("name")
     .notEmpty()
     .withMessage("Project name is required")
@@ -82,8 +82,8 @@ export const createProjectValidation = [
 
 // Validator for updating a project using PUT (All fields must be provided)
 export const updateProjectValidation = [
-  param("id").isUUID().withMessage("Invalid project ID format"),
-  body("id").not().exists().withMessage("User ID cannot be changed"),
+  param("id").isUUID().withMessage("Invalid Project ID format"),
+  body("id").not().exists().withMessage("Project ID cannot be changed"),
 
   body("name")
     .notEmpty()
@@ -161,8 +161,8 @@ export const updateProjectValidation = [
 
 // Validator for partially updating a project using PATCH (Only provided fields will be updated)
 export const patchProjectValidation = [
-  param("id").isUUID().withMessage("Invalid project ID format"),
-  body("id").not().exists().withMessage("User ID cannot be changed"),
+  param("id").isUUID().withMessage("Invalid Project ID format"),
+  body("id").not().exists().withMessage("Project ID cannot be changed"),
 
   body("name")
     .optional()
