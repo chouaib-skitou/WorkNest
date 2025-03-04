@@ -73,7 +73,7 @@ describe("Project Validator Tests (100% coverage)", () => {
     const messages = errors.map((e) => e.msg);
     expect(messages).toEqual(
       expect.arrayContaining([
-        "Invalid project ID format",
+        "Invalid Project ID format",
         "Project name is required",
         "Project name must be a string",
         "Project description is required",
