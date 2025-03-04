@@ -12,7 +12,6 @@ import {
  */
 async function runValidatorRules(rules, reqBody, reqParams = {}) {
   const req = { body: reqBody, params: reqParams };
-  const errors = [];
 
   // Run each validator rule
   for (const rule of rules) {
@@ -25,7 +24,6 @@ async function runValidatorRules(rules, reqBody, reqParams = {}) {
 }
 
 describe("Project Validator Tests (100% coverage)", () => {
-
   test("🚫 createProjectValidation should fail when required fields are missing", async () => {
     const reqBody = {};
     const errors = await runValidatorRules(createProjectValidation, reqBody);
@@ -67,7 +65,11 @@ describe("Project Validator Tests (100% coverage)", () => {
   test("🚫 updateProjectValidation should fail when required fields are missing", async () => {
     const reqBody = {};
     const reqParams = { id: "invalid-uuid" }; // Invalid ID
-    const errors = await runValidatorRules(updateProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      updateProjectValidation,
+      reqBody,
+      reqParams
+    );
     const messages = errors.map((e) => e.msg);
     expect(messages).toEqual(
       expect.arrayContaining([
@@ -87,7 +89,11 @@ describe("Project Validator Tests (100% coverage)", () => {
       priority: "INVALID", // Not in [LOW, MEDIUM, HIGH]
     };
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(updateProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      updateProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.map((e) => e.msg)).toContain(
       "Priority must be one of: LOW, MEDIUM, HIGH"
     );
@@ -102,14 +108,22 @@ describe("Project Validator Tests (100% coverage)", () => {
       priority: "HIGH",
     };
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(updateProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      updateProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.length).toBe(0);
   });
 
   test("🚫 patchProjectValidation should fail when invalid status is provided", async () => {
     const reqBody = { status: "UNKNOWN" }; // Not in [PENDING, IN_PROGRESS, COMPLETED]
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(patchProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      patchProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.map((e) => e.msg)).toContain(
       "Status must be one of: PENDING, IN_PROGRESS, COMPLETED"
     );
@@ -118,7 +132,11 @@ describe("Project Validator Tests (100% coverage)", () => {
   test("🚫 patchProjectValidation should fail when dueDate format is incorrect", async () => {
     const reqBody = { dueDate: "03-04-2025" }; // Invalid format
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(patchProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      patchProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.map((e) => e.msg)).toContain(
       "Due date must be in the format YYYY-MM-DDT00:00:00.000Z"
     );
@@ -127,28 +145,43 @@ describe("Project Validator Tests (100% coverage)", () => {
   test("✅ patchProjectValidation should pass when valid fields are provided", async () => {
     const reqBody = { status: "COMPLETED" };
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(patchProjectValidation, reqBody, reqParams);
+    const errors = await runValidatorRules(
+      patchProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.length).toBe(0);
   });
 
   test("✅ patchProjectValidation should pass when dueDate format is correct", async () => {
     const reqBody = { dueDate: "2025-03-04T00:00:00.000Z" }; // Correct format
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-  
-    const errors = await runValidatorRules(patchProjectValidation, reqBody, reqParams);
+
+    const errors = await runValidatorRules(
+      patchProjectValidation,
+      reqBody,
+      reqParams
+    );
     expect(errors.length).toBe(0); // No errors should be returned
   });
-  
-  
+
   test("🚫 deleteProjectValidation should fail if ID is invalid", async () => {
     const reqParams = { id: "invalid-uuid" };
-    const errors = await runValidatorRules(deleteProjectValidation, {}, reqParams);
+    const errors = await runValidatorRules(
+      deleteProjectValidation,
+      {},
+      reqParams
+    );
     expect(errors.map((e) => e.msg)).toContain("Invalid project ID format");
   });
 
   test("✅ deleteProjectValidation should pass with valid ID", async () => {
     const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
-    const errors = await runValidatorRules(deleteProjectValidation, {}, reqParams);
+    const errors = await runValidatorRules(
+      deleteProjectValidation,
+      {},
+      reqParams
+    );
     expect(errors.length).toBe(0);
   });
 });
