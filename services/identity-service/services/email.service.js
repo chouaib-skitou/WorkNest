@@ -1,7 +1,7 @@
 import { sendMail } from "../config/mail.js";
 
 export async function sendAccountCreationEmail(user, resetToken) {
-  const resetLink = `${process.env.FRONTEND_URL}/set-password/${resetToken}`;
+  const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
   const subject = "Welcome to WorkNest - Set Your Password";
   const text = `Hello ${user.firstName},\n\nYour WorkNest account has been successfully created. To complete your registration and set your password, please click on the following link: ${resetLink}\n\nIf you didn't request this account creation, please ignore this email.`;
