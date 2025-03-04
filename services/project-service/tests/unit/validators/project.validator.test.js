@@ -75,8 +75,12 @@ describe("Project Validator Tests (100% coverage)", () => {
       expect.arrayContaining([
         "Invalid project ID format",
         "Project name is required",
+        "Project name must be a string",
         "Project description is required",
+        "Project description must be a string",
         "Due date is required",
+        "Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)",
+        "Due date must be in the format YYYY-MM-DDT00:00:00.000Z",
       ])
     );
   });
