@@ -7,6 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Status {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 model Project {
   id          String   @id @default(uuid())
   name        String   @unique // Ensures project names are globally unique
@@ -20,6 +32,9 @@ model Project {
   employeeIds String[] 
   stages      Stage[]
   tasks       Task[] // One-to-many relationship with tasks
+  dueDate     DateTime  
+  status      Status   @default(PENDING)
+  priority    Priority @default(MEDIUM)
 }
 
 model Stage {
