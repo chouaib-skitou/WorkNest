@@ -50,7 +50,10 @@ describe("fetchUsersByIds", () => {
 
     const result = await fetchUsersByIds(userIds, token);
     expect(result).toEqual({});
-    expect(console.error).toHaveBeenCalledWith("Error fetching user details:", error);
+    expect(console.error).toHaveBeenCalledWith(
+      "Error fetching user details:",
+      error
+    );
     spy.mockRestore();
   });
 });

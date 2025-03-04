@@ -23,7 +23,10 @@ export const validateJwt = async (token) => {
 
     return response.data.user;
   } catch (error) {
-    console.error("JWT validation error:", error.response?.data || error.message);
+    console.error(
+      "JWT validation error:",
+      error.response?.data || error.message
+    );
     throw new Error("Invalid or expired token");
   }
 };

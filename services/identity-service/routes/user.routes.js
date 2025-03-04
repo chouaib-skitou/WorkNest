@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  getUsers,
+  getAllUsers,
   getUserById,
   createUser,
   updateUser,
@@ -23,8 +23,19 @@ const router = express.Router();
  * @swagger
  * /api/users:
  *   get:
- *     summary: Get all users
- *     description: Retrieves a paginated list of users with optional filtering. Only accessible by ROLE_ADMIN and ROLE_MANAGER.
+ *     summary: Get all users (paginated + filters)
+ *     description: |
+ *       Retrieves a **paginated** list of users with **optional filtering**.  
+ *       **Accessible** by ROLE_ADMIN and ROLE_MANAGER only.
+ *       
+ *       **Filters** (query parameters):
+ *       - `page` (number): Page number for pagination.
+ *       - `limit` (number): Number of users per page.
+ *       - `firstName` (string): Filter by first name (case-insensitive).
+ *       - `lastName` (string): Filter by last name (case-insensitive).
+ *       - `email` (string): Filter by email (case-insensitive).
+ *       - `role` (string): Filter by user role (ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN).
+ *       - `isVerified` (boolean): Filter by verification status (true/false).
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -64,23 +75,27 @@ const router = express.Router();
  *         name: isVerified
  *         schema:
  *           type: boolean
- *         description: Filter by verification status
+ *         description: Filter by verification status (true or false)
  *     responses:
  *       200:
- *         description: Successfully retrieved users list.
- *       403:
- *         description: Forbidden, only admins and managers can access.
+ *         description: Successfully retrieved users list
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (only admins and managers can access)
+ *       500:
+ *         description: Internal server error
  */
-router.get("/", authMiddleware, getUsers);
+router.get("/", authMiddleware, getAllUsers);
 
 /**
  * @swagger
  * /api/users/{id}:
  *   get:
  *     summary: Get user by ID
- *     description: Retrieves a user by their ID. Only accessible by ROLE_ADMIN or the user himself.
+ *     description: |
+ *       Retrieves a user by their ID.  
+ *       **Accessible** by ROLE_ADMIN or the user themself.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -93,13 +108,15 @@ router.get("/", authMiddleware, getUsers);
  *         description: The ID of the user to retrieve
  *     responses:
  *       200:
- *         description: Successfully retrieved the user.
- *       403:
- *         description: Forbidden, access denied.
- *       404:
- *         description: User not found.
+ *         description: Successfully retrieved the user
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (access denied)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
  */
 router.get("/:id", authMiddleware, getUserById);
 
@@ -108,7 +125,10 @@ router.get("/:id", authMiddleware, getUserById);
  * /api/users:
  *   post:
  *     summary: Create a new user
- *     description: Creates a new user. Only accessible by ROLE_ADMIN. Users cannot set their role, verification status, or manually specify an ID.
+ *     description: |
+ *       Creates a new user.  
+ *       **Accessible** by ROLE_ADMIN.  
+ *       Users **cannot** set their role, verification status, or manually specify an ID.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -130,11 +150,15 @@ router.get("/:id", authMiddleware, getUserById);
  *                 type: string
  *     responses:
  *       201:
- *         description: User created successfully.
- *       403:
- *         description: Forbidden, only admins can create users.
+ *         description: User created successfully
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (only admins can create users)
+ *       409:
+ *         description: Conflict (email already exists)
+ *       500:
+ *         description: Internal server error
  */
 router.post("/", authMiddleware, createUser);
 
@@ -142,8 +166,11 @@ router.post("/", authMiddleware, createUser);
  * @swagger
  * /api/users/{id}:
  *   put:
- *     summary: Update user information
- *     description: Updates a user's details. Only accessible by ROLE_ADMIN or the user himself. Users cannot update their ID, role, verification status, or password.
+ *     summary: Update user (full)
+ *     description: |
+ *       Fully updates a user's details.  
+ *       **Accessible** by ROLE_ADMIN only.  
+ *       Users **cannot** update their ID, role, verification status, or password.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -169,13 +196,17 @@ router.post("/", authMiddleware, createUser);
  *                 type: string
  *     responses:
  *       200:
- *         description: User updated successfully.
- *       403:
- *         description: Forbidden, access denied.
- *       404:
- *         description: User not found.
+ *         description: User updated successfully
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (only admins can update users)
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Conflict (email already exists)
+ *       500:
+ *         description: Internal server error
  */
 router.put("/:id", authMiddleware, updateUser);
 
@@ -183,8 +214,13 @@ router.put("/:id", authMiddleware, updateUser);
  * @swagger
  * /api/users/{id}:
  *   patch:
- *     summary: Partially update user information
- *     description: Allows partial update of user details. Only accessible by ROLE_ADMIN or the user himself. Users cannot update their ID, role, verification status, or password.
+ *     summary: Partially update user
+ *     description: |
+ *       Partially updates a user's details.  
+ *       **Accessible** by ROLE_ADMIN or the user themself.  
+ *       - Admin can patch any field  
+ *       - Non-admin can only patch `firstName` and `lastName`  
+ *       Users **cannot** update their ID, role, verification status, or password.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -210,13 +246,17 @@ router.put("/:id", authMiddleware, updateUser);
  *                 type: string
  *     responses:
  *       200:
- *         description: User updated successfully.
- *       403:
- *         description: Forbidden, access denied.
- *       404:
- *         description: User not found.
+ *         description: User patched successfully
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (access denied)
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Conflict (email already exists)
+ *       500:
+ *         description: Internal server error
  */
 router.patch("/:id", authMiddleware, patchUser);
 
@@ -225,7 +265,9 @@ router.patch("/:id", authMiddleware, patchUser);
  * /api/users/{id}:
  *   delete:
  *     summary: Delete a user
- *     description: Deletes a user by ID. Only accessible by ROLE_ADMIN.
+ *     description: |
+ *       Deletes a user by ID.  
+ *       **Accessible** by ROLE_ADMIN only.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
@@ -238,13 +280,15 @@ router.patch("/:id", authMiddleware, patchUser);
  *         description: The ID of the user to delete
  *     responses:
  *       200:
- *         description: User deleted successfully.
- *       403:
- *         description: Forbidden, only admins can delete users.
- *       404:
- *         description: User not found.
+ *         description: User deleted successfully
  *       401:
- *         description: Unauthorized, missing or invalid token.
+ *         description: Unauthorized (missing or invalid token)
+ *       403:
+ *         description: Forbidden (only admins can delete users)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
  */
 router.delete("/:id", authMiddleware, deleteUser);
 
@@ -253,12 +297,15 @@ router.delete("/:id", authMiddleware, deleteUser);
  * /api/users/batch:
  *   post:
  *     summary: Batch lookup users
- *     description: Retrieves minimal user information (id, fullName, role) for a given array of user IDs.
+ *     description: |
+ *       Retrieves **minimal** user information (id, fullName, role) for a given array of user IDs.  
+ *       **Accessible** by any authenticated user (by default).  
+ *       You may add further role checks if needed.
  *     tags: [Users]
  *     security:
  *       - BearerAuth: []
  *     requestBody:
- *       description: Array of user IDs to lookup.
+ *       description: JSON object with an `ids` array containing user IDs to look up.
  *       required: true
  *       content:
  *         application/json:
@@ -274,30 +321,14 @@ router.delete("/:id", authMiddleware, deleteUser);
  *                 example: ["user-id-1", "user-id-2"]
  *     responses:
  *       200:
- *         description: Successfully retrieved batch user data.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                     example: "user-id-1"
- *                   fullName:
- *                     type: string
- *                     example: "John Doe"
- *                   role:
- *                     type: string
- *                     enum: [ROLE_EMPLOYEE, ROLE_MANAGER, ROLE_ADMIN]
- *                     example: "ROLE_MANAGER"
+ *         description: Successfully retrieved batch user data (id, fullName, role)
  *       400:
- *         description: Bad request, no user ids provided.
+ *         description: Bad request (missing or empty `ids` array)
+ *       401:
+ *         description: Unauthorized (missing or invalid token)
  *       500:
- *         description: Internal server error.
+ *         description: Internal server error
  */
 router.post("/batch", authMiddleware, getUsersByIds);
-
 
 export default router;

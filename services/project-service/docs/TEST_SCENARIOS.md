@@ -45,6 +45,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### 1. View Projects
 
 - **As an Admin,** I want to view all projects with pagination, filters, and sorting so that I can manage the overall portfolio.
+
   - **Acceptance Criteria:**
     - Admins can view all projects.
     - Projects can be filtered by **name**, **description**, and **creation date**.
@@ -52,6 +53,7 @@ This document describes the main user stories, acceptance criteria, and test sce
     - **Pagination:** If invalid values are provided, defaults to `page = 1` and `limit = 10`.
 
 - **As an Employee,** I want to see only the projects assigned to me so that I access only relevant information.
+
   - **Acceptance Criteria:**
     - Employees see only projects where their ID is present in the `employeeIds` array.
 
@@ -96,6 +98,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### Service Layer Tests (Project)
 
 1. **`getProjectsService`**
+
    - **Success Cases:**
      - Returns projects successfully when projects exist.
      - Returns empty result when no projects found (`totalCount = 0`, `totalPages = 0`).
@@ -107,6 +110,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 2. **`getProjectByIdService`**
+
    - **Success Case:** Returns the project (with stages/tasks) as a `ProjectDTO`.
    - **Error Cases:**
      - Project found but user lacks permission => **403**.
@@ -114,6 +118,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 3. **`createProjectService`**
+
    - **Success Case:** Admin/Manager creates project; name is lowercased; returns `ProjectDTO`.
    - **Error Cases:**
      - Non-Admin/Manager => **403**.
@@ -121,6 +126,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 4. **`updateProjectService`** / **`patchProjectService`**
+
    - **Success Cases:**
      - Updates project fully or partially, returns `ProjectDTO`.
      - Name is lowercased if present.
@@ -155,6 +161,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### 1. View Stages
 
 - **As an Admin,** I want to view all stages (with optional filters, pagination, and sorting) so that I can see progress across all projects.
+
   - **Acceptance Criteria:**
     - Admin sees all stages.
     - Filters by **name**, **position**, **color**, **projectId**.
@@ -162,6 +169,7 @@ This document describes the main user stories, acceptance criteria, and test sce
     - Pagination => defaults `(page=1, limit=10)` if invalid.
 
 - **As a Manager,** I want to view only the stages of projects that I manage, created, or am assigned to.
+
   - **Acceptance Criteria:**
     - Manager sees stages from any project where `managerId`, `createdBy`, or `employeeIds` includes them.
     - Sorting and pagination function like Admin’s.
@@ -207,6 +215,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### Service Layer Tests (Stage)
 
 1. **`getStagesService`**
+
    - **Success Cases:**
      - Returns stages successfully with tasks included.
      - Filters by name, position, color, projectId.
@@ -218,6 +227,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 2. **`getStageByIdService`**
+
    - **Success:** returns stage (and tasks) if user has permission.
    - **Error:**
      - If user lacks permission => **403**.
@@ -225,6 +235,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 3. **`createStageService`**
+
    - **Success:** Admin/Manager can create, name is lowercased => returns `StageDTO`.
    - **Error:**
      - Employee => **403**.
@@ -232,11 +243,12 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 4. **`updateStageService`** / **`patchStageService`**
+
    - **Success:** updates stage fully/partially; name lowercased if present; partial with no fields => **400**.
-   - **Error:**  
-     - Unauthorized => **403**.  
-     - Not found => **404**.  
-     - Duplicate => **409**.  
+   - **Error:**
+     - Unauthorized => **403**.
+     - Not found => **404**.
+     - Duplicate => **409**.
      - Generic => **500**.
 
 5. **`deleteStageService`**
@@ -263,6 +275,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### 1. View Tasks
 
 - **As an Admin,** I want to view all tasks (with optional filters, sorting, pagination) so that I can oversee the entire system.
+
   - **Acceptance Criteria:**
     - Admin can see all tasks.
     - Filters by **title**, **priority**, **stageId**, **projectId**.
@@ -270,6 +283,7 @@ This document describes the main user stories, acceptance criteria, and test sce
     - Pagination defaults `(page=1, limit=10)` if invalid.
 
 - **As a Manager,** I want to view only tasks in projects I manage, created, or am assigned to so that I can update them as needed.
+
   - **Acceptance Criteria:**
     - Manager sees tasks where the project’s `managerId`, `createdBy`, or `employeeIds` includes them.
     - Sorting/pagination function similarly to Admin.
@@ -290,6 +304,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### 3. Update a Task
 
 - **As an Admin or Manager,** I want to update an existing task so that I can rename it, change its priority, or reassign it.
+
   - **Acceptance Criteria:**
     - **Full Update (PUT):** Replaces all fields; title is lowercased if present.
     - **Partial Update (PATCH):** Only specified fields changed. Title is lowercased if present.
@@ -299,7 +314,7 @@ This document describes the main user stories, acceptance criteria, and test sce
     - Duplicate => **409**.
     - Generic => **500**.
 
-- **(Special Manager Case)** If the manager is only in `employeeIds` (and not the project’s manager or creator), they may only update `stageId` via PATCH.  
+- **(Special Manager Case)** If the manager is only in `employeeIds` (and not the project’s manager or creator), they may only update `stageId` via PATCH.
 - **(Employee)** can only patch the `stageId` if that is the only field.
 
 #### 4. Delete a Task
@@ -319,6 +334,7 @@ This document describes the main user stories, acceptance criteria, and test sce
 #### Service Layer Tests (Task)
 
 1. **`getTasksService`**
+
    - **Success Cases:**
      - Returns tasks successfully (with optional filtering by title, priority, stageId, projectId).
      - Role-based filter: Admin sees all, Manager sees tasks in projects they manage/created/are assigned to, Employee sees tasks in assigned projects.
@@ -329,6 +345,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 2. **`getTaskByIdService`**
+
    - **Success:** returns task (with stage/project) if user has permission.
    - **Error:**
      - If user lacks permission => **403**.
@@ -336,6 +353,7 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 3. **`createTaskService`**
+
    - **Success:** Admin/Manager can create, title is lowercased => returns `TaskDTO`.
    - **Error:**
      - Employee => **403**.
@@ -343,12 +361,13 @@ This document describes the main user stories, acceptance criteria, and test sce
      - Generic => **500**.
 
 4. **`updateTaskService`** / **`patchTaskService`**
-   - **Success:** updates the task fully or partially (name is lowercased if present).  
-   - **Error:**  
-     - No valid patch fields => **400**.  
-     - Unauthorized => **403** (e.g., manager is not the project’s manager/creator, or employee attempts full update).  
-     - Task not found => **404**.  
-     - Duplicate => **409**.  
+
+   - **Success:** updates the task fully or partially (name is lowercased if present).
+   - **Error:**
+     - No valid patch fields => **400**.
+     - Unauthorized => **403** (e.g., manager is not the project’s manager/creator, or employee attempts full update).
+     - Task not found => **404**.
+     - Duplicate => **409**.
      - Generic => **500**.
 
 5. **`deleteTaskService`**
@@ -380,7 +399,8 @@ npm run test ./tests/unit/services/project.service.test.js
 # Run tests with coverage
 npm run test:coverage
 ```
---- 
+
+---
 
 ## Conclusion
 
@@ -392,5 +412,3 @@ This documentation provides comprehensive user stories and test scenarios for bo
 - **Testing Strategies** covering both the service layer and controller layer, ensuring coverage of success paths and error paths alike.
 
 By following these guidelines, teams can maintain consistent behaviors, reduce regressions, and streamline development for both modules.
-
-
