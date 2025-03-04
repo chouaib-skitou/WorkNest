@@ -1,250 +1,157 @@
-import { prisma } from "../config/database.js";
-import { updateUserValidationRules, deleteUserValidationRules } from "../validators/user.validator.js";
-import { validateRequest } from "../middleware/validate.middleware.js";
-import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
+/**
+ * User Controller Module
+ * Handles incoming requests related to users and delegates operations to the user service.
+ */
 
-// Middleware to check user role
-const checkRole = (roles) => (req, res, next) => {
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ error: "Access denied" });
+import {
+  getAllUsersService,
+  getUserByIdService,
+  createUserService,
+  updateUserService,
+  patchUserService,
+  deleteUserService,
+  getUsersByIdsService,
+} from "../services/user.service.js";
+
+import { validateRequest } from "../middleware/validate.middleware.js";
+import {
+  createUserValidationRules,
+  updateUserValidationRules,
+  patchUserValidationRules,
+  deleteUserValidationRules,
+} from "../validators/user.validator.js";
+
+/**
+ * Get all users with optional filters and pagination.
+ * Accessible only by managers (ROLE_MANAGER) and admins (ROLE_ADMIN).
+ * @route GET /api/users
+ * @access Protected
+ */
+export const getAllUsers = async (req, res) => {
+  try {
+    const result = await getAllUsersService(req.user, req.query);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("❌ Error fetching users:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
   }
-  next();
 };
 
-// Get all users (Only ROLE_ADMIN, ROLE_MANAGER)
-export const getUsers = [
-  checkRole(["ROLE_ADMIN", "ROLE_MANAGER"]),
+/**
+ * Get a user by ID.
+ * Accessible only by admins (ROLE_ADMIN) or the user themself.
+ * @route GET /api/users/:id
+ * @access Protected
+ */
+export const getUserById = async (req, res) => {
+  try {
+    const userData = await getUserByIdService(req.user, req.params.id);
+    res.status(200).json(userData);
+  } catch (error) {
+    console.error("❌ Error fetching user:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+};
+
+/**
+ * Create a new user.
+ * Accessible only by admins (ROLE_ADMIN).
+ * @route POST /api/users
+ * @access Protected
+ */
+export const createUser = [
+  createUserValidationRules,
+  validateRequest,
   async (req, res) => {
     try {
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-      const where = {};
-
-      if (req.query.firstName) {
-        where.firstName = {
-          contains: req.query.firstName,
-          mode: "insensitive", // case-insensitive
-        };
-      }
-      
-      if (req.query.lastName) {
-        where.lastName = {
-          contains: req.query.lastName,
-          mode: "insensitive",
-        };
-      }
-      if (req.query.email) {
-        where.email = {
-          contains: req.query.email,
-          mode: "insensitive",
-        };
-      }
-
-      if (req.query.role) {
-        where.role = req.query.role;
-      }
-      if (req.query.isVerified !== undefined) {
-        // isVerified will be "true"/"false" as a string
-        where.isVerified = req.query.isVerified === "true";
-      }
-
-      const [users, totalCount] = await Promise.all([
-        prisma.user.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { createdAt: "desc" }, 
-        }),
-        prisma.user.count({ where }),
-      ]);
-
-      // Transform user data with UserDTO
-      const transformedUsers = users.map((user) => new UserDTO(user));
-
-      // Return pagination info + data
-      res.json({
-        data: transformedUsers,
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      });
+      const newUser = await createUserService(req.user, req.body);
+      res.status(201).json(newUser);
     } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error creating user:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
   },
 ];
 
-// Get a specific user by ID (Only ROLE_ADMIN or the user himself)
-export const getUserById = [
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      if (req.user.role !== "ROLE_ADMIN" && req.user.id !== id) {
-        return res.status(403).json({ error: "Access denied" });
-      }
-      const user = await prisma.user.findUnique({ where: { id } });
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      res.json(new UserDTO(user));
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
-];
-
-// Create a new user (Only ROLE_ADMIN)
-export const createUser = [
-  checkRole(["ROLE_ADMIN"]),
-  validateRequest,
-  async (req, res) => {
-    try {
-      const newUser = await prisma.user.create({ data: req.body });
-      res.status(201).json(new UserDTO(newUser));
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
-];
-
-// Update User (Only the user himself OR ROLE_ADMIN)
+/**
+ * Fully update a user (PUT).
+ * Accessible only by admins (ROLE_ADMIN).
+ * @route PUT /api/users/:id
+ * @access Protected
+ */
 export const updateUser = [
   updateUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      const isAdmin = req.user.role === "ROLE_ADMIN";
-
-      if (!isAdmin && req.user.id !== id) {
-        return res.status(403).json({ error: "You can only update your own profile" });
-      }
-
-      // Check if the user exists
-      const userExists = await prisma.user.findUnique({ where: { id } });
-      if (!userExists) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const updatedUser = await prisma.user.update({
-        where: { id },
-        data: req.body,
-      });
-
-      delete updatedUser.password;
-      res.json(new UserDTO(updatedUser));
+      const updated = await updateUserService(req.user, req.params.id, req.body);
+      res.status(200).json(updated);
     } catch (error) {
-      console.error("Error updating user:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error updating user:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
-  }
+  },
 ];
 
-
-// Partially update user (PATCH)
+/**
+ * Partially update a user (PATCH).
+ * - Admin can patch any field
+ * - Non-admin users can patch only their own `firstName` and `lastName`
+ * @route PATCH /api/users/:id
+ * @access Protected
+ */
 export const patchUser = [
-  updateUserValidationRules,
+  patchUserValidationRules,
   validateRequest,
   async (req, res) => {
     try {
-      const { id } = req.params;
-      if (req.user.role !== "ROLE_ADMIN" && req.user.id !== id) {
-        return res.status(403).json({ error: "You can only update your own profile" });
-      }
-
-      // Check if user exists
-      const userExists = await prisma.user.findUnique({ where: { id } });
-      if (!userExists) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      try {
-        const updatedUser = await prisma.user.update({
-          where: { id },
-          data: req.body,
-        });
-
-        delete updatedUser.password;
-        res.json(new UserDTO(updatedUser));
-      } catch (error) {
-        console.error("Database error updating user:", error);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-
+      const patched = await patchUserService(req.user, req.params.id, req.body);
+      res.status(200).json(patched);
     } catch (error) {
-      console.error("Unexpected error in patchUser:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error patching user:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
-  }
+  },
 ];
 
-
-
-
-// Delete User (Only ROLE_ADMIN, but check if user exists first)
+/**
+ * Delete a user.
+ * Accessible only by admins (ROLE_ADMIN).
+ * @route DELETE /api/users/:id
+ * @access Protected
+ */
 export const deleteUser = [
   deleteUserValidationRules,
   validateRequest,
-  async (req, res, next) => {
+  async (req, res) => {
     try {
-      const { id } = req.params;
-
-      // Check if the user exists **before checking roles**
-      const userToDelete = await prisma.user.findUnique({ where: { id } });
-      if (!userToDelete) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Check if requester has ROLE_ADMIN
-      if (req.user.role !== "ROLE_ADMIN") {
-        return res.status(403).json({ error: "Only administrators can delete users" });
-      }
-
-      // Proceed with deletion
-      await prisma.user.delete({ where: { id } });
-      res.json({ message: "User deleted successfully" });
-
+      const resp = await deleteUserService(req.user, req.params.id);
+      res.status(200).json(resp);
     } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("❌ Error deleting user:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
     }
-  }
+  },
 ];
-
 
 /**
  * Batch lookup: Returns minimal user info for an array of user IDs.
- * @param {Object} req - Express request object.
- * @param {Object} req.body - Object containing an array of user IDs.
- * @param {string[]} req.body.ids - Array of user IDs.
- * @param {Object} res - Express response object.
- * @returns {void} JSON response with an array of UserBatchDTO.
+ * @route POST /api/users/batch
+ * @access Protected (role checks optional or as needed)
  */
 export const getUsersByIds = async (req, res) => {
   try {
-    const { ids } = req.body;
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: "No user ids provided" });
-    }
-
-    const users = await prisma.user.findMany({
-      where: { id: { in: ids } },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
-    });
-
-    const result = users.map((user) => new UserBatchDTO(user));
-    res.json(result);
+    const result = await getUsersByIdsService(req.user, req.body);
+    res.status(200).json(result);
   } catch (error) {
-    console.error("Error fetching users by ids:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("❌ Error fetching users by ids:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
   }
 };

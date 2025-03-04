@@ -1,3 +1,8 @@
+/**
+ * User Data Transfer Objects (DTOs)
+ * Used to shape the user data returned from the service layer.
+ */
+
 export class UserDTO {
   constructor(user) {
     this.id = user.id;
@@ -10,7 +15,6 @@ export class UserDTO {
     this.updatedAt = user.updatedAt;
   }
 }
-
 
 export class UserBatchDTO {
   constructor(user) {

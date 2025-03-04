@@ -9,6 +9,7 @@ const isUUID = param("id").isUUID().withMessage("Invalid task ID format");
  * Validation for creating a task
  */
 export const createTaskValidation = [
+  body("id").not().exists().withMessage("Cannot set Task ID manually"),
   body("title").notEmpty().withMessage("Task title is required"),
   body("description")
     .optional()
@@ -38,7 +39,8 @@ export const createTaskValidation = [
  * Validation for updating a task (PUT)
  */
 export const updateTaskValidation = [
-  isUUID,
+  param("id").isUUID().withMessage("Invalid Task ID format"),
+  body("id").not().exists().withMessage("Task ID cannot be changed"),
   body("title").optional().notEmpty().withMessage("Title cannot be empty"),
   body("description")
     .optional()
@@ -70,7 +72,8 @@ export const updateTaskValidation = [
  * Validation for patching a task (PATCH)
  */
 export const patchTaskValidation = [
-  isUUID,
+  param("id").isUUID().withMessage("Invalid Task ID format"),
+  body("id").not().exists().withMessage("Task ID cannot be changed"),
   body("title").optional().notEmpty().withMessage("Title cannot be empty"),
   body("description")
     .optional()
