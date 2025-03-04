@@ -49,25 +49,29 @@ export const createProjectValidation = [
     .isString()
     .withMessage("Each employee ID must be a string"),
 
-  // New properties validation
-
+  // Due Date - Now required in Prisma
   body("dueDate")
     .notEmpty()
     .withMessage("Due date is required")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DD)"),
+    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .custom((value) => {
+      const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
+      if (!regex.test(value)) {
+        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+      }
+      return true;
+    }),
 
   body("status")
-    .notEmpty()
-    .withMessage("Status is required")
+    .optional()
     .isString()
     .withMessage("Status must be a string")
     .isIn(validStatuses)
     .withMessage(`Status must be one of: ${validStatuses.join(", ")}`),
 
   body("priority")
-    .notEmpty()
-    .withMessage("Priority is required")
+    .optional()
     .isString()
     .withMessage("Priority must be a string")
     .isIn(validPriorities)
@@ -122,25 +126,29 @@ export const updateProjectValidation = [
     .isString()
     .withMessage("Each employee ID must be a string"),
 
-  // New properties validation
-
+  // Due Date - Now required
   body("dueDate")
     .notEmpty()
     .withMessage("Due date is required")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DD)"),
+    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .custom((value) => {
+      const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
+      if (!regex.test(value)) {
+        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+      }
+      return true;
+    }),
 
   body("status")
-    .notEmpty()
-    .withMessage("Status is required")
+    .optional()
     .isString()
     .withMessage("Status must be a string")
     .isIn(validStatuses)
     .withMessage(`Status must be one of: ${validStatuses.join(", ")}`),
 
   body("priority")
-    .notEmpty()
-    .withMessage("Priority is required")
+    .optional()
     .isString()
     .withMessage("Priority must be a string")
     .isIn(validPriorities)
@@ -197,14 +205,20 @@ export const patchProjectValidation = [
     .isString()
     .withMessage("Each employee ID must be a string"),
 
-  // New properties validation (Optional for PATCH)
-
+  // Due Date - Required in Prisma but optional in PATCH
   body("dueDate")
     .optional()
     .notEmpty()
     .withMessage("Due date cannot be empty")
     .isISO8601()
-    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DD)"),
+    .withMessage("Due date must be a valid ISO 8601 date (YYYY-MM-DDT00:00:00.000Z)")
+    .custom((value) => {
+      const regex = /^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/;
+      if (!regex.test(value)) {
+        throw new Error("Due date must be in the format YYYY-MM-DDT00:00:00.000Z");
+      }
+      return true;
+    }),
 
   body("status")
     .optional()
