@@ -47,6 +47,7 @@ export async function registerService(data) {
   // Try sending verification email
   try {
     await sendVerificationEmail(user, verificationToken);
+  // eslint-disable-next-line no-unused-vars
   } catch (err) {
     // console.error("Error sending verification email:", err);
     return {
@@ -158,6 +159,7 @@ export async function resetPasswordRequestService(email) {
   // Try sending reset email
   try {
     await sendResetPasswordEmail(user, resetToken);
+  // eslint-disable-next-line no-unused-vars
   } catch (err) {
     // console.error("Error sending reset password email:", err);
     return {
@@ -215,6 +217,7 @@ export async function refreshTokenService(refreshToken) {
   let decoded;
   try {
     decoded = verifyToken(refreshToken, true);
+  // eslint-disable-next-line no-unused-vars
   } catch (error) {
     return {
       status: 401,
@@ -263,6 +266,7 @@ export async function authorizeService(authHeader) {
   let decoded;
   try {
     decoded = verifyToken(token);
+  // eslint-disable-next-line no-unused-vars
   } catch (error) {
     return { status: 400, response: { error: "Invalid or expired token" } };
   }
