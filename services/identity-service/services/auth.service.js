@@ -3,12 +3,10 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import { prisma } from "../config/database.js";
 import { generateToken, generateRefreshToken, verifyToken } from "../config/jwt.js";
-// We import the new dedicated email functions
 import {
   sendVerificationEmail,
   sendResetPasswordEmail,
 } from "./email.service.js";
-
 import { UserDTO } from "../dtos/user.dto.js";
 import { AuthDTO } from "../dtos/auth.dto.js";
 
@@ -46,12 +44,15 @@ export async function registerService(data) {
     },
   });
 
-  // Send verification email (moved to email.service)
+  // Try sending verification email
   try {
     await sendVerificationEmail(user, verificationToken);
   } catch (err) {
-    console.error("Error sending verification email:", err);
-    // optionally handle or revert user creation if needed
+    // console.error("Error sending verification email:", err);
+    return {
+      status: 500,
+      response: { error: "User created but failed to send verification email." },
+    };
   }
 
   return {
@@ -69,14 +70,11 @@ export async function registerService(data) {
  */
 export async function loginService(data) {
   const { email, password } = data;
-
-  // Find user
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return { status: 401, response: { error: "Invalid credentials" } };
   }
 
-  // Check if verified
   if (!user.isVerified) {
     return {
       status: 403,
@@ -84,11 +82,9 @@ export async function loginService(data) {
     };
   }
 
-  // Generate tokens
   const accessToken = generateToken(user);
   const refreshToken = generateRefreshToken(user);
 
-  // Return an AuthDTO containing user + tokens
   return {
     status: 200,
     response: new AuthDTO({
@@ -118,16 +114,13 @@ export async function verifyEmailService(userId, token) {
     };
   }
 
-  // Mark user as verified
   await prisma.user.update({
     where: { id: userId },
     data: { isVerified: true },
   });
 
-  // Remove the used token
   await prisma.verificationToken.delete({ where: { id: storedToken.id } });
 
-  // Typically redirect to frontend
   return {
     status: 302,
     redirect: `${process.env.FRONTEND_URL}/login`,
@@ -162,11 +155,15 @@ export async function resetPasswordRequestService(email) {
     },
   });
 
-  // Send reset email (moved to email.service)
+  // Try sending reset email
   try {
     await sendResetPasswordEmail(user, resetToken);
   } catch (err) {
-    console.error("Error sending reset password email:", err);
+    // console.error("Error sending reset password email:", err);
+    return {
+      status: 500,
+      response: { error: "Failed to send reset password email." },
+    };
   }
 
   return {
@@ -193,23 +190,18 @@ export async function resetPasswordService(token, newPassword) {
     };
   }
 
-  // Hash new password
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  // Update user
   await prisma.user.update({
     where: { id: resetTokenEntry.userId },
     data: { password: hashedPassword },
   });
 
-  // Remove used token
   await prisma.passwordResetToken.delete({ where: { token } });
 
   return {
     status: 200,
     response: {
-      message:
-        "Password reset successful. You can now log in with your new password.",
+      message: "Password reset successful. You can now log in with your new password.",
     },
   };
 }
@@ -222,7 +214,7 @@ export async function resetPasswordService(token, newPassword) {
 export async function refreshTokenService(refreshToken) {
   let decoded;
   try {
-    decoded = verifyToken(refreshToken, true); // second param = true => refresh token
+    decoded = verifyToken(refreshToken, true);
   } catch (error) {
     return {
       status: 401,
@@ -246,7 +238,6 @@ export async function refreshTokenService(refreshToken) {
 
   const accessToken = generateToken(user);
 
-  // Return an AuthDTO with the updated access token, preserving the existing refresh token
   return {
     status: 200,
     response: new AuthDTO({
@@ -269,7 +260,6 @@ export async function authorizeService(authHeader) {
   }
 
   const token = authHeader.split(" ")[1];
-
   let decoded;
   try {
     decoded = verifyToken(token);
