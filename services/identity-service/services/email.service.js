@@ -1,5 +1,41 @@
 import { sendMail } from "../config/mail.js";
 
+/**
+ * Sends an email with a link to verify the user's email
+ * @param {Object} user - The user object
+ * @param {string} verificationToken
+ */
+export async function sendVerificationEmail(user, verificationToken) {
+  const subject = "Verify Your Email";
+  const text = `Click here to verify your email: ${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}`;
+  const html = `<a href="${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}">Verify Email</a>`;
+
+  try {
+    await sendMail(user.email, subject, text, html);
+  } catch (error) {
+    console.error("Error sending verification email:", error);
+    throw error;
+  }
+}
+
+/**
+ * Sends an email with a link to reset the user's password
+ * @param {Object} user - The user object
+ * @param {string} resetToken
+ */
+export async function sendResetPasswordEmail(user, resetToken) {
+  const subject = "Reset Your Password";
+  const text = `Click here to reset your password: ${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const html = `<a href="${process.env.FRONTEND_URL}/reset-password/${resetToken}">Reset Password</a>`;
+
+  try {
+    await sendMail(user.email, subject, text, html);
+  } catch (error) {
+    console.error("Error sending reset password email:", error);
+    throw error;
+  }
+}
+
 export async function sendAccountCreationEmail(user, resetToken) {
   const resetLink = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
