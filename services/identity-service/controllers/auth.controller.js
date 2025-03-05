@@ -64,10 +64,9 @@ export const login = [
  */
 export const verifyEmail = async (req, res) => {
   try {
-    const { userId, token } = req.params;
-    const result = await verifyEmailService(userId, token);
+    const { token } = req.params; // Récupérer token depuis req.params
+    const result = await verifyEmailService(token); // Passer seulement token
     if (result.redirect) {
-      // If the service indicates a redirect (common pattern)
       return res.redirect(result.redirect);
     }
     res.status(result.status).json(result.response);
@@ -77,6 +76,7 @@ export const verifyEmail = async (req, res) => {
     res.status(status).json({ error: error.message });
   }
 };
+
 
 /**
  * Controller for requesting a password reset

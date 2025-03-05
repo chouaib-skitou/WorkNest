@@ -10,7 +10,7 @@ import { sendMail } from "../config/mail.js";
  * @throws Will throw an error if email sending fails.
  */
 export async function sendVerificationEmail(user, verificationToken) {
-  const verifyLink = `${process.env.BASE_URL}/api/auth/verify-email/${user.id}/${verificationToken}`;
+  const verifyLink = `${process.env.BASE_URL}/api/auth/verify-email/${verificationToken}`;
 
   const subject = "Welcome to WorkNest - Verify Your Email";
   const text = `Hello ${user.firstName},\n\nTo verify your email address and activate your account, please click on the following link: ${verifyLink}\n\nIf you did not create this account, please ignore this email.`;

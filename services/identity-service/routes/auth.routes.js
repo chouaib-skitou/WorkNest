@@ -92,18 +92,12 @@ router.post("/login", login);
 
 /**
  * @swagger
- * /api/auth/verify-email/{userId}/{token}:
+ * /api/auth/verify-email/{token}:
  *   get:
  *     summary: Verify email
  *     description: Verifies a user's email address using a verification token.
  *     tags: [Authentication]
  *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: User ID
  *       - in: path
  *         name: token
  *         required: true
@@ -116,7 +110,7 @@ router.post("/login", login);
  *       400:
  *         description: Invalid or expired token.
  */
-router.get("/verify-email/:userId/:token", verifyEmail);
+router.get("/verify-email/:token", verifyEmail);
 
 /**
  * @swagger

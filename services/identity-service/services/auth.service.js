@@ -99,35 +99,32 @@ export async function loginService(data) {
 
 /**
  * Service to verify email
- * @param {string} userId
  * @param {string} token
  * @returns {Object} { status, response, redirect }
  */
-export async function verifyEmailService(userId, token) {
-  const storedToken = await prisma.verificationToken.findFirst({
-    where: { userId, token },
-  });
-
-  if (!storedToken || storedToken.expiresAt < new Date()) {
-    return {
-      status: 400,
-      response: { error: "Invalid or expired verification token." },
-    };
-  }
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: { isVerified: true },
-  });
-
-  await prisma.verificationToken.delete({ where: { id: storedToken.id } });
-
-  return {
-    status: 302,
-    redirect: `${process.env.FRONTEND_URL}/login`,
-    response: { message: "Email verified successfully" },
+export const verifyEmailService = async (token) => {
+    // Recherche du token sans userId
+    const storedToken = await prisma.verificationToken.findFirst({
+      where: { token },
+      include: { user: true }, // Permet de récupérer l'utilisateur directement
+    });
+  
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      return { status: 400, response: { error: "Invalid or expired verification token." } };
+    }
+  
+    // Mise à jour de l'utilisateur pour le vérifier
+    await prisma.user.update({ 
+      where: { id: storedToken.userId }, 
+      data: { isVerified: true } 
+    });
+  
+    // Suppression du token après utilisation
+    await prisma.verificationToken.delete({ where: { id: storedToken.id } });
+  
+    return { redirect: `${process.env.FRONTEND_URL}/login` }; // Retourne la redirection
   };
-}
+  
 
 /**
  * Service to handle password reset request
