@@ -13,7 +13,6 @@ import {
  */
 async function runValidatorRules(rules, reqBody) {
   const req = { body: reqBody };
-  const errors = [];
 
   // Run each validator rule
   for (const rule of rules) {

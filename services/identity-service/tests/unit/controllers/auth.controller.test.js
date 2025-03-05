@@ -1,407 +1,349 @@
+/**
+ * tests/unit/controllers/auth.controller.test.js
+ */
 import * as authController from "../../../controllers/auth.controller.js";
-import { prisma } from "../../../config/database.js";
-import { verifyToken } from "../../../config/jwt.js";
-import { sendMail } from "../../../config/mail.js";
-import bcrypt from "bcryptjs";
-import { UserDTO } from "../../../dtos/user.dto.js";
+import {
+  registerService,
+  loginService,
+  verifyEmailService,
+  resetPasswordRequestService,
+  resetPasswordService,
+  refreshTokenService,
+  authorizeService,
+} from "../../../services/auth.service.js";
 
-// Mock dependencies
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-    verificationToken: {
-      create: jest.fn(),
-      findFirst: jest.fn(),
-      delete: jest.fn(),
-    },
-    passwordResetToken: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-  },
-}));
+// Mock the entire auth service module
+jest.mock("../../../services/auth.service.js");
 
-jest.mock("../../../config/jwt.js", () => ({
-  generateToken: jest.fn(() => "mockAccessToken"),
-  generateRefreshToken: jest.fn(() => "mockRefreshToken"),
-  verifyToken: jest.fn((token) => {
-    if (token === "mockRefreshToken") return { id: "1" };
-    throw new Error("Invalid or expired refresh token");
-  }),
-}));
-
-jest.mock("../../../config/mail.js", () => ({
-  sendMail: jest.fn(),
-}));
-
-jest.mock("bcryptjs", () => ({
-  hash: jest.fn(() => "hashedPassword"),
-  compare: jest.fn(),
-}));
-
-jest.mock("crypto", () => ({
-  randomBytes: jest.fn(() => ({
-    toString: jest.fn(() => "mockToken"),
-  })),
-}));
-
-describe("🛂 Auth Controller Tests (100% Coverage)", () => {
+describe("🧪 Auth Controller Tests", () => {
   let req, res;
+
   beforeEach(() => {
-    req = { body: {}, params: {}, headers: {} };
-    res = {
-      json: jest.fn(),
-      status: jest.fn().mockReturnThis(),
-      redirect: jest.fn(),
+    // Mock request/response objects
+    req = {
+      body: {},
+      params: {},
+      headers: {},
     };
-    
-    prisma.user.findUnique.mockResolvedValue(null);
-    prisma.user.create.mockResolvedValue(null);
-    bcrypt.compare.mockResolvedValue(true);
-    verifyToken.mockResolvedValue({ id: "1" });
-  
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+      redirect: jest.fn(), // used by verifyEmail for the redirect scenario
+    };
+
     jest.clearAllMocks();
   });
-  
-  test("✅ Register new user (success)", async () => {
-    req.body = { firstName: "John", lastName: "Doe", email: "john@example.com", password: "TestPass123!" };
-    prisma.user.findUnique.mockResolvedValue(null);
-    prisma.user.create.mockResolvedValue({ id: "1", ...req.body });
-    prisma.verificationToken.create.mockResolvedValue({});
-    sendMail.mockResolvedValue();
-    await authController.register[2](req, res);
-    expect(prisma.user.create).toHaveBeenCalled();
-    expect(sendMail).toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "User registered successfully. Please verify your email.",
+
+  describe("register", () => {
+    // The final handler is at index [2] in authController.register array
+    const registerHandler = authController.register[2];
+
+    test("✅ should register user successfully (status from service)", async () => {
+      registerService.mockResolvedValue({
+        status: 201,
+        response: { message: "User registered" },
+      });
+
+      req.body = {
+        firstName: "Alice",
+        lastName: "Smith",
+        email: "alice@example.com",
+        password: "MyPassword123!",
+      };
+
+      await registerHandler(req, res);
+
+      expect(registerService).toHaveBeenCalledWith(req.body);
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith({ message: "User registered" });
+    });
+
+    test("🚫 should handle error with defined status code", async () => {
+      registerService.mockRejectedValue({
+        status: 409,
+        message: "Email already in use",
+      });
+
+      await registerHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({ error: "Email already in use" });
+    });
+
+    test("🚫 should handle error with no status => 500 fallback", async () => {
+      registerService.mockRejectedValue(new Error("Register error"));
+
+      await registerHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Register error" });
     });
   });
 
-  test("🚫 Register duplicate user", async () => {
-    req.body.email = "john@example.com";
-    prisma.user.findUnique.mockResolvedValue({ id: "1", email: req.body.email });
-    await authController.register[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: "Email already in use" });
-  });
+  describe("login", () => {
+    // The final handler is at index [2] in authController.login array
+    const loginHandler = authController.login[2];
 
-  test("🚫 Catch internal error in registration", async () => {
-    req.body = { firstName: "John", lastName: "Doe", email: "john@example.com", password: "TestPass123!" };
-    prisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-    await authController.register[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
+    test("✅ should login user successfully (200)", async () => {
+      loginService.mockResolvedValue({
+        status: 200,
+        response: { user: { id: "u1" }, accessToken: "abc" },
+      });
 
-  test("🚫 Prevent login with unregistered email", async () => {
-    req.body = { email: "unknown@example.com", password: "TestPass123!" };
-    prisma.user.findUnique.mockResolvedValue(null);
-    await authController.login[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid credentials" });
-  });
+      req.body = { email: "test@example.com", password: "Pass123!" };
 
-  test("🚫 Prevent login with incorrect password", async () => {
-    req.body = { email: "john@example.com", password: "WrongPass" };
-    prisma.user.findUnique.mockResolvedValue({
-      id: "1",
-      email: req.body.email,
-      password: "hashedPassword",
-      isVerified: true,
+      await loginHandler(req, res);
+
+      expect(loginService).toHaveBeenCalledWith(req.body);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        user: { id: "u1" },
+        accessToken: "abc",
+      });
     });
-    bcrypt.compare.mockResolvedValue(false);
-    await authController.login[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid credentials" });
-  });
 
-  test("🚫 Prevent login if user not verified", async () => {
-    req.body = { email: "john@example.com", password: "TestPass123!" };
-    prisma.user.findUnique.mockResolvedValue({
-      id: "1",
-      email: req.body.email,
-      password: "hashedPassword",
-      isVerified: false,
+    test("🚫 should handle error with defined status code (e.g. 403)", async () => {
+      loginService.mockRejectedValue({
+        status: 403,
+        message: "Please verify your email",
+      });
+
+      await loginHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: "Please verify your email" });
     });
-    bcrypt.compare.mockResolvedValue(true);
-    await authController.login[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: "Please verify your email before logging in." });
-  });
 
-  test("✅ Login with valid credentials", async () => {
-    req.body = { email: "john@example.com", password: "TestPass123!" };
-    
-    const mockUser = {
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: req.body.email,
-      password: "hashedPassword",
-      isVerified: true,
-      role: "ROLE_USER",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    test("🚫 should handle error with no status => 500 fallback", async () => {
+      loginService.mockRejectedValue(new Error("Login error"));
 
-    prisma.user.findUnique.mockResolvedValue(mockUser);
-    bcrypt.compare.mockResolvedValue(true);
+      await loginHandler(req, res);
 
-    await authController.login[2](req, res);
-
-    expect(res.json).toHaveBeenCalledWith({
-      user: new UserDTO(mockUser), // Ensure only safe fields are returned
-      accessToken: "mockAccessToken",
-      refreshToken: "mockRefreshToken",
-      expiresIn: process.env.JWT_EXPIRES_IN || "1h",
-    });
-});
-
-  test("🚫 Catch internal error on login", async () => {
-    req.body = { email: "john@example.com", password: "TestPass123!" };
-    prisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-    await authController.login[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
-
-  test("✅ Verify email successfully", async () => {
-    req.params = { userId: "1", token: "validToken" };
-    prisma.verificationToken.findFirst.mockResolvedValue({
-      token: "validToken",
-      userId: "1",
-      expiresAt: new Date(Date.now() + 3600000),
-      id: "vt1",
-    });
-    prisma.user.update.mockResolvedValue({});
-    prisma.verificationToken.delete.mockResolvedValue({});
-    await authController.verifyEmail(req, res);
-    expect(res.redirect).toHaveBeenCalledWith(`${process.env.FRONTEND_URL}/login`);
-  });
-
-  test("🚫 Verify email with invalid/expired token", async () => {
-    req.params = { userId: "1", token: "invalidToken" };
-    prisma.verificationToken.findFirst.mockResolvedValue(null);
-    await authController.verifyEmail(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired verification token." });
-  });
-  
-  test("🚫 Prevent password reset request for non-existent email", async () => {
-    req.body = { email: "nonexistent@example.com" };
-    prisma.user.findUnique.mockResolvedValue(null);
-    await authController.resetPasswordRequest[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "User with this email does not exist." });
-  });
-
-  test("✅ Request password reset successfully", async () => {
-    req.body = { email: "john@example.com" };
-    prisma.user.findUnique.mockResolvedValue({ id: "1", email: req.body.email });
-    prisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 1 });
-    prisma.passwordResetToken.create.mockResolvedValue({ token: "mockToken" });
-    sendMail.mockResolvedValue();
-    await authController.resetPasswordRequest[2](req, res);
-    expect(prisma.passwordResetToken.create).toHaveBeenCalled();
-    expect(sendMail).toHaveBeenCalled();
-    expect(res.json).toHaveBeenCalledWith({ message: "Password reset link sent to your email." });
-  });
-
-  /*** RESET PASSWORD ***/
-  test("🚫 Prevent reset password if token is invalid/expired", async () => {
-    req.params = { token: "expiredToken" };
-    req.body = { newPassword: "NewPass123!" };
-    prisma.passwordResetToken.findUnique.mockResolvedValue(null);
-    await authController.resetPassword[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired reset token." });
-  });
-
-  test("✅ Reset password successfully", async () => {
-    req.params = { token: "mockToken" };
-    req.body = { newPassword: "NewPass123!" };
-    prisma.passwordResetToken.findUnique.mockResolvedValue({
-      token: "mockToken",
-      userId: "1",
-      expiresAt: new Date(Date.now() + 3600000),
-    });
-    prisma.user.update.mockResolvedValue({});
-    prisma.passwordResetToken.delete.mockResolvedValue({});
-    await authController.resetPassword[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Password reset successful. You can now log in with your new password.",
-    });
-  });
-  
-  test("🚫 Prevent refresh token if user not found", async () => {
-    req.body = { refreshToken: "mockRefreshToken" };
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue(null);
-    await authController.refreshToken[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
-  });
-
-  test("🚫 Prevent refresh token if user is unverified", async () => {
-    req.body = { refreshToken: "mockRefreshToken" };
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue({ id: "1", isVerified: false });
-    await authController.refreshToken[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({
-      error: "Please verify your email before requesting a new token.",
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Login error" });
     });
   });
 
-  test("✅ Refresh token successfully (default expiresIn)", async () => {
-    req.body = { refreshToken: "mockRefreshToken" };
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue({ id: "1", email: "john@example.com", isVerified: true });
-    await authController.refreshToken[2](req, res);
-    expect(res.json).toHaveBeenCalledWith({
-      accessToken: "mockAccessToken",
-      refreshToken: "mockRefreshToken",
-      expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+  describe("verifyEmail", () => {
+    test("✅ should verify email and redirect", async () => {
+      verifyEmailService.mockResolvedValue({
+        status: 302,
+        redirect: "http://frontend/login",
+        response: { message: "Email verified" },
+      });
+
+      req.params = { userId: "user-123", token: "verify-token" };
+
+      await authController.verifyEmail(req, res);
+
+      expect(verifyEmailService).toHaveBeenCalledWith("user-123", "verify-token");
+      // Because result.redirect was set, we expect res.redirect
+      expect(res.redirect).toHaveBeenCalledWith("http://frontend/login");
+    });
+
+    test("✅ should verify email without redirect, just JSON response", async () => {
+      verifyEmailService.mockResolvedValue({
+        status: 200,
+        response: { message: "Email verified no redirect" },
+      });
+
+      req.params = { userId: "user-xyz", token: "no-redirect-token" };
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Email verified no redirect",
+      });
+    });
+
+    test("🚫 error with defined status code => 400 or 401 etc", async () => {
+      verifyEmailService.mockRejectedValue({
+        status: 400,
+        message: "Invalid token",
+      });
+
+      req.params = { userId: "u1", token: "bad-token" };
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "Invalid token" });
+    });
+
+    test("🚫 error => no status => 500 fallback", async () => {
+      verifyEmailService.mockRejectedValue(new Error("Unknown verify error"));
+
+      await authController.verifyEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Unknown verify error" });
     });
   });
 
-  test("✅ Refresh token successfully with custom expiresIn", async () => {
-    req.body = { refreshToken: "mockRefreshToken" };
-    process.env.JWT_EXPIRES_IN = "2h";
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue({ id: "1", email: "john@example.com", isVerified: true });
-    await authController.refreshToken[2](req, res);
-    expect(res.json).toHaveBeenCalledWith({
-      accessToken: "mockAccessToken",
-      refreshToken: "mockRefreshToken",
-      expiresIn: "2h",
-    });
-    delete process.env.JWT_EXPIRES_IN;
-  });
+  describe("resetPasswordRequest", () => {
+    // The final handler is at index [2]
+    const resetPwdRequestHandler = authController.resetPasswordRequest[2];
 
-  test("🚫 Catch internal error on refresh token", async () => {
-    req.body = { refreshToken: "mockRefreshToken" };
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockRejectedValue(new Error("DB error"));
-    await authController.refreshToken[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-  });
+    test("✅ should request password reset successfully (200)", async () => {
+      resetPasswordRequestService.mockResolvedValue({
+        status: 200,
+        response: { message: "Password reset link sent" },
+      });
 
-  test("🚫 Prevent refresh token if verifyToken throws (invalid token)", async () => {
-    req.body = { refreshToken: "invalidToken" };
-    verifyToken.mockImplementation(() => {
-      throw new Error("Invalid or expired refresh token");
-    });
-    await authController.refreshToken[2](req, res);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired refresh token" });
-  });
+      req.body = { email: "bob@example.com" };
 
-  test("✅ Authorize with valid token", async () => {
-    req.headers.authorization = "Bearer validToken";
+      await resetPwdRequestHandler(req, res);
 
-    const mockUser = {
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      role: "ROLE_USER",
-      isVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue(mockUser);
-
-    await authController.authorize(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ user: new UserDTO(mockUser) });
-  });
-
-  test("🚫 Unauthorized when no token is provided", async () => {
-    await authController.authorize(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized, token required" });
-  });
-
-  test("🚫 Unauthorized when token format is incorrect", async () => {
-    req.headers.authorization = "InvalidTokenFormat";
-
-    await authController.authorize(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: "Unauthorized, token required" });
-  });
-
-  test("🚫 Bad Request when token is invalid or expired", async () => {
-    req.headers.authorization = "Bearer invalidToken";
-
-    verifyToken.mockImplementation(() => {
-      throw new Error("Invalid or expired token");
+      expect(resetPasswordRequestService).toHaveBeenCalledWith("bob@example.com");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: "Password reset link sent" });
     });
 
-    await authController.authorize(req, res);
+    test("🚫 error => defined status code (e.g. 404)", async () => {
+      resetPasswordRequestService.mockRejectedValue({
+        status: 404,
+        message: "User not found",
+      });
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid or expired token" });
+      await resetPwdRequestHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
+    });
+
+    test("🚫 error => fallback 500", async () => {
+      resetPasswordRequestService.mockRejectedValue(new Error("Some error"));
+
+      await resetPwdRequestHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Some error" });
+    });
   });
 
-  test("🚫 Not Found when user does not exist", async () => {
-    req.headers.authorization = "Bearer validToken";
+  describe("resetPassword", () => {
+    // The final handler is at index [2]
+    const resetPasswordHandler = authController.resetPassword[2];
 
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue(null);
+    test("✅ should reset password successfully (200)", async () => {
+      resetPasswordService.mockResolvedValue({
+        status: 200,
+        response: { message: "Password reset successful" },
+      });
 
-    await authController.authorize(req, res);
+      req.params = { token: "reset-token-123" };
+      req.body = { newPassword: "NewPass123!" };
 
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
+      await resetPasswordHandler(req, res);
+
+      expect(resetPasswordService).toHaveBeenCalledWith("reset-token-123", "NewPass123!");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        message: "Password reset successful",
+      });
+    });
+
+    test("🚫 error => defined status code (e.g. 400)", async () => {
+      resetPasswordService.mockRejectedValue({
+        status: 400,
+        message: "Expired token",
+      });
+
+      await resetPasswordHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "Expired token" });
+    });
+
+    test("🚫 error => fallback 500", async () => {
+      resetPasswordService.mockRejectedValue(new Error("Reset error"));
+
+      await resetPasswordHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Reset error" });
+    });
   });
 
-  test("🚫 Forbidden when user is not verified", async () => {
-    req.headers.authorization = "Bearer validToken";
+  describe("refreshToken", () => {
+    // The final handler is at index [2]
+    const refreshTokenHandler = authController.refreshToken[2];
 
-    const unverifiedUser = {
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      role: "ROLE_USER",
-      isVerified: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    test("✅ should refresh token successfully", async () => {
+      refreshTokenService.mockResolvedValue({
+        status: 200,
+        response: { accessToken: "new-acc-token" },
+      });
 
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockResolvedValue(unverifiedUser);
+      req.body = { refreshToken: "old-refresh-token" };
 
-    await authController.authorize(req, res);
+      await refreshTokenHandler(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: "User is not verified" });
+      expect(refreshTokenService).toHaveBeenCalledWith("old-refresh-token");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ accessToken: "new-acc-token" });
+    });
+
+    test("🚫 error => defined status code (401, 403, etc.)", async () => {
+      refreshTokenService.mockRejectedValue({
+        status: 401,
+        message: "Invalid refresh token",
+      });
+
+      await refreshTokenHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: "Invalid refresh token" });
+    });
+
+    test("🚫 error => fallback 500", async () => {
+      refreshTokenService.mockRejectedValue(new Error("Refresh error"));
+
+      await refreshTokenHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Refresh error" });
+    });
   });
 
-  test("🚫 Internal Server Error when unexpected failure occurs", async () => {
-    req.headers.authorization = "Bearer validToken";
+  describe("authorize", () => {
+    test("✅ should authorize user successfully (200)", async () => {
+      authorizeService.mockResolvedValue({
+        status: 200,
+        response: { user: { id: "auth-user" } },
+      });
 
-    verifyToken.mockReturnValue({ id: "1" });
-    prisma.user.findUnique.mockRejectedValue(new Error("Database failure"));
+      req.headers.authorization = "Bearer test-auth-token";
 
-    await authController.authorize(req, res);
+      await authController.authorize(req, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
+      expect(authorizeService).toHaveBeenCalledWith("Bearer test-auth-token");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ user: { id: "auth-user" } });
+    });
+
+    test("🚫 error => defined status code => e.g. 401, 403 etc", async () => {
+      authorizeService.mockRejectedValue({
+        status: 401,
+        message: "Unauthorized, token required",
+      });
+
+      await authController.authorize(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Unauthorized, token required",
+      });
+    });
+
+    test("🚫 error => fallback 500", async () => {
+      authorizeService.mockRejectedValue(new Error("Authorize error"));
+
+      await authController.authorize(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({ error: "Authorize error" });
+    });
   });
 });
