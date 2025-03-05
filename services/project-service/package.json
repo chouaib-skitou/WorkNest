@@ -22,6 +22,7 @@
     "generate:jwt": "mkdir config\\jwt 2>nul & openssl rand -hex 64 > config\\jwt\\JWT_SECRET & openssl rand -hex 64 > config\\jwt\\JWT_REFRESH_SECRET && echo ✅ JWT keys generated in /config/jwt/",
     "migrate:dev": "npx prisma migrate dev --name init",
     "migrate:prod": "npx prisma migrate deploy",
+    "migrate:test": "dotenv -e .env.test -- npx prisma migrate reset --force && npx prisma generate",
     "migrate:reset": "npx prisma migrate reset --force",
     "studio": "npx prisma studio"
   },
@@ -52,6 +53,7 @@
     "@babel/preset-env": "^7.26.7",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^9.19.0",
     "globals": "^15.14.0",
     "jest": "^29.7.0",
