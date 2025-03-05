@@ -49,9 +49,13 @@ const router = express.Router();
  *                 format: password
  *     responses:
  *       201:
- *         description: User registered successfully, verification email sent.
+ *         description: User registered successfully; verification email sent.
+ *       400:
+ *         description: Missing or invalid request body.
  *       409:
  *         description: Email already in use.
+ *       500:
+ *         description: User was created, but verification email failed or other server error.
  */
 router.post("/register", register);
 
@@ -80,13 +84,15 @@ router.post("/register", register);
  *                 format: password
  *     responses:
  *       200:
- *         description: Login successful, JWT token returned.
+ *         description: Login successful, JWT tokens returned.
  *       400:
- *         description: Missing required fields.
+ *         description: Missing or invalid request body.
  *       401:
  *         description: Unauthorized, incorrect credentials.
  *       403:
  *         description: Forbidden, user not verified.
+ *       500:
+ *         description: Internal server error.
  */
 router.post("/login", login);
 
@@ -106,9 +112,13 @@ router.post("/login", login);
  *         description: Verification token
  *     responses:
  *       200:
- *         description: Email verified successfully.
+ *         description: Email verified (if no redirect).
+ *       302:
+ *         description: Email verified, and user is redirected to login page.
  *       400:
- *         description: Invalid or expired token.
+ *         description: Invalid or missing path parameters.
+ *       500:
+ *         description: Internal server error.
  */
 router.get("/verify-email/:token", verifyEmail);
 
@@ -134,8 +144,12 @@ router.get("/verify-email/:token", verifyEmail);
  *     responses:
  *       200:
  *         description: Password reset email sent if user exists.
+ *       400:
+ *         description: Missing or invalid request body.
  *       404:
  *         description: User with this email does not exist.
+ *       500:
+ *         description: Failed to send reset password email or other server error.
  */
 router.post("/reset-password-request", resetPasswordRequest);
 
@@ -166,7 +180,7 @@ router.post("/reset-password-request", resetPasswordRequest);
  *               newPassword:
  *                 type: string
  *                 format: password
- *                 description: Password must contain at least 8 characters, including one uppercase letter, one lowercase letter, one number, and one special character.
+ *                 description: Must be at least 8 chars, with uppercase, lowercase, number, and special character.
  *               confirmNewPassword:
  *                 type: string
  *                 format: password
@@ -175,7 +189,9 @@ router.post("/reset-password-request", resetPasswordRequest);
  *       200:
  *         description: Password successfully reset.
  *       400:
- *         description: Invalid or expired token, or passwords do not match.
+ *         description: Missing or invalid request body, or invalid/expired reset token.
+ *       500:
+ *         description: Internal server error.
  */
 router.post("/reset-password/:token", resetPassword);
 
@@ -201,13 +217,15 @@ router.post("/reset-password/:token", resetPassword);
  *       200:
  *         description: New access token generated successfully.
  *       400:
- *         description: Bad request, missing refresh token.
+ *         description: Missing or invalid request body (no refresh token).
  *       401:
- *         description: Unauthorized, invalid or expired refresh token.
+ *         description: Invalid or expired refresh token.
  *       403:
- *         description: Forbidden, user not verified.
+ *         description: User not verified.
  *       404:
  *         description: User not found.
+ *       500:
+ *         description: Internal server error.
  */
 router.post("/refresh", refreshToken);
 
@@ -231,6 +249,8 @@ router.post("/refresh", refreshToken);
  *         description: User is not verified.
  *       404:
  *         description: User not found.
+ *       500:
+ *         description: Internal server error.
  */
 router.get("/authorize", authorize);
 
