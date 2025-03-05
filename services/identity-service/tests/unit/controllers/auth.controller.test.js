@@ -131,15 +131,15 @@ describe("🧪 Auth Controller Tests", () => {
         redirect: "http://frontend/login",
         response: { message: "Email verified" },
       });
-
-      req.params = { userId: "user-123", token: "verify-token" };
-
+    
+      req.params = { token: "verify-token" };
+    
       await authController.verifyEmail(req, res);
-
-      expect(verifyEmailService).toHaveBeenCalledWith("user-123", "verify-token");
-      // Because result.redirect was set, we expect res.redirect
+    
+      expect(verifyEmailService).toHaveBeenCalledWith("verify-token");
       expect(res.redirect).toHaveBeenCalledWith("http://frontend/login");
     });
+    
 
     test("✅ should verify email without redirect, just JSON response", async () => {
       verifyEmailService.mockResolvedValue({
