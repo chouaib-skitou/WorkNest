@@ -264,15 +264,17 @@ describe("🧪 Auth Service Tests", () => {
         id: "vtoken-id",
         userId: "user-123",
         token: "verify-token",
-        expiresAt: new Date(mockDateNow + 1000), // not expired
+        expiresAt: new Date(mockDateNow + 1000),
       });
-
+    
       prisma.user.update.mockResolvedValue({ ...mockUser, isVerified: true });
       prisma.verificationToken.delete.mockResolvedValue({});
-
-      const result = await verifyEmailService("user-123", "verify-token");
+    
+      const result = await verifyEmailService("verify-token");
+    
       expect(prisma.verificationToken.findFirst).toHaveBeenCalledWith({
-        where: { userId: "user-123", token: "verify-token" },
+        where: { token: "verify-token" },
+        include: { user: true }, 
       });
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: "user-123" },
@@ -281,9 +283,9 @@ describe("🧪 Auth Service Tests", () => {
       expect(prisma.verificationToken.delete).toHaveBeenCalledWith({
         where: { id: "vtoken-id" },
       });
-      expect(result.status).toBe(302);
-      expect(result.redirect).toContain("login");
+      expect(result.redirect).toContain("/login");
     });
+    
 
     test("🚫 invalid or expired => 400", async () => {
       // no token or expired
