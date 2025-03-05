@@ -14,7 +14,6 @@ import {
 } from "../../../services/user.service.js";
 import { UserDTO, UserBatchDTO } from "../../../dtos/user.dto.js";
 import { sendAccountCreationEmail } from "../../../services/email.service.js";
-import crypto from "crypto";
 
 // Mock all Prisma calls for user and passwordResetToken
 jest.mock("../../../config/database.js", () => ({
