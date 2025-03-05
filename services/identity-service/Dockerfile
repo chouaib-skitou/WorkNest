@@ -29,7 +29,7 @@ RUN npm run build
 
 EXPOSE 5000
 
-# Start the app with Prisma migration
-CMD ["sh", "-c", "export JWT_SECRET=$(cat /app/keys/JWT_SECRET) && \
-                   export JWT_REFRESH_SECRET=$(cat /app/keys/JWT_REFRESH_SECRET) && \
+# **Fix: Ensure JWT Secrets are exported at runtime**
+CMD ["sh", "-c", "export JWT_SECRET=$(cat $JWT_SECRET_FILE) && \
+                   export JWT_REFRESH_SECRET=$(cat $JWT_REFRESH_SECRET_FILE) && \
                    npm run migrate:prod && npm start"]
