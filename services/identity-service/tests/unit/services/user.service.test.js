@@ -99,6 +99,32 @@ describe("User Service Tests", () => {
       expect(result.limit).toBe(10);
     });
 
+    test("✅ defaults limit=10 if limit < 1 in getAllUsersService", async () => {
+      // Mock repository calls so they don't break
+      UserRepository.findMany.mockResolvedValue([]);
+      UserRepository.count.mockResolvedValue(0);
+    
+      // Provide a limit < 1 (e.g. "0") but a valid page (e.g. "2")
+      const query = { page: "2", limit: "-2" };
+    
+      const result = await getAllUsersService(adminUser, query);
+    
+      // This should specifically trigger the line:
+      // if (limit < 1) limit = 10;
+      expect(result.page).toBe(2);  // unchanged
+      expect(result.limit).toBe(10); // forced to 10
+    
+      // skip = (page - 1) * limit => (2 - 1)*10=10
+      // take = limit => 10
+      expect(UserRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10,
+          take: 10,
+        })
+      );
+    });
+          
+
     test("✅ applies query filters (firstName, lastName, email, etc.)", async () => {
       UserRepository.findMany.mockResolvedValue([]);
       UserRepository.count.mockResolvedValue(0);
