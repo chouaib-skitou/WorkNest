@@ -133,6 +133,7 @@ export const authorizeTaskModification = async (
 
   // Manager => must be managerId or createdBy, or patching only stageId
   if (user.role === "ROLE_MANAGER") {
+    // eslint-disable-next-line no-unused-vars
     const { managerId, createdBy, employeeIds } = task.Project || {};
     if (managerId === user.id || createdBy === user.id) {
       return task;

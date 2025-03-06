@@ -18,7 +18,7 @@ jest.mock("../../../repositories/project.repository.js", () => ({
 }));
 
 import { StageRepository } from "../../../repositories/stage.repository.js";
-import { ProjectRepository } from "../../../repositories/project.repository.js";
+// import { ProjectRepository } from "../../../repositories/project.repository.js";
 import {
   getStagesService,
   getStageByIdService,
@@ -31,6 +31,7 @@ import { StageDTO } from "../../../dtos/stage.dto.js";
 
 describe("🛠 Stage Service Tests", () => {
   let adminUser, managerUser, employeeUser;
+  // eslint-disable-next-line no-unused-vars
   let mockStage, mockProject;
   let query;
 
