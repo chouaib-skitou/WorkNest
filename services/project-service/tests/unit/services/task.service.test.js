@@ -825,6 +825,32 @@ describe("🛠 Task Service Tests", () => {
       });
     });
 
+    test("✅ skips undefined fields when patching (covers else path for 'if (value !== undefined)')", async () => {
+      // We'll patch stageId but pass title=undefined
+      const partialData = { title: undefined, stageId: "updated-stage" };
+      TaskRepository.update.mockResolvedValue({
+        ...mockTask,
+        stageId: "updated-stage",
+        // title remains "Task Title" because it wasn't patched
+      });
+    
+      const result = await patchTaskService(
+        adminUser,
+        mockTask.id,
+        partialData,
+        "fake-token"
+      );
+    
+      // 'title' was not included in the final update
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { stageId: "updated-stage" },
+        { Stage: true, Project: true }
+      );
+      expect(result.stageId).toEqual("updated-stage");
+      expect(result.title).toEqual("Task Title");
+    });    
+
     test("✅ patches task successfully and converts title to lowercase", async () => {
       const partialData = { title: "PATCHED TASK" };
       const result = await patchTaskService(
