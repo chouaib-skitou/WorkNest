@@ -2,15 +2,14 @@
  * Project Service Module
  * Provides services for handling project operations including CRUD operations with role-based access control.
  */
-
-import { prisma } from "../config/database.js";
+import { ProjectRepository } from "../repositories/project.repository.js";
 import { ProjectDTO, GetAllProjectsDTO } from "../dtos/project.dto.js";
-import { fetchUsersByIds } from "./helpers/user.enrichment.js";
+import { fetchUsersByIds } from "../services/helpers/user.enrichment.js";
 
 /**
  * Generate role-based filter conditions for project queries.
  * @param {Object} user - The user object containing role and id.
- * @returns {Object} - Filter conditions for Prisma query.
+ * @returns {Object} - Filter conditions for repository query.
  */
 const getRoleBasedFilter = (user) => {
   if (user.role === "ROLE_EMPLOYEE") {
@@ -31,19 +30,16 @@ const getRoleBasedFilter = (user) => {
 /**
  * Generate dynamic filter conditions based on query parameters.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Filter conditions for Prisma query.
+ * @returns {Object} - Filter conditions for repository query.
  */
 const getDynamicFilters = (query) => {
   const filters = {};
-
   if (query.name) {
     filters.name = { contains: query.name, mode: "insensitive" };
   }
-
   if (query.description) {
     filters.description = { contains: query.description, mode: "insensitive" };
   }
-
   if (query.createdAt) {
     const createdAtDate = new Date(query.createdAt);
     if (!isNaN(createdAtDate)) {
@@ -53,14 +49,13 @@ const getDynamicFilters = (query) => {
       };
     }
   }
-
   return filters;
 };
 
 /**
  * Generate sorting options for project queries.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Sorting options for Prisma query.
+ * @returns {Object} - Sorting options for repository query.
  */
 const getSortingOptions = (query) => {
   const allowedFields = ["name", "createdAt", "updatedAt"];
@@ -68,7 +63,6 @@ const getSortingOptions = (query) => {
     ? query.sortField
     : "createdAt";
   const sortOrder = query.sortOrder === "asc" ? "asc" : "desc";
-
   return { [sortField]: sortOrder };
 };
 
@@ -80,7 +74,7 @@ const getSortingOptions = (query) => {
  * @returns {Promise<Object>} - Resolves with the project data if authorized.
  */
 const authorizeProjectModification = async (user, id, logConfig) => {
-  const existingProject = await prisma.project.findUnique({
+  const existingProject = await ProjectRepository.findUnique({
     where: { id },
     select: { id: true, managerId: true, createdBy: true },
   });
@@ -117,7 +111,7 @@ const authorizeProjectModification = async (user, id, logConfig) => {
  * @returns {Promise<Object>} - Resolves with the project data if authorized.
  */
 const authorizeProjectDeletion = async (user, id) => {
-  const existingProject = await prisma.project.findUnique({
+  const existingProject = await ProjectRepository.findUnique({
     where: { id },
     select: { id: true, createdBy: true },
   });
@@ -147,6 +141,7 @@ const authorizeProjectDeletion = async (user, id) => {
  * Retrieve a paginated list of projects based on filters and sorting.
  * @param {Object} user - The user making the request.
  * @param {Object} query - Query parameters for filtering, pagination, and sorting.
+ * @param {string} token - JWT token for user enrichment.
  * @returns {Promise<Object>} - Paginated projects data.
  */
 export const getProjectsService = async (user, query, token) => {
@@ -165,8 +160,8 @@ export const getProjectsService = async (user, query, token) => {
 
   try {
     const [projects, totalCount] = await Promise.all([
-      prisma.project.findMany({ where, skip, take: limit, orderBy }),
-      prisma.project.count({ where }),
+      ProjectRepository.findMany({ where, skip, take: limit, orderBy }),
+      ProjectRepository.count({ where }),
     ]);
 
     if (totalCount === 0) {
@@ -181,21 +176,14 @@ export const getProjectsService = async (user, query, token) => {
     }
 
     // Get both managerIds and createdBy IDs
-    const managerIds = projects
-      .filter((p) => p.managerId)
-      .map((p) => p.managerId);
-    const createdByIds = projects
-      .filter((p) => p.createdBy)
-      .map((p) => p.createdBy);
-
-    // Merge and deduplicate IDs
+    const managerIds = projects.filter((p) => p.managerId).map((p) => p.managerId);
+    const createdByIds = projects.filter((p) => p.createdBy).map((p) => p.createdBy);
     const uniqueUserIds = [...new Set([...managerIds, ...createdByIds])];
 
-    // Fetch user details for both
+    // Fetch user details for enrichment
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     console.log("🔍 Debug: Users map", usersMap);
 
-    // Enrich each project with both manager and createdBy details
     const enrichedProjects = projects.map((project) => ({
       ...project,
       manager: project.managerId ? usersMap[project.managerId] : null,
@@ -230,33 +218,25 @@ export const getProjectsService = async (user, query, token) => {
  */
 export const getProjectByIdService = async (user, id, token) => {
   try {
-    const where = {
-      id,
-      ...getRoleBasedFilter(user),
-    };
-
+    const where = { id, ...getRoleBasedFilter(user) };
     console.log("🔍 Debug: Role-based filter", where);
 
-    const project = await prisma.project.findFirst({
+    const project = await ProjectRepository.findUnique({
       where,
       include: { stages: { include: { tasks: true } } },
     });
 
     if (!project) {
       console.log("Debug: No project found with filters", where);
-
-      // Verify if the project exists without role-based filtering
-      const existingProject = await prisma.project.findUnique({
+      const existingProject = await ProjectRepository.findUnique({
         where: { id },
         select: { id: true },
       });
-
       if (existingProject) {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message:
-            "Access denied: You do not have permission to view this project",
+          message: "Access denied: You do not have permission to view this project",
         });
       } else {
         console.warn("Project not found in database");
@@ -272,12 +252,9 @@ export const getProjectByIdService = async (user, id, token) => {
       userIds.push(...project.employeeIds);
     }
     const uniqueUserIds = [...new Set(userIds)];
-
-    // Fetch user details from the identity service
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     console.log("🔍 Debug: Users map", usersMap);
 
-    // Enrich the project with the fetched user details
     const enrichedProject = {
       ...project,
       manager: project.managerId ? usersMap[project.managerId] : null,
@@ -309,18 +286,15 @@ export const createProjectService = async (user, data, token) => {
         message: "Access denied: Only admins and managers can create projects",
       });
     }
-
     const projectData = {
       ...data,
       name: data.name.toLowerCase(),
       createdBy: user.id,
     };
 
-    const newProject = await prisma.project.create({
-      data: projectData,
-    });
+    const newProject = await ProjectRepository.create(projectData);
 
-    // Collect user IDs for enrichment: manager, createdBy, and employeeIds if any.
+    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds if any.
     const userIds = [];
     if (newProject.managerId) userIds.push(newProject.managerId);
     if (newProject.createdBy) userIds.push(newProject.createdBy);
@@ -328,12 +302,9 @@ export const createProjectService = async (user, data, token) => {
       userIds.push(...newProject.employeeIds);
     }
     const uniqueUserIds = [...new Set(userIds)];
-
-    // Fetch user details from the identity service
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     console.log("🔍 Debug: Users map", usersMap);
 
-    // Enrich the project with fetched user details
     const enrichedProject = {
       ...newProject,
       manager: newProject.managerId ? usersMap[newProject.managerId] : null,
@@ -369,23 +340,15 @@ export const updateProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog:
-        "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage:
-        "Access denied: You do not have permission to update this project",
+      unauthorizedLog: "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage: "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
-
     const updateData = { ...data };
     if (updateData.name) updateData.name = updateData.name.toLowerCase();
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: updateData,
-    });
-
-    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds.
+    const updatedProject = await ProjectRepository.update(id, updateData);
     const userIds = [];
     if (updatedProject.managerId) userIds.push(updatedProject.managerId);
     if (updatedProject.createdBy) userIds.push(updatedProject.createdBy);
@@ -393,19 +356,11 @@ export const updateProjectService = async (user, id, data, token) => {
       userIds.push(...updatedProject.employeeIds);
     }
     const uniqueUserIds = [...new Set(userIds)];
-
-    // Fetch user details from the identity service.
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
-
-    // Enrich the updated project with user details.
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId
-        ? usersMap[updatedProject.managerId]
-        : null,
-      createdBy: updatedProject.createdBy
-        ? usersMap[updatedProject.createdBy]
-        : null,
+      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
+      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
@@ -414,19 +369,11 @@ export const updateProjectService = async (user, id, data, token) => {
     return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error updating project:", error);
-    // Propagate custom errors with a defined status
-    if (error && error.status) {
-      return Promise.reject(error);
-    }
-    if (error.code === "P2002") {
-      return Promise.reject({
-        status: 409,
-        message: "A project with this name already exists",
-      });
-    }
-    if (error.code === "P2025") {
+    if (error && error.status) return Promise.reject(error);
+    if (error.code === "P2002")
+      return Promise.reject({ status: 409, message: "A project with this name already exists" });
+    if (error.code === "P2025")
       return Promise.reject({ status: 404, message: "Project not found" });
-    }
     return Promise.reject({ status: 500, message: "Internal server error" });
   }
 };
@@ -444,37 +391,26 @@ export const patchProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog:
-        "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage:
-        "Access denied: You do not have permission to update this project",
+      unauthorizedLog: "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage: "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
 
-    // Filter out undefined fields
     const updateData = {};
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined) updateData[key] = value;
     });
 
-    if (Object.keys(updateData).length === 0) {
+    if (Object.keys(updateData).length === 0)
       return Promise.reject({
         status: 400,
         message: "No valid fields provided for update",
       });
-    }
 
-    if (updateData.name) {
-      updateData.name = updateData.name.toLowerCase();
-    }
+    if (updateData.name) updateData.name = updateData.name.toLowerCase();
 
-    const updatedProject = await prisma.project.update({
-      where: { id },
-      data: updateData,
-    });
-
-    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds.
+    const updatedProject = await ProjectRepository.update(id, updateData);
     const userIds = [];
     if (updatedProject.managerId) userIds.push(updatedProject.managerId);
     if (updatedProject.createdBy) userIds.push(updatedProject.createdBy);
@@ -482,19 +418,11 @@ export const patchProjectService = async (user, id, data, token) => {
       userIds.push(...updatedProject.employeeIds);
     }
     const uniqueUserIds = [...new Set(userIds)];
-
-    // Fetch user details from the identity service.
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
-
-    // Enrich the updated project with user details.
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId
-        ? usersMap[updatedProject.managerId]
-        : null,
-      createdBy: updatedProject.createdBy
-        ? usersMap[updatedProject.createdBy]
-        : null,
+      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
+      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
@@ -503,19 +431,11 @@ export const patchProjectService = async (user, id, data, token) => {
     return new ProjectDTO(enrichedProject);
   } catch (error) {
     console.error("Error updating project:", error);
-    // Propagate custom errors with a defined status
-    if (error && error.status) {
-      return Promise.reject(error);
-    }
-    if (error.code === "P2002") {
-      return Promise.reject({
-        status: 409,
-        message: "A project with this name already exists",
-      });
-    }
-    if (error.code === "P2025") {
+    if (error && error.status) return Promise.reject(error);
+    if (error.code === "P2002")
+      return Promise.reject({ status: 409, message: "A project with this name already exists" });
+    if (error.code === "P2025")
       return Promise.reject({ status: 404, message: "Project not found" });
-    }
     return Promise.reject({ status: 500, message: "Internal server error" });
   }
 };
@@ -529,18 +449,13 @@ export const patchProjectService = async (user, id, data, token) => {
 export const deleteProjectService = async (user, id) => {
   try {
     await authorizeProjectDeletion(user, id);
-
-    await prisma.project.delete({ where: { id } });
-
+    await ProjectRepository.delete(id);
     return { message: "Project deleted successfully" };
   } catch (error) {
     console.error("Error deleting project:", error);
-    if (error && error.status) {
-      return Promise.reject(error);
-    }
-    if (error.code === "P2025") {
+    if (error && error.status) return Promise.reject(error);
+    if (error.code === "P2025")
       return Promise.reject({ status: 404, message: "Project not found" });
-    }
     return Promise.reject({ status: 500, message: "Internal server error" });
   }
 };
