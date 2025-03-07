@@ -1,14 +1,22 @@
+/**
+ * Auth Service Module
+ * Handles the core business logic and database operations for auth-related features.
+ */
+
+// services/auth.service.js
+
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { prisma } from "../config/database.js";
 import { generateToken, generateRefreshToken, verifyToken } from "../config/jwt.js";
-import {
-  sendVerificationEmail,
-  sendResetPasswordEmail,
-} from "./email.service.js";
+import { sendVerificationEmail, sendResetPasswordEmail } from "./email.service.js";
 import { UserDTO } from "../dtos/user.dto.js";
 import { AuthDTO } from "../dtos/auth.dto.js";
+
+// Import repositories
+import { UserRepository } from "../repositories/user.repository.js";
+import { VerificationTokenRepository } from "../repositories/verificationToken.repository.js";
+import { PasswordResetTokenRepository } from "../repositories/passwordResetToken.repository.js";
 
 dotenv.config();
 
@@ -21,7 +29,7 @@ export async function registerService(data) {
   const { firstName, lastName, email, password } = data;
 
   // Check if email is already used
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const existingUser = await UserRepository.findUnique({ email });
   if (existingUser) {
     return { status: 409, response: { error: "Email already in use" } };
   }
@@ -30,26 +38,25 @@ export async function registerService(data) {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // Create user
-  const user = await prisma.user.create({
-    data: { firstName, lastName, email, password: hashedPassword },
+  const user = await UserRepository.create({
+    firstName,
+    lastName,
+    email,
+    password: hashedPassword,
   });
 
   // Generate email verification token
   const verificationToken = crypto.randomBytes(32).toString("hex");
-  await prisma.verificationToken.create({
-    data: {
-      userId: user.id,
-      token: verificationToken,
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour
-    },
+  await VerificationTokenRepository.create({
+    userId: user.id,
+    token: verificationToken,
+    expiresAt: new Date(Date.now() + 3600000), // 1 hour
   });
 
   // Try sending verification email
   try {
     await sendVerificationEmail(user, verificationToken);
-  // eslint-disable-next-line no-unused-vars
   } catch (err) {
-    // console.error("Error sending verification email:", err);
     return {
       status: 500,
       response: { error: "User created but failed to send verification email." },
@@ -71,7 +78,7 @@ export async function registerService(data) {
  */
 export async function loginService(data) {
   const { email, password } = data;
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await UserRepository.findUnique({ email });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return { status: 401, response: { error: "Invalid credentials" } };
   }
@@ -103,28 +110,19 @@ export async function loginService(data) {
  * @returns {Object} { status, response, redirect }
  */
 export const verifyEmailService = async (token) => {
-    // Recherche du token sans userId
-    const storedToken = await prisma.verificationToken.findFirst({
-      where: { token },
-      include: { user: true }, // Permet de récupérer l'utilisateur directement
-    });
-  
-    if (!storedToken || storedToken.expiresAt < new Date()) {
-      return { status: 400, response: { error: "Invalid or expired verification token." } };
-    }
-  
-    // Mise à jour de l'utilisateur pour le vérifier
-    await prisma.user.update({ 
-      where: { id: storedToken.userId }, 
-      data: { isVerified: true } 
-    });
-  
-    // Suppression du token après utilisation
-    await prisma.verificationToken.delete({ where: { id: storedToken.id } });
-  
-    return { redirect: `${process.env.FRONTEND_URL}/login` }; // Retourne la redirection
-  };
-  
+  const storedToken = await VerificationTokenRepository.findFirst({ token });
+  if (!storedToken || storedToken.expiresAt < new Date()) {
+    return { status: 400, response: { error: "Invalid or expired verification token." } };
+  }
+
+  // Update user to be verified
+  await UserRepository.update({ id: storedToken.userId }, { isVerified: true });
+
+  // Delete the token after usage
+  await VerificationTokenRepository.delete({ id: storedToken.id });
+
+  return { redirect: `${process.env.FRONTEND_URL}/login` };
+};
 
 /**
  * Service to handle password reset request
@@ -132,7 +130,7 @@ export const verifyEmailService = async (token) => {
  * @returns {Object} { status, response }
  */
 export async function resetPasswordRequestService(email) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await UserRepository.findUnique({ email });
   if (!user) {
     return {
       status: 404,
@@ -140,25 +138,21 @@ export async function resetPasswordRequestService(email) {
     };
   }
 
-  // Clear old tokens
-  await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+  // Clear old tokens using the reset token repository
+  await PasswordResetTokenRepository.deleteMany({ userId: user.id });
 
   // Generate new reset token
   const resetToken = crypto.randomBytes(32).toString("hex");
-  await prisma.passwordResetToken.create({
-    data: {
-      userId: user.id,
-      token: resetToken,
-      expiresAt: new Date(Date.now() + 3600000), // 1 hour
-    },
+  await PasswordResetTokenRepository.create({
+    userId: user.id,
+    token: resetToken,
+    expiresAt: new Date(Date.now() + 3600000), // 1 hour
   });
 
   // Try sending reset email
   try {
     await sendResetPasswordEmail(user, resetToken);
-  // eslint-disable-next-line no-unused-vars
   } catch (err) {
-    // console.error("Error sending reset password email:", err);
     return {
       status: 500,
       response: { error: "Failed to send reset password email." },
@@ -178,10 +172,7 @@ export async function resetPasswordRequestService(email) {
  * @returns {Object} { status, response }
  */
 export async function resetPasswordService(token, newPassword) {
-  const resetTokenEntry = await prisma.passwordResetToken.findUnique({
-    where: { token },
-  });
-
+  const resetTokenEntry = await PasswordResetTokenRepository.findUnique({ token });
   if (!resetTokenEntry || resetTokenEntry.expiresAt < new Date()) {
     return {
       status: 400,
@@ -190,12 +181,8 @@ export async function resetPasswordService(token, newPassword) {
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await prisma.user.update({
-    where: { id: resetTokenEntry.userId },
-    data: { password: hashedPassword },
-  });
-
-  await prisma.passwordResetToken.delete({ where: { token } });
+  await UserRepository.update({ id: resetTokenEntry.userId }, { password: hashedPassword });
+  await PasswordResetTokenRepository.delete({ token });
 
   return {
     status: 200,
@@ -214,7 +201,6 @@ export async function refreshTokenService(refreshToken) {
   let decoded;
   try {
     decoded = verifyToken(refreshToken, true);
-  // eslint-disable-next-line no-unused-vars
   } catch (error) {
     return {
       status: 401,
@@ -222,7 +208,7 @@ export async function refreshTokenService(refreshToken) {
     };
   }
 
-  const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+  const user = await UserRepository.findUnique({ id: decoded.id });
   if (!user) {
     return { status: 404, response: { error: "User not found" } };
   }
@@ -230,14 +216,11 @@ export async function refreshTokenService(refreshToken) {
   if (!user.isVerified) {
     return {
       status: 403,
-      response: {
-        error: "Please verify your email before requesting a new token.",
-      },
+      response: { error: "Please verify your email before requesting a new token." },
     };
   }
 
   const accessToken = generateToken(user);
-
   return {
     status: 200,
     response: new AuthDTO({
@@ -263,12 +246,11 @@ export async function authorizeService(authHeader) {
   let decoded;
   try {
     decoded = verifyToken(token);
-  // eslint-disable-next-line no-unused-vars
   } catch (error) {
     return { status: 400, response: { error: "Invalid or expired token" } };
   }
 
-  const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+  const user = await UserRepository.findUnique({ id: decoded.id });
   if (!user) {
     return { status: 404, response: { error: "User not found" } };
   }

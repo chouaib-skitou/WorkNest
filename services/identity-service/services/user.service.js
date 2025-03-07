@@ -3,10 +3,13 @@
  * Handles the core business logic and database operations for user-related features.
  */
 
-import { prisma } from "../config/database.js";
-import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
+// services/user.service.js
+
 import crypto from "crypto";
+import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
 import { sendAccountCreationEmail } from "./email.service.js";
+import { UserRepository } from "../repositories/user.repository.js";
+import { PasswordResetTokenRepository } from "../repositories/passwordResetToken.repository.js";
 
 /**
  * Retrieve all users with optional filters and pagination.
@@ -30,7 +33,6 @@ export const getAllUsersService = async (requestingUser, query) => {
   const skip = (page - 1) * limit;
 
   const where = {};
-
   if (query.firstName) {
     where.firstName = { contains: query.firstName, mode: "insensitive" };
   }
@@ -49,13 +51,13 @@ export const getAllUsersService = async (requestingUser, query) => {
 
   try {
     const [users, totalCount] = await Promise.all([
-      prisma.user.findMany({
+      UserRepository.findMany({
         where,
         skip,
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
-      prisma.user.count({ where }),
+      UserRepository.count(where),
     ]);
 
     const transformedUsers = users.map((u) => new UserDTO(u));
@@ -89,7 +91,7 @@ export const getUserByIdService = async (requestingUser, id) => {
       });
     }
 
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await UserRepository.findUnique({ id });
     if (!user) {
       return Promise.reject({ status: 404, message: "User not found" });
     }
@@ -118,21 +120,20 @@ export const createUserService = async (requestingUser, data) => {
 
   try {
     // Create the user with isVerified forced to true
-    const newUser = await prisma.user.create({
-      data: { ...data, isVerified: true },
+    const newUser = await UserRepository.create({
+      ...data,
+      isVerified: true,
     });
 
-    // Remove old reset tokens for this user (if any)
-    await prisma.passwordResetToken.deleteMany({ where: { userId: newUser.id } });
+    // Remove old reset tokens for this user (if any) using the reset token repository
+    await PasswordResetTokenRepository.deleteMany({ userId: newUser.id });
 
     // Generate a fresh reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: newUser.id,
-        token: resetToken,
-        expiresAt: new Date(Date.now() + 3600000), // 1 hour expiry
-      },
+    await PasswordResetTokenRepository.create({
+      userId: newUser.id,
+      token: resetToken,
+      expiresAt: new Date(Date.now() + 3600000), // 1 hour expiry
     });
 
     // Send account creation email
@@ -141,7 +142,6 @@ export const createUserService = async (requestingUser, data) => {
     return new UserDTO(newUser);
   } catch (error) {
     console.error("❌ Error creating user in service:", error);
-    // Handle unique constraint on email
     if (error.code === "P2002" && error.meta?.target?.includes("email")) {
       return Promise.reject({
         status: 409,
@@ -169,16 +169,12 @@ export const updateUserService = async (requestingUser, id, data) => {
   }
 
   try {
-    const userExists = await prisma.user.findUnique({ where: { id } });
+    const userExists = await UserRepository.findUnique({ id });
     if (!userExists) {
       return Promise.reject({ status: 404, message: "User not found" });
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data,
-    });
-
+    const updatedUser = await UserRepository.update({ id }, data);
     return new UserDTO(updatedUser);
   } catch (error) {
     console.error("❌ Error updating user in service:", error);
@@ -194,8 +190,8 @@ export const updateUserService = async (requestingUser, id, data) => {
 
 /**
  * Partially update a user (PATCH).
- * - Admin can patch any field
- * - Non-admin users can patch only their own firstName and lastName
+ * - Admin can patch any field.
+ * - Non-admin users can patch only their own firstName and lastName.
  * @param {Object} requestingUser - The user making the request.
  * @param {string} id - The ID of the user to patch.
  * @param {Object} data - The partial fields to update.
@@ -203,7 +199,7 @@ export const updateUserService = async (requestingUser, id, data) => {
  */
 export const patchUserService = async (requestingUser, id, data) => {
   try {
-    const userExists = await prisma.user.findUnique({ where: { id } });
+    const userExists = await UserRepository.findUnique({ id });
     if (!userExists) {
       return Promise.reject({ status: 404, message: "User not found" });
     }
@@ -236,11 +232,7 @@ export const patchUserService = async (requestingUser, id, data) => {
       }
     });
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
-
+    const updatedUser = await UserRepository.update({ id }, updateData);
     return new UserDTO(updatedUser);
   } catch (error) {
     console.error("❌ Error patching user in service:", error);
@@ -257,7 +249,7 @@ export const patchUserService = async (requestingUser, id, data) => {
 /**
  * Delete a user.
  * Only accessible by admins (ROLE_ADMIN).
- * @param {Object} requestingUser - The user making the request.
+ * @param {Object} requestingUser - The user deleting the user.
  * @param {string} id - The ID of the user to delete.
  * @returns {Promise<Object>} A success message (or an error).
  */
@@ -270,12 +262,12 @@ export const deleteUserService = async (requestingUser, id) => {
   }
 
   try {
-    const userToDelete = await prisma.user.findUnique({ where: { id } });
+    const userToDelete = await UserRepository.findUnique({ id });
     if (!userToDelete) {
       return Promise.reject({ status: 404, message: "User not found" });
     }
 
-    await prisma.user.delete({ where: { id } });
+    await UserRepository.delete({ id });
     return { message: "User deleted successfully" };
   } catch (error) {
     console.error("❌ Error deleting user in service:", error);
@@ -290,26 +282,14 @@ export const deleteUserService = async (requestingUser, id) => {
  * @returns {Promise<Array<UserBatchDTO>>} Minimal user info.
  */
 export const getUsersByIdsService = async (requestingUser, body) => {
-  // You can add role checks if needed; for example, only an admin could do a batch lookup.
-  // For now, we’ll leave it open to any authenticated user. Adjust as needed.
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) {
     return Promise.reject({ status: 400, message: "No user ids provided" });
   }
 
   try {
-    const users = await prisma.user.findMany({
-      where: { id: { in: ids } },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-      },
-    });
-
-    const result = users.map((user) => new UserBatchDTO(user));
-    return result;
+    const users = await UserRepository.findManyByIds(ids);
+    return users.map((u) => new UserBatchDTO(u));
   } catch (error) {
     console.error("❌ Error fetching users by IDs in service:", error);
     return Promise.reject({ status: 500, message: "Internal server error" });
