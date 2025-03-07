@@ -13,6 +13,7 @@ import {
   getUsersByIdsService,
 } from "../../../services/user.service.js";
 import { UserRepository } from "../../../repositories/user.repository.js";
+import { PasswordResetTokenRepository } from "../../../repositories/passwordResetToken.repository.js";
 
 // Mock the repository calls:
 jest.mock("../../../repositories/user.repository.js", () => ({
@@ -23,9 +24,14 @@ jest.mock("../../../repositories/user.repository.js", () => ({
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-    deleteResetTokensByUserId: jest.fn(),
-    createResetToken: jest.fn(),
     findManyByIds: jest.fn(),
+  },
+}));
+
+jest.mock("../../../repositories/passwordResetToken.repository.js", () => ({
+  PasswordResetTokenRepository: {
+    deleteMany: jest.fn(),
+    create: jest.fn(),
   },
 }));
 
@@ -46,9 +52,6 @@ describe("User Service Tests", () => {
     jest.clearAllMocks();
   });
 
-  // ---------------------------------------------------------------------------
-  // getAllUsersService
-  // ---------------------------------------------------------------------------
   describe("getAllUsersService", () => {
     test("🚫 rejects if user is not manager or admin", async () => {
       await expect(getAllUsersService(basicUser, {})).rejects.toEqual({
@@ -100,31 +103,25 @@ describe("User Service Tests", () => {
     });
 
     test("✅ defaults limit=10 if limit < 1 in getAllUsersService", async () => {
-      // Mock repository calls so they don't break
+      // Provide a limit < 1 (e.g. "-2") but a valid page (e.g. "2")
       UserRepository.findMany.mockResolvedValue([]);
       UserRepository.count.mockResolvedValue(0);
     
-      // Provide a limit < 1 (e.g. "0") but a valid page (e.g. "2")
       const query = { page: "2", limit: "-2" };
     
       const result = await getAllUsersService(adminUser, query);
     
-      // This should specifically trigger the line:
-      // if (limit < 1) limit = 10;
       expect(result.page).toBe(2);  // unchanged
       expect(result.limit).toBe(10); // forced to 10
     
-      // skip = (page - 1) * limit => (2 - 1)*10=10
-      // take = limit => 10
       expect(UserRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          skip: 10,
+          skip: 10, // (2 - 1)*10
           take: 10,
         })
       );
     });
-          
-
+    
     test("✅ applies query filters (firstName, lastName, email, etc.)", async () => {
       UserRepository.findMany.mockResolvedValue([]);
       UserRepository.count.mockResolvedValue(0);
@@ -158,10 +155,7 @@ describe("User Service Tests", () => {
       });
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // getUserByIdService
-  // ---------------------------------------------------------------------------
+  
   describe("getUserByIdService", () => {
     test("🚫 rejects if not admin and not same user ID", async () => {
       await expect(getUserByIdService(basicUser, "someone-else-id")).rejects.toEqual({
@@ -201,10 +195,7 @@ describe("User Service Tests", () => {
       });
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // createUserService
-  // ---------------------------------------------------------------------------
+  
   describe("createUserService", () => {
     test("🚫 rejects if not admin", async () => {
       await expect(createUserService(basicUser, {})).rejects.toEqual({
@@ -215,10 +206,10 @@ describe("User Service Tests", () => {
 
     test("✅ creates user with isVerified forced to true, sends email", async () => {
       UserRepository.create.mockResolvedValue({ id: "new-user" });
-      UserRepository.deleteResetTokensByUserId.mockResolvedValue(0);
-      UserRepository.createResetToken.mockResolvedValue({ id: "token-id" });
+      PasswordResetTokenRepository.deleteMany.mockResolvedValue({ count: 0 });
+      PasswordResetTokenRepository.create.mockResolvedValue({ id: "token-id" });
 
-      // Proper mocking of crypto.randomBytes in plain JS:
+      // Properly mock crypto.randomBytes
       jest.spyOn(crypto, "randomBytes").mockReturnValue(Buffer.from("mockedbytes"));
 
       const result = await createUserService(adminUser, {
@@ -228,8 +219,8 @@ describe("User Service Tests", () => {
         email: "test@example.com",
         isVerified: true,
       });
-      expect(UserRepository.deleteResetTokensByUserId).toHaveBeenCalledWith("new-user");
-      expect(UserRepository.createResetToken).toHaveBeenCalledWith(
+      expect(PasswordResetTokenRepository.deleteMany).toHaveBeenCalledWith({ userId: "new-user" });
+      expect(PasswordResetTokenRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "new-user",
           token: expect.any(String),
@@ -257,10 +248,7 @@ describe("User Service Tests", () => {
       });
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // updateUserService
-  // ---------------------------------------------------------------------------
+  
   describe("updateUserService", () => {
     test("🚫 rejects if not admin", async () => {
       await expect(updateUserService(basicUser, "some-id", {})).rejects.toEqual({
@@ -315,9 +303,6 @@ describe("User Service Tests", () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // patchUserService
-  // ---------------------------------------------------------------------------
   describe("patchUserService", () => {
     test("🚫 rejects with 404 if user not found", async () => {
       UserRepository.findUnique.mockResolvedValue(null);
@@ -351,7 +336,6 @@ describe("User Service Tests", () => {
         firstName: "NewName",
         email: "something@new.com",
       });
-      // note that all provided fields are allowed for admin
       expect(UserRepository.update).toHaveBeenCalledWith(
         { id: "some-id" },
         { firstName: "NewName", email: "something@new.com" }
@@ -360,24 +344,19 @@ describe("User Service Tests", () => {
     });
 
     test("✅ patches user, skipping fields that are undefined", async () => {
-      // This ensures the user to patch actually exists
       UserRepository.findUnique.mockResolvedValue({ id: "some-id" });
-      // We'll say the final updated user has only 'lastName' set
       UserRepository.update.mockResolvedValue({ id: "some-id", lastName: "Smith" });
 
       const patchData = {
-        firstName: undefined, // <--- This triggers the else path
+        firstName: undefined,
         lastName: "Smith",
       };
 
       const result = await patchUserService(adminUser, "some-id", patchData);
-
-      // Expect that 'firstName' was NOT included in the final update data
       expect(UserRepository.update).toHaveBeenCalledWith(
         { id: "some-id" },
-        { lastName: "Smith" } // no firstName in here
+        { lastName: "Smith" }
       );
-
       expect(result).toEqual(new UserDTO({ id: "some-id", lastName: "Smith" }));
     });
 
@@ -394,9 +373,7 @@ describe("User Service Tests", () => {
         { id: "basic-id" },
         { firstName: "Patched", lastName: "User" }
       );
-      expect(result).toEqual(
-        new UserDTO({ id: "basic-id", firstName: "Patched", lastName: "User" })
-      );
+      expect(result).toEqual(new UserDTO({ id: "basic-id", firstName: "Patched", lastName: "User" }));
     });
 
     test("🚫 rejects with 409 if email conflict on patch", async () => {
@@ -422,9 +399,6 @@ describe("User Service Tests", () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // deleteUserService
-  // ---------------------------------------------------------------------------
   describe("deleteUserService", () => {
     test("🚫 rejects if not admin", async () => {
       await expect(deleteUserService(basicUser, "any-id")).rejects.toEqual({
@@ -458,10 +432,7 @@ describe("User Service Tests", () => {
       });
     });
   });
-
-  // ---------------------------------------------------------------------------
-  // getUsersByIdsService
-  // ---------------------------------------------------------------------------
+  
   describe("getUsersByIdsService", () => {
     test("🚫 rejects if no IDs provided", async () => {
       await expect(getUsersByIdsService(adminUser, { ids: [] })).rejects.toEqual({
