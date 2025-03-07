@@ -9,6 +9,7 @@ import crypto from "crypto";
 import { UserDTO, UserBatchDTO } from "../dtos/user.dto.js";
 import { sendAccountCreationEmail } from "./email.service.js";
 import { UserRepository } from "../repositories/user.repository.js";
+import { PasswordResetTokenRepository } from "../repositories/passwordResetToken.repository.js";
 
 /**
  * Retrieve all users with optional filters and pagination.
@@ -124,12 +125,12 @@ export const createUserService = async (requestingUser, data) => {
       isVerified: true,
     });
 
-    // Remove old reset tokens for this user (if any)
-    await UserRepository.deleteResetTokensByUserId(newUser.id);
+    // Remove old reset tokens for this user (if any) using the reset token repository
+    await PasswordResetTokenRepository.deleteMany({ userId: newUser.id });
 
     // Generate a fresh reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
-    await UserRepository.createResetToken({
+    await PasswordResetTokenRepository.create({
       userId: newUser.id,
       token: resetToken,
       expiresAt: new Date(Date.now() + 3600000), // 1 hour expiry
@@ -189,8 +190,8 @@ export const updateUserService = async (requestingUser, id, data) => {
 
 /**
  * Partially update a user (PATCH).
- * - Admin can patch any field
- * - Non-admin users can patch only their own firstName and lastName
+ * - Admin can patch any field.
+ * - Non-admin users can patch only their own firstName and lastName.
  * @param {Object} requestingUser - The user making the request.
  * @param {string} id - The ID of the user to patch.
  * @param {Object} data - The partial fields to update.
@@ -294,4 +295,3 @@ export const getUsersByIdsService = async (requestingUser, body) => {
     return Promise.reject({ status: 500, message: "Internal server error" });
   }
 };
-
