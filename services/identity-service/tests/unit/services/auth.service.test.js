@@ -1,13 +1,10 @@
-/**
- * tests/unit/services/auth.service.test.js
- */
-import { prisma } from "../../../config/database.js";
-import { generateToken, generateRefreshToken, verifyToken } from "../../../config/jwt.js";
-import { sendVerificationEmail, sendResetPasswordEmail } from "../../../services/email.service.js";
+// tests/unit/services/auth.service.test.js
+
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import dotenv from "dotenv";
-
+import { generateToken, generateRefreshToken, verifyToken } from "../../../config/jwt.js";
+import { sendVerificationEmail, sendResetPasswordEmail } from "../../../services/email.service.js";
 import {
   registerService,
   loginService,
@@ -17,29 +14,38 @@ import {
   refreshTokenService,
   authorizeService,
 } from "../../../services/auth.service.js";
-
 import { UserDTO } from "../../../dtos/user.dto.js";
 import { AuthDTO } from "../../../dtos/auth.dto.js";
 
-// Mock all external dependencies
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-    verificationToken: {
-      create: jest.fn(),
-      findFirst: jest.fn(),
-      delete: jest.fn(),
-    },
-    passwordResetToken: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      delete: jest.fn(),
-      deleteMany: jest.fn(),
-    },
+// Import repositories to be mocked
+import { UserRepository } from "../../../repositories/user.repository.js";
+import { VerificationTokenRepository } from "../../../repositories/verificationToken.repository.js";
+import { PasswordResetTokenRepository } from "../../../repositories/passwordResetToken.repository.js";
+
+jest.mock("../../../repositories/user.repository.js", () => ({
+  UserRepository: {
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findManyByIds: jest.fn(),
+  },
+}));
+
+jest.mock("../../../repositories/verificationToken.repository.js", () => ({
+  VerificationTokenRepository: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+jest.mock("../../../repositories/passwordResetToken.repository.js", () => ({
+  PasswordResetTokenRepository: {
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
   },
 }));
 
@@ -48,17 +54,14 @@ jest.mock("../../../config/jwt.js", () => ({
   generateRefreshToken: jest.fn(),
   verifyToken: jest.fn(),
 }));
-
 jest.mock("../../../services/email.service.js", () => ({
   sendVerificationEmail: jest.fn(),
   sendResetPasswordEmail: jest.fn(),
 }));
-
 jest.mock("bcryptjs", () => ({
   hash: jest.fn(),
   compare: jest.fn(),
 }));
-
 jest.mock("crypto", () => ({
   randomBytes: jest.fn(),
 }));
@@ -66,7 +69,6 @@ jest.mock("crypto", () => ({
 dotenv.config();
 
 describe("🧪 Auth Service Tests", () => {
-  // Reusable data
   let mockUser;
   let mockDateNow;
 
@@ -88,19 +90,17 @@ describe("🧪 Auth Service Tests", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
-  
+
+  // --- registerService ---
   describe("registerService", () => {
     test("✅ registers user successfully", async () => {
-      prisma.user.findUnique.mockResolvedValue(null); // no user with this email
+      UserRepository.findUnique.mockResolvedValue(null);
       bcrypt.hash.mockResolvedValue("hashedPassword");
-      prisma.user.create.mockResolvedValue({ ...mockUser, password: "hashedPassword" });
+      UserRepository.create.mockResolvedValue({ ...mockUser, password: "hashedPassword" });
 
-      // mock token creation
       const fakeToken = "fake-verification-token";
       crypto.randomBytes.mockReturnValue(Buffer.from(fakeToken, "utf-8"));
-      prisma.verificationToken.create.mockResolvedValue({ id: "v-token-id" });
-
-      // mock send email
+      VerificationTokenRepository.create.mockResolvedValue({ id: "v-token-id" });
       sendVerificationEmail.mockResolvedValue(true);
 
       const data = {
@@ -112,11 +112,11 @@ describe("🧪 Auth Service Tests", () => {
 
       const result = await registerService(data);
 
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: "john@example.com" } });
+      expect(UserRepository.findUnique).toHaveBeenCalledWith({ email: "john@example.com" });
       expect(bcrypt.hash).toHaveBeenCalledWith("PlainPass123!", 10);
-      expect(prisma.user.create).toHaveBeenCalled();
+      expect(UserRepository.create).toHaveBeenCalled();
       expect(crypto.randomBytes).toHaveBeenCalledWith(32);
-      expect(prisma.verificationToken.create).toHaveBeenCalled();
+      expect(VerificationTokenRepository.create).toHaveBeenCalled();
       expect(sendVerificationEmail).toHaveBeenCalledWith(
         expect.objectContaining({ email: "john@example.com" }),
         expect.any(String)
@@ -131,8 +131,7 @@ describe("🧪 Auth Service Tests", () => {
     });
 
     test("🚫 fails if email in use => returns 409", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser); // user found => conflict
-
+      UserRepository.findUnique.mockResolvedValue(mockUser);
       const data = {
         firstName: "Alice",
         lastName: "Smith",
@@ -146,67 +145,67 @@ describe("🧪 Auth Service Tests", () => {
     });
 
     test("✅ success, user created, verification email sent => 201", async () => {
-        prisma.user.findUnique.mockResolvedValue(null); // No existing user
-        bcrypt.hash.mockResolvedValue("hashedPassword");
-        prisma.user.create.mockResolvedValue({ ...mockUser, password: "hashedPassword" });
-        crypto.randomBytes.mockReturnValue(Buffer.from("fake-token", "utf-8"));
-        prisma.verificationToken.create.mockResolvedValue({ id: "vtoken-1" });
-        sendVerificationEmail.mockResolvedValue(true);
-  
-        const data = {
-          firstName: "John",
-          lastName: "Doe",
-          email: "john@example.com",
-          password: "plain123!",
-        };
-        const result = await registerService(data);
-  
-        expect(result.status).toBe(201);
-        expect(result.response).toEqual({
-          message: "User registered successfully. Please verify your email.",
-        });
+      UserRepository.findUnique.mockResolvedValue(null);
+      bcrypt.hash.mockResolvedValue("hashedPassword");
+      UserRepository.create.mockResolvedValue({ ...mockUser, password: "hashedPassword" });
+      crypto.randomBytes.mockReturnValue(Buffer.from("fake-token", "utf-8"));
+      VerificationTokenRepository.create.mockResolvedValue({ id: "vtoken-1" });
+      sendVerificationEmail.mockResolvedValue(true);
+
+      const data = {
+        firstName: "John",
+        lastName: "Doe",
+        email: "john@example.com",
+        password: "plain123!",
+      };
+      const result = await registerService(data);
+
+      expect(result.status).toBe(201);
+      expect(result.response).toEqual({
+        message: "User registered successfully. Please verify your email.",
       });
-  
-      test("🚫 email in use => 409", async () => {
-        prisma.user.findUnique.mockResolvedValue(mockUser);
-        const data = { email: "john@example.com", password: "abc" };
-        const result = await registerService(data);
-        expect(result.status).toBe(409);
-        expect(result.response).toEqual({ error: "Email already in use" });
+    });
+
+    test("🚫 email in use => 409", async () => {
+      UserRepository.findUnique.mockResolvedValue(mockUser);
+      const data = { email: "john@example.com", password: "abc" };
+      const result = await registerService(data);
+      expect(result.status).toBe(409);
+      expect(result.response).toEqual({ error: "Email already in use" });
+    });
+
+    test("🚫 fails sending verification email => returns 500 partial error", async () => {
+      UserRepository.findUnique.mockResolvedValue(null);
+      bcrypt.hash.mockResolvedValue("hashed-here");
+      UserRepository.create.mockResolvedValue(mockUser);
+      crypto.randomBytes.mockReturnValue(Buffer.from("some-token", "utf-8"));
+      VerificationTokenRepository.create.mockResolvedValue({ id: "vtoken-id" });
+
+      sendVerificationEmail.mockRejectedValue(new Error("SMTP fail"));
+
+      const data = { email: "newuser@example.com", password: "abc" };
+      const result = await registerService(data);
+
+      expect(result.status).toBe(500);
+      expect(result.response).toEqual({
+        error: "User created but failed to send verification email.",
       });
-  
-      test("🚫 fails sending verification email => returns 500 partial error", async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-        bcrypt.hash.mockResolvedValue("hashed-here");
-        prisma.user.create.mockResolvedValue(mockUser);
-        crypto.randomBytes.mockReturnValue(Buffer.from("some-token", "utf-8"));
-        prisma.verificationToken.create.mockResolvedValue({ id: "vtoken-id" });
-  
-        sendVerificationEmail.mockRejectedValue(new Error("SMTP fail"));
-  
-        const data = { email: "newuser@example.com", password: "abc" };
-        const result = await registerService(data);
-  
-        expect(result.status).toBe(500);
-        expect(result.response).toEqual({
-          error: "User created but failed to send verification email.",
-        });
-      });
+    });
   });
 
+  // --- loginService ---
   describe("loginService", () => {
     test("✅ login success => returns 200 with AuthDTO", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
+      UserRepository.findUnique.mockResolvedValue({ ...mockUser, isVerified: true });
       bcrypt.compare.mockResolvedValue(true);
       generateToken.mockReturnValue("acc-token");
       generateRefreshToken.mockReturnValue("ref-token");
-      // user was isVerified=false in mockUser, let's set it to true for successful login
       mockUser.isVerified = true;
 
       const data = { email: "john@example.com", password: "PlainPass123" };
       const result = await loginService(data);
 
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: data.email } });
+      expect(UserRepository.findUnique).toHaveBeenCalledWith({ email: data.email });
       expect(bcrypt.compare).toHaveBeenCalledWith("PlainPass123", "hashed-pass");
       expect(generateToken).toHaveBeenCalledWith(mockUser);
       expect(generateRefreshToken).toHaveBeenCalledWith(mockUser);
@@ -219,175 +218,113 @@ describe("🧪 Auth Service Tests", () => {
     });
 
     test("🚫 invalid credentials => 401", async () => {
-      prisma.user.findUnique.mockResolvedValue(null); // user not found
-
-      const result = await loginService({
-        email: "nope@example.com",
-        password: "AnyPass",
-      });
-
+      UserRepository.findUnique.mockResolvedValue(null);
+      const result = await loginService({ email: "nope@example.com", password: "AnyPass" });
       expect(result.status).toBe(401);
       expect(result.response).toEqual({ error: "Invalid credentials" });
     });
 
     test("🚫 user found, but password mismatch => 401", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      bcrypt.compare.mockResolvedValue(false); // mismatch
-
-      const result = await loginService({
-        email: "john@example.com",
-        password: "WrongPass",
-      });
-
+      UserRepository.findUnique.mockResolvedValue(mockUser);
+      bcrypt.compare.mockResolvedValue(false);
+      const result = await loginService({ email: "john@example.com", password: "WrongPass" });
       expect(result.status).toBe(401);
       expect(result.response).toEqual({ error: "Invalid credentials" });
     });
 
     test("🚫 user not verified => 403", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
+      UserRepository.findUnique.mockResolvedValue(mockUser);
       bcrypt.compare.mockResolvedValue(true);
-      // user.isVerified => false (by default in mockUser)
-
-      const result = await loginService({
-        email: "john@example.com",
-        password: "AnyPass",
-      });
-
+      const result = await loginService({ email: "john@example.com", password: "AnyPass" });
       expect(result.status).toBe(403);
       expect(result.response).toEqual({ error: "Please verify your email before logging in." });
     });
   });
 
+  // --- verifyEmailService ---
   describe("verifyEmailService", () => {
-    test("✅ verifies token => updates user => returns 302 with redirect", async () => {
-      prisma.verificationToken.findFirst.mockResolvedValue({
+    test("✅ verifies token => updates user => returns redirect", async () => {
+      VerificationTokenRepository.findFirst.mockResolvedValue({
         id: "vtoken-id",
         userId: "user-123",
         token: "verify-token",
         expiresAt: new Date(mockDateNow + 1000),
       });
     
-      prisma.user.update.mockResolvedValue({ ...mockUser, isVerified: true });
-      prisma.verificationToken.delete.mockResolvedValue({});
+      UserRepository.update.mockResolvedValue({ ...mockUser, isVerified: true });
+      VerificationTokenRepository.delete.mockResolvedValue({});
     
       const result = await verifyEmailService("verify-token");
     
-      expect(prisma.verificationToken.findFirst).toHaveBeenCalledWith({
-        where: { token: "verify-token" },
-        include: { user: true }, 
-      });
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: "user-123" },
-        data: { isVerified: true },
-      });
-      expect(prisma.verificationToken.delete).toHaveBeenCalledWith({
-        where: { id: "vtoken-id" },
-      });
+      expect(VerificationTokenRepository.findFirst).toHaveBeenCalledWith({ token: "verify-token" });
+      expect(UserRepository.update).toHaveBeenCalledWith({ id: "user-123" }, { isVerified: true });
+      expect(VerificationTokenRepository.delete).toHaveBeenCalledWith({ id: "vtoken-id" });
       expect(result.redirect).toContain("/login");
     });
     
-
     test("🚫 invalid or expired => 400", async () => {
-      // no token or expired
-      prisma.verificationToken.findFirst.mockResolvedValue(null);
-
-      const result = await verifyEmailService("some-user", "bad-token");
+      VerificationTokenRepository.findFirst.mockResolvedValue(null);
+      const result = await verifyEmailService("bad-token");
       expect(result.status).toBe(400);
       expect(result.response).toEqual({ error: "Invalid or expired verification token." });
     });
   });
-  
+
+  // --- resetPasswordRequestService ---
   describe("resetPasswordRequestService", () => {
     test("✅ reset request success => returns 200", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.passwordResetToken.deleteMany.mockResolvedValue({});
+      UserRepository.findUnique.mockResolvedValue(mockUser);
+      PasswordResetTokenRepository.deleteMany.mockResolvedValue({ count: 0 });
       crypto.randomBytes.mockReturnValue(Buffer.from("reset-token-123", "utf-8"));
-      prisma.passwordResetToken.create.mockResolvedValue({ id: "pr-token-id" });
+      PasswordResetTokenRepository.create.mockResolvedValue({ id: "pr-token-id" });
       sendResetPasswordEmail.mockResolvedValue(true);
 
       const result = await resetPasswordRequestService("john@example.com");
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: "john@example.com" } });
-      expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: "user-123" },
-      });
-      expect(prisma.passwordResetToken.create).toHaveBeenCalled();
+      expect(UserRepository.findUnique).toHaveBeenCalledWith({ email: "john@example.com" });
+      expect(PasswordResetTokenRepository.deleteMany).toHaveBeenCalledWith({ userId: "user-123" });
+      expect(PasswordResetTokenRepository.create).toHaveBeenCalled();
       expect(sendResetPasswordEmail).toHaveBeenCalledWith(mockUser, expect.any(String));
       expect(result.status).toBe(200);
-      expect(result.response).toEqual({
-        message: "Password reset link sent to your email.",
-      });
+      expect(result.response).toEqual({ message: "Password reset link sent to your email." });
     });
 
     test("🚫 user not found => 404", async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      UserRepository.findUnique.mockResolvedValue(null);
       const result = await resetPasswordRequestService("nope@example.com");
       expect(result.status).toBe(404);
-      expect(result.response).toEqual({
-        error: "User with this email does not exist.",
-      });
+      expect(result.response).toEqual({ error: "User with this email does not exist." });
     });
 
-    test("✅ success => 200, reset email sent", async () => {
-        prisma.user.findUnique.mockResolvedValue(mockUser);
-        prisma.passwordResetToken.deleteMany.mockResolvedValue({});
-        crypto.randomBytes.mockReturnValue(Buffer.from("reset-token", "utf-8"));
-        prisma.passwordResetToken.create.mockResolvedValue({ id: "prtoken-id" });
-        sendResetPasswordEmail.mockResolvedValue(true);
-  
-        const result = await resetPasswordRequestService("john@example.com");
-        expect(result.status).toBe(200);
-        expect(result.response).toEqual({
-          message: "Password reset link sent to your email.",
-        });
-      });
-  
-      test("🚫 user not found => 404", async () => {
-        prisma.user.findUnique.mockResolvedValue(null);
-        const result = await resetPasswordRequestService("nope@example.com");
-        expect(result.status).toBe(404);
-        expect(result.response).toEqual({
-          error: "User with this email does not exist.",
-        });
-      });
-  
-      test("🚫 fails sending reset email => 500", async () => {
-        prisma.user.findUnique.mockResolvedValue(mockUser);
-        prisma.passwordResetToken.deleteMany.mockResolvedValue({});
-        crypto.randomBytes.mockReturnValue(Buffer.from("some-reset-ttt", "utf-8"));
-        prisma.passwordResetToken.create.mockResolvedValue({ id: "pr-id" });
-        sendResetPasswordEmail.mockRejectedValue(new Error("Email fail"));
-  
-        const result = await resetPasswordRequestService("john@example.com");
-        expect(result.status).toBe(500);
-        expect(result.response).toEqual({
-          error: "Failed to send reset password email.",
-        });
-      });
+    test("🚫 fails sending reset email => 500", async () => {
+      UserRepository.findUnique.mockResolvedValue(mockUser);
+      PasswordResetTokenRepository.deleteMany.mockResolvedValue({ count: 0 });
+      crypto.randomBytes.mockReturnValue(Buffer.from("some-reset-ttt", "utf-8"));
+      PasswordResetTokenRepository.create.mockResolvedValue({ id: "pr-id" });
+      sendResetPasswordEmail.mockRejectedValue(new Error("Email fail"));
+
+      const result = await resetPasswordRequestService("john@example.com");
+      expect(result.status).toBe(500);
+      expect(result.response).toEqual({ error: "Failed to send reset password email." });
+    });
   });
-  
+
+  // --- resetPasswordService ---
   describe("resetPasswordService", () => {
     test("✅ resets password => 200", async () => {
-      prisma.passwordResetToken.findUnique.mockResolvedValue({
+      PasswordResetTokenRepository.findUnique.mockResolvedValue({
         token: "some-token",
         userId: "user-123",
         expiresAt: new Date(mockDateNow + 10000),
       });
       bcrypt.hash.mockResolvedValue("new-hashed");
-      prisma.user.update.mockResolvedValue({});
-      prisma.passwordResetToken.delete.mockResolvedValue({});
+      UserRepository.update.mockResolvedValue({});
+      PasswordResetTokenRepository.delete.mockResolvedValue({});
 
       const result = await resetPasswordService("some-token", "NewPass!!!");
-      expect(prisma.passwordResetToken.findUnique).toHaveBeenCalledWith({
-        where: { token: "some-token" },
-      });
+      expect(PasswordResetTokenRepository.findUnique).toHaveBeenCalledWith({ token: "some-token" });
       expect(bcrypt.hash).toHaveBeenCalledWith("NewPass!!!", 10);
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: "user-123" },
-        data: { password: "new-hashed" },
-      });
-      expect(prisma.passwordResetToken.delete).toHaveBeenCalledWith({
-        where: { token: "some-token" },
-      });
+      expect(UserRepository.update).toHaveBeenCalledWith({ id: "user-123" }, { password: "new-hashed" });
+      expect(PasswordResetTokenRepository.delete).toHaveBeenCalledWith({ token: "some-token" });
       expect(result.status).toBe(200);
       expect(result.response).toEqual({
         message: "Password reset successful. You can now log in with your new password.",
@@ -395,27 +332,24 @@ describe("🧪 Auth Service Tests", () => {
     });
 
     test("🚫 invalid or expired => 400", async () => {
-      prisma.passwordResetToken.findUnique.mockResolvedValue(null);
+      PasswordResetTokenRepository.findUnique.mockResolvedValue(null);
       const result = await resetPasswordService("expired-token", "SomeNewPass");
       expect(result.status).toBe(400);
       expect(result.response).toEqual({ error: "Invalid or expired reset token." });
     });
   });
-  
+
+  // --- refreshTokenService ---
   describe("refreshTokenService", () => {
     test("✅ refresh success => returns 200 with AuthDTO", async () => {
       verifyToken.mockReturnValue({ id: "user-123" });
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, isVerified: true });
+      UserRepository.findUnique.mockResolvedValue({ ...mockUser, isVerified: true });
       generateToken.mockReturnValue("new-access-token");
 
       const result = await refreshTokenService("old-ref-token");
       expect(verifyToken).toHaveBeenCalledWith("old-ref-token", true);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: "user-123" },
-      });
-      expect(generateToken).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "user-123" })
-      );
+      expect(UserRepository.findUnique).toHaveBeenCalledWith({ id: "user-123" });
+      expect(generateToken).toHaveBeenCalledWith(expect.objectContaining({ id: "user-123" }));
       expect(result.status).toBe(200);
       expect(result.response).toBeInstanceOf(AuthDTO);
       expect(result.response.accessToken).toBe("new-access-token");
@@ -433,8 +367,7 @@ describe("🧪 Auth Service Tests", () => {
 
     test("🚫 user not found => 404", async () => {
       verifyToken.mockReturnValue({ id: "user-missing" });
-      prisma.user.findUnique.mockResolvedValue(null);
-
+      UserRepository.findUnique.mockResolvedValue(null);
       const result = await refreshTokenService("some-valid-ref");
       expect(result.status).toBe(404);
       expect(result.response).toEqual({ error: "User not found" });
@@ -442,8 +375,7 @@ describe("🧪 Auth Service Tests", () => {
 
     test("🚫 user not verified => 403", async () => {
       verifyToken.mockReturnValue({ id: "user-123" });
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, isVerified: false });
-
+      UserRepository.findUnique.mockResolvedValue({ ...mockUser, isVerified: false });
       const result = await refreshTokenService("unverified-ref");
       expect(result.status).toBe(403);
       expect(result.response).toEqual({
@@ -451,7 +383,8 @@ describe("🧪 Auth Service Tests", () => {
       });
     });
   });
-  
+
+  // --- authorizeService ---
   describe("authorizeService", () => {
     test("🚫 missing or invalid auth header => 401", async () => {
       const result = await authorizeService("");
@@ -466,7 +399,6 @@ describe("🧪 Auth Service Tests", () => {
       verifyToken.mockImplementation(() => {
         throw new Error("expired token");
       });
-
       const result = await authorizeService("Bearer bad-token");
       expect(verifyToken).toHaveBeenCalledWith("bad-token");
       expect(result.status).toBe(400);
@@ -475,8 +407,7 @@ describe("🧪 Auth Service Tests", () => {
 
     test("🚫 user not found => 404", async () => {
       verifyToken.mockReturnValue({ id: "missing-user" });
-      prisma.user.findUnique.mockResolvedValue(null);
-
+      UserRepository.findUnique.mockResolvedValue(null);
       const result = await authorizeService("Bearer goodtoken");
       expect(result.status).toBe(404);
       expect(result.response).toEqual({ error: "User not found" });
@@ -484,8 +415,7 @@ describe("🧪 Auth Service Tests", () => {
 
     test("🚫 user not verified => 403", async () => {
       verifyToken.mockReturnValue({ id: "user-123" });
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, isVerified: false });
-
+      UserRepository.findUnique.mockResolvedValue({ ...mockUser, isVerified: false });
       const result = await authorizeService("Bearer realtoken");
       expect(result.status).toBe(403);
       expect(result.response).toEqual({ error: "User is not verified" });
@@ -493,13 +423,10 @@ describe("🧪 Auth Service Tests", () => {
 
     test("✅ success => returns 200 with user info", async () => {
       verifyToken.mockReturnValue({ id: "user-123" });
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, isVerified: true });
+      UserRepository.findUnique.mockResolvedValue({ ...mockUser, isVerified: true });
       const result = await authorizeService("Bearer realtoken2");
-
       expect(result.status).toBe(200);
-      expect(result.response).toEqual({
-        user: expect.any(UserDTO),
-      });
+      expect(result.response).toEqual({ user: expect.any(UserDTO) });
     });
   });
 });
