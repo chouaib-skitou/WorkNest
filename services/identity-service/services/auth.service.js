@@ -1,3 +1,8 @@
+/**
+ * Auth Service Module
+ * Handles the core business logic and database operations for auth-related features.
+ */
+
 // services/auth.service.js
 
 import bcrypt from "bcryptjs";
