@@ -52,14 +52,6 @@ jobs:
           cd services/identity-service
           npm run generate:jwt
 
-      - name: Ensure `.env` is configured correctly
-        run: |
-          cd services/identity-service
-          cp .env.test .env  # Prisma requires .env, not .env.test
-          sed -i "s|REPLACE_WITH_JWT_SECRET|$(cat config/jwt/JWT_SECRET)|g" .env
-          sed -i "s|REPLACE_WITH_JWT_REFRESH_SECRET|$(cat config/jwt/JWT_REFRESH_SECRET)|g" .env
-          echo "✅ JWT secrets replaced in .env"
-
       - name: Wait for PostgreSQL and MailHog to be ready
         run: |
           for i in {1..10}; do
@@ -74,13 +66,10 @@ jobs:
             sleep 5
           done
 
-      - name: Set up Prisma (Force Load `.env`)
+      - name: Run Prisma Migrations for Test DB
         run: |
           cd services/identity-service
-          export $(grep -v '^#' .env | xargs)
-          npx prisma generate
-          npx prisma migrate dev --name init --preview-feature
-          echo "✅ Prisma setup completed"
+          npm run migrate:test
 
       - name: Run ESLint
         run: |
@@ -90,9 +79,8 @@ jobs:
       - name: Run Tests with Code Coverage
         run: |
           cd services/identity-service
-          export $(grep -v '^#' .env | xargs)
           npm run test:coverage
-          
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:

@@ -1,8 +1,8 @@
-/**
- * tests/unit/services/user.service.test.js
- */
+// tests/unit/services/user.service.test.js
 
-import { prisma } from "../../../config/database.js";
+import crypto from "crypto";
+import { UserDTO, UserBatchDTO } from "../../../dtos/user.dto.js";
+import { sendAccountCreationEmail } from "../../../services/email.service.js";
 import {
   getAllUsersService,
   getUserByIdService,
@@ -12,285 +12,226 @@ import {
   deleteUserService,
   getUsersByIdsService,
 } from "../../../services/user.service.js";
-import { UserDTO, UserBatchDTO } from "../../../dtos/user.dto.js";
-import { sendAccountCreationEmail } from "../../../services/email.service.js";
-import crypto from "crypto";
+import { UserRepository } from "../../../repositories/user.repository.js";
+import { PasswordResetTokenRepository } from "../../../repositories/passwordResetToken.repository.js";
 
-// Mock all Prisma calls for user and passwordResetToken
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    user: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    passwordResetToken: {
-      deleteMany: jest.fn(),
-      create: jest.fn(),
-    },
+// Mock the repository calls:
+jest.mock("../../../repositories/user.repository.js", () => ({
+  UserRepository: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    findManyByIds: jest.fn(),
   },
 }));
 
-// Mock email service
+jest.mock("../../../repositories/passwordResetToken.repository.js", () => ({
+  PasswordResetTokenRepository: {
+    deleteMany: jest.fn(),
+    create: jest.fn(),
+  },
+}));
+
+// Mock email service if used
 jest.mock("../../../services/email.service.js", () => ({
   sendAccountCreationEmail: jest.fn(),
 }));
 
-describe("🧪 User Service Tests", () => {
-  let adminUser;
-  let managerUser;
-  let employeeUser;
-  let defaultQuery;
-  let mockUser;
+describe("User Service Tests", () => {
+  let adminUser, managerUser, basicUser;
 
   beforeEach(() => {
-    adminUser = { id: "admin-123", role: "ROLE_ADMIN" };
-    managerUser = { id: "manager-123", role: "ROLE_MANAGER" };
-    employeeUser = { id: "employee-123", role: "ROLE_EMPLOYEE" };
-    defaultQuery = {};
-    mockUser = {
-      id: "user-id-1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      role: "ROLE_EMPLOYEE",
-      isVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Example users with different roles
+    adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
+    managerUser = { id: "manager-id", role: "ROLE_MANAGER" };
+    basicUser = { id: "basic-id", role: "ROLE_EMPLOYEE" };
 
     jest.clearAllMocks();
   });
 
-  //
-  // 1) getAllUsersService
-  //
   describe("getAllUsersService", () => {
-    test("✅ returns users successfully (ROLE_ADMIN or ROLE_MANAGER)", async () => {
-      // Mock data
-      prisma.user.findMany.mockResolvedValue([mockUser]);
-      prisma.user.count.mockResolvedValue(1);
-
-      const result = await getAllUsersService(adminUser, defaultQuery);
-
-      expect(result).toEqual({
-        data: [new UserDTO(mockUser)],
-        page: 1,
-        limit: 10,
-        totalCount: 1,
-        totalPages: 1,
-      });
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 0,
-          take: 10,
-          where: {},
-        })
-      );
-    });
-
-    test("✅ does NOT fall back to limit=10 when limit >= 1", async () => {
-    prisma.user.findMany.mockResolvedValue([mockUser]);
-    prisma.user.count.mockResolvedValue(1);
-    
-    // Provide a valid limit of 3 so we confirm it does NOT get overwritten to 10
-    const query = { page: "1", limit: "3" };
-    const result = await getAllUsersService(adminUser, query);
-    
-    expect(result.limit).toBe(3); // This is the key check
-    expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 3 }) // i.e., the final limit is indeed 3
-    );
-    });
-
-    test("✅ sets limit=10 if limit < 1", async () => {
-    prisma.user.findMany.mockResolvedValue([mockUser]);
-    prisma.user.count.mockResolvedValue(1);
-    
-    // Provide a negative or zero limit to trigger the 'limit < 1' path
-    const query = { page: "2", limit: "-5" };
-    const result = await getAllUsersService(adminUser, query);
-    
-    // Expect that the service forced limit to 10
-    expect(result.limit).toBe(10);
-    expect(result.page).toBe(2);
-    // Also confirm the underlying call used take=10
-    expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 10 })
-    );
-    });
-      
-      
-
-    test("✅ applies pagination & query filters (firstName, lastName, etc.)", async () => {
-      prisma.user.findMany.mockResolvedValue([mockUser]);
-      prisma.user.count.mockResolvedValue(1);
-
-      const query = {
-        page: "2",
-        limit: "5",
-        firstName: "john",
-        lastName: "doe",
-        email: "john@example.com",
-        role: "ROLE_EMPLOYEE",
-        isVerified: "true",
-      };
-
-      const result = await getAllUsersService(managerUser, query);
-
-      expect(prisma.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 5, // because page=2, limit=5
-          take: 5,
-          where: expect.objectContaining({
-            firstName: { contains: "john", mode: "insensitive" },
-            lastName: { contains: "doe", mode: "insensitive" },
-            email: { contains: "john@example.com", mode: "insensitive" },
-            role: "ROLE_EMPLOYEE",
-            isVerified: true,
-          }),
-        })
-      );
-      expect(result.page).toBe(2);
-      expect(result.limit).toBe(5);
-    });
-
-    test("🚫 rejects with 403 if user role is neither ADMIN nor MANAGER", async () => {
-      await expect(
-        getAllUsersService(employeeUser, defaultQuery)
-      ).rejects.toEqual({
+    test("🚫 rejects if user is not manager or admin", async () => {
+      await expect(getAllUsersService(basicUser, {})).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins or managers can list all users",
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      const error = new Error("Database error");
-      prisma.user.findMany.mockRejectedValue(error);
+    test("✅ returns users with pagination for admins", async () => {
+      UserRepository.findMany.mockResolvedValue([{ id: "u1", email: "a@b.com" }]);
+      UserRepository.count.mockResolvedValue(1);
 
-      await expect(getAllUsersService(adminUser, defaultQuery)).rejects.toEqual({
+      const result = await getAllUsersService(adminUser, {});
+      expect(UserRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+          take: 10,
+          orderBy: { createdAt: "desc" },
+        })
+      );
+      expect(UserRepository.count).toHaveBeenCalled();
+      expect(result).toEqual({
+        data: [new UserDTO({ id: "u1", email: "a@b.com" })],
+        page: 1,
+        limit: 10,
+        totalCount: 1,
+        totalPages: 1,
+      });
+    });
+    
+    test("✅ defaults page=1 if page < 1 and defaults limit=10 if limit < 1", async () => {
+      UserRepository.findMany.mockResolvedValue([]);
+      UserRepository.count.mockResolvedValue(0);
+
+      // Provide negative or zero to force the if-condition:
+      const query = { page: "-5", limit: "0" };
+
+      const result = await getAllUsersService(adminUser, query);
+
+      // Expect it to have forced page=1 and limit=10
+      expect(UserRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,   // (1 - 1) * 10
+          take: 10,
+        })
+      );
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+    });
+
+    test("✅ defaults limit=10 if limit < 1 in getAllUsersService", async () => {
+      // Provide a limit < 1 (e.g. "-2") but a valid page (e.g. "2")
+      UserRepository.findMany.mockResolvedValue([]);
+      UserRepository.count.mockResolvedValue(0);
+    
+      const query = { page: "2", limit: "-2" };
+    
+      const result = await getAllUsersService(adminUser, query);
+    
+      expect(result.page).toBe(2);  // unchanged
+      expect(result.limit).toBe(10); // forced to 10
+    
+      expect(UserRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 10, // (2 - 1)*10
+          take: 10,
+        })
+      );
+    });
+    
+    test("✅ applies query filters (firstName, lastName, email, etc.)", async () => {
+      UserRepository.findMany.mockResolvedValue([]);
+      UserRepository.count.mockResolvedValue(0);
+
+      await getAllUsersService(adminUser, {
+        firstName: "John",
+        lastName: "Doe",
+        email: "test@example.com",
+        role: "ROLE_EMPLOYEE",
+        isVerified: "true",
+      });
+      expect(UserRepository.findMany).toHaveBeenCalledWith({
+        where: {
+          firstName: { contains: "John", mode: "insensitive" },
+          lastName: { contains: "Doe", mode: "insensitive" },
+          email: { contains: "test@example.com", mode: "insensitive" },
+          role: "ROLE_EMPLOYEE",
+          isVerified: true,
+        },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: "desc" },
+      });
+    });
+
+    test("🚫 rejects with 500 on repository error", async () => {
+      UserRepository.findMany.mockRejectedValue(new Error("DB error"));
+      await expect(getAllUsersService(adminUser, {})).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
   });
-
-  //
-  // 2) getUserByIdService
-  //
+  
   describe("getUserByIdService", () => {
-    test("✅ returns user if requested by admin", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-
-      const result = await getUserByIdService(adminUser, mockUser.id);
-      expect(result).toEqual(new UserDTO(mockUser));
-    });
-
-    test("✅ returns user if requested by the user themself", async () => {
-      const selfUser = { ...mockUser, id: "self-id" };
-      prisma.user.findUnique.mockResolvedValue(selfUser);
-
-      const callingUser = { id: "self-id", role: "ROLE_EMPLOYEE" };
-      const result = await getUserByIdService(callingUser, "self-id");
-      expect(result).toEqual(new UserDTO(selfUser));
-    });
-
-    test("🚫 rejects with 403 if a user tries to get someone else’s info", async () => {
-      await expect(
-        getUserByIdService(employeeUser, "other-id")
-      ).rejects.toEqual({
+    test("🚫 rejects if not admin and not same user ID", async () => {
+      await expect(getUserByIdService(basicUser, "someone-else-id")).rejects.toEqual({
         status: 403,
         message: "Access denied: You can only view your own profile",
       });
     });
 
-    test("🚫 rejects with 404 if user not found", async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-
-      await expect(getUserByIdService(adminUser, "missing-id")).rejects.toEqual(
-        {
-          status: 404,
-          message: "User not found",
-        }
-      );
+    test("✅ returns user if admin", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "user-id", email: "test@example.com" });
+      const result = await getUserByIdService(adminUser, "user-id");
+      expect(result).toEqual(new UserDTO({ id: "user-id", email: "test@example.com" }));
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      const error = new Error("Database error");
-      prisma.user.findUnique.mockRejectedValue(error);
+    test("✅ returns user if it's the same user ID", async () => {
+      UserRepository.findUnique.mockResolvedValue({
+        id: "basic-id",
+        email: "test2@example.com",
+      });
+      const result = await getUserByIdService(basicUser, "basic-id");
+      expect(result).toEqual(new UserDTO({ id: "basic-id", email: "test2@example.com" }));
+    });
 
-      await expect(getUserByIdService(adminUser, mockUser.id)).rejects.toEqual({
+    test("🚫 rejects with 404 if user not found", async () => {
+      UserRepository.findUnique.mockResolvedValue(null);
+      await expect(getUserByIdService(adminUser, "not-found-id")).rejects.toEqual({
+        status: 404,
+        message: "User not found",
+      });
+    });
+
+    test("🚫 rejects with 500 on repo error", async () => {
+      UserRepository.findUnique.mockRejectedValue(new Error("DB error"));
+      await expect(getUserByIdService(adminUser, "some-id")).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
   });
-
-  //
-  // 3) createUserService
-  //
+  
   describe("createUserService", () => {
-    test("✅ creates user if admin (201) + sends email", async () => {
-      prisma.user.create.mockResolvedValue(mockUser);
-      prisma.passwordResetToken.deleteMany.mockResolvedValue({});
-      prisma.passwordResetToken.create.mockResolvedValue({});
-
-      const result = await createUserService(adminUser, {
-        firstName: "John",
-        lastName: "Doe",
-        email: "john@example.com",
-        password: "Passw0rd!",
-      });
-
-      expect(prisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: {
-            firstName: "John",
-            lastName: "Doe",
-            email: "john@example.com",
-            password: "Passw0rd!",
-            isVerified: true,
-          },
-        })
-      );
-      expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: mockUser.id },
-      });
-      expect(prisma.passwordResetToken.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          userId: mockUser.id,
-          token: expect.any(String),
-          expiresAt: expect.any(Date),
-        }),
-      });
-      expect(sendAccountCreationEmail).toHaveBeenCalledWith(
-        mockUser,
-        expect.any(String) // the reset token
-      );
-      expect(result).toEqual(new UserDTO(mockUser));
-    });
-
-    test("🚫 rejects with 403 if non-admin tries to create user", async () => {
-      await expect(
-        createUserService(employeeUser, {
-          firstName: "Jane",
-          lastName: "Employee",
-        })
-      ).rejects.toEqual({
+    test("🚫 rejects if not admin", async () => {
+      await expect(createUserService(basicUser, {})).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins can create new users",
       });
     });
 
-    test("🚫 rejects with 409 if email already taken (P2002 on email)", async () => {
-      prisma.user.create.mockRejectedValue({
-        code: "P2002",
-        meta: { target: ["email"] },
-      });
+    test("✅ creates user with isVerified forced to true, sends email", async () => {
+      UserRepository.create.mockResolvedValue({ id: "new-user" });
+      PasswordResetTokenRepository.deleteMany.mockResolvedValue({ count: 0 });
+      PasswordResetTokenRepository.create.mockResolvedValue({ id: "token-id" });
 
+      // Properly mock crypto.randomBytes
+      jest.spyOn(crypto, "randomBytes").mockReturnValue(Buffer.from("mockedbytes"));
+
+      const result = await createUserService(adminUser, {
+        email: "test@example.com",
+      });
+      expect(UserRepository.create).toHaveBeenCalledWith({
+        email: "test@example.com",
+        isVerified: true,
+      });
+      expect(PasswordResetTokenRepository.deleteMany).toHaveBeenCalledWith({ userId: "new-user" });
+      expect(PasswordResetTokenRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "new-user",
+          token: expect.any(String),
+        })
+      );
+      expect(sendAccountCreationEmail).toHaveBeenCalled();
+      expect(result).toEqual(new UserDTO({ id: "new-user" }));
+    });
+
+    test("🚫 rejects with 409 if user email conflict (P2002)", async () => {
+      UserRepository.create.mockRejectedValue({ code: "P2002", meta: { target: ["email"] } });
       await expect(
         createUserService(adminUser, { email: "duplicate@example.com" })
       ).rejects.toEqual({
@@ -299,85 +240,62 @@ describe("🧪 User Service Tests", () => {
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      const error = new Error("Database fail");
-      prisma.user.create.mockRejectedValue(error);
-
-      await expect(
-        createUserService(adminUser, { email: "test@example.com" })
-      ).rejects.toEqual({
+    test("🚫 rejects with 500 on other repo errors", async () => {
+      UserRepository.create.mockRejectedValue(new Error("DB error"));
+      await expect(createUserService(adminUser, { email: "x" })).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
   });
-
-  //
-  // 4) updateUserService
-  //
+  
   describe("updateUserService", () => {
-    test("✅ updates user if admin", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockResolvedValue({
-        ...mockUser,
-        firstName: "UpdatedName",
-      });
-
-      const result = await updateUserService(adminUser, mockUser.id, {
-        firstName: "UpdatedName",
-      });
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-      });
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-        data: { firstName: "UpdatedName" },
-      });
-      expect(result).toEqual(
-        new UserDTO({ ...mockUser, firstName: "UpdatedName" })
-      );
-    });
-
-    test("🚫 rejects with 403 if user is not admin", async () => {
-      await expect(
-        updateUserService(managerUser, mockUser.id, { firstName: "Nope" })
-      ).rejects.toEqual({
+    test("🚫 rejects if not admin", async () => {
+      await expect(updateUserService(basicUser, "some-id", {})).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins can update users",
       });
     });
 
-    test("🚫 rejects with 404 if user does not exist", async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(
-        updateUserService(adminUser, "missing-user", {})
-      ).rejects.toEqual({
+    test("🚫 rejects with 404 if user not found", async () => {
+      UserRepository.findUnique.mockResolvedValue(null);
+      await expect(updateUserService(adminUser, "missing-id", {})).rejects.toEqual({
         status: 404,
         message: "User not found",
       });
     });
 
-    test("🚫 rejects with 409 if email conflicts (P2002 on email)", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockRejectedValue({
-        code: "P2002",
-        meta: { target: ["email"] },
+    test("✅ updates user if admin", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "existing-id" });
+      UserRepository.update.mockResolvedValue({ id: "existing-id", email: "updated@example.com" });
+      const result = await updateUserService(adminUser, "existing-id", {
+        email: "updated@example.com",
       });
+      expect(UserRepository.update).toHaveBeenCalledWith(
+        { id: "existing-id" },
+        { email: "updated@example.com" }
+      );
+      expect(result).toEqual(
+        new UserDTO({ id: "existing-id", email: "updated@example.com" })
+      );
+    });
 
+    test("🚫 rejects with 409 if email conflict on update", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "existing-id" });
+      UserRepository.update.mockRejectedValue({ code: "P2002", meta: { target: ["email"] } });
       await expect(
-        updateUserService(adminUser, mockUser.id, { email: "conflict@x.com" })
+        updateUserService(adminUser, "existing-id", { email: "conflict" })
       ).rejects.toEqual({
         status: 409,
         message: "A user with that email already exists",
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockRejectedValue(new Error("DB error"));
-
+    test("🚫 rejects with 500 on other errors", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "existing-id" });
+      UserRepository.update.mockRejectedValue(new Error("DB error"));
       await expect(
-        updateUserService(adminUser, mockUser.id, {})
+        updateUserService(adminUser, "existing-id", { email: "boo" })
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -385,106 +303,95 @@ describe("🧪 User Service Tests", () => {
     });
   });
 
-  //
-  // 5) patchUserService
-  //
   describe("patchUserService", () => {
-    // test("✅ patches user if admin (can patch any field)", async () => {
-    //     prisma.user.findUnique.mockResolvedValue(mockUser);
-    //     // Only updating lastName in the resolved object:
-    //     prisma.user.update.mockResolvedValue({ ...mockUser, lastName: "Patched" });
-      
-    //     const result = await patchUserService(adminUser, mockUser.id, {
-    //       lastName: "Patched",
-    //       email: "patch@example.com", // Admin can patch email as well
-    //     });
-      
-    //     // The test expects the final result to have email=patch@example.com
-    //     expect(result).toEqual(
-    //       new UserDTO({ ...mockUser, lastName: "Patched", email: "patch@example.com" })
-    //     );
-    //   });
-      
-
-    test("✅ patches user if self (only firstName/lastName)", async () => {
-        prisma.user.findUnique.mockResolvedValue({ ...mockUser, id: "self-id" });
-        prisma.user.update.mockResolvedValue({
-          ...mockUser,
-          id: "self-id",
-          firstName: "MyNewName",
-        });
-      
-        const selfUser = { id: "self-id", role: "ROLE_EMPLOYEE" };
-        
-        // Only patch firstName or lastName – no password or other fields:
-        const result = await patchUserService(selfUser, "self-id", {
-          firstName: "MyNewName",
-        });
-      
-        expect(prisma.user.update).toHaveBeenCalledWith({
-          where: { id: "self-id" },
-          data: { firstName: "MyNewName" },
-        });
-        expect(result).toEqual(
-          new UserDTO({ ...mockUser, id: "self-id", firstName: "MyNewName" })
-        );
-      });
-      
-
     test("🚫 rejects with 404 if user not found", async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(
-        patchUserService(adminUser, "missing", {})
-      ).rejects.toEqual({
+      UserRepository.findUnique.mockResolvedValue(null);
+      await expect(patchUserService(adminUser, "unknown-id", {})).rejects.toEqual({
         status: 404,
         message: "User not found",
       });
     });
 
-    test("🚫 rejects with 403 if normal user tries to patch another user’s data", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      await expect(
-        patchUserService(employeeUser, "another-user", { firstName: "Nope" })
-      ).rejects.toEqual({
+    test("🚫 rejects if not admin and not same user ID", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "someone-else" });
+      await expect(patchUserService(basicUser, "someone-else", {})).rejects.toEqual({
         status: 403,
         message: "Access denied: You can only patch your own profile",
       });
     });
 
-    test("🚫 rejects if normal user tries to patch disallowed fields", async () => {
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, id: "employee-123" });
-      await expect(
-        patchUserService(employeeUser, "employee-123", {
-          email: "new@example.com", // not allowed for normal user
-          firstName: "Still ignored",
-        })
-      ).rejects.toEqual({
+    test("🚫 rejects if non-admin tries to patch fields beyond firstName, lastName", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "basic-id" });
+      const patchData = { role: "ROLE_MANAGER" };
+      await expect(patchUserService(basicUser, "basic-id", patchData)).rejects.toEqual({
         status: 403,
         message: "Access denied: Only firstName and lastName can be patched",
       });
     });
 
-    test("🚫 conflicts if email is taken (P2002)", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockRejectedValue({
-        code: "P2002",
-        meta: { target: ["email"] },
+    test("✅ patches user if admin (any fields)", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "some-id" });
+      UserRepository.update.mockResolvedValue({ id: "some-id", firstName: "NewName" });
+      const result = await patchUserService(adminUser, "some-id", {
+        firstName: "NewName",
+        email: "something@new.com",
       });
+      expect(UserRepository.update).toHaveBeenCalledWith(
+        { id: "some-id" },
+        { firstName: "NewName", email: "something@new.com" }
+      );
+      expect(result).toEqual(new UserDTO({ id: "some-id", firstName: "NewName" }));
+    });
 
+    test("✅ patches user, skipping fields that are undefined", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "some-id" });
+      UserRepository.update.mockResolvedValue({ id: "some-id", lastName: "Smith" });
+
+      const patchData = {
+        firstName: undefined,
+        lastName: "Smith",
+      };
+
+      const result = await patchUserService(adminUser, "some-id", patchData);
+      expect(UserRepository.update).toHaveBeenCalledWith(
+        { id: "some-id" },
+        { lastName: "Smith" }
+      );
+      expect(result).toEqual(new UserDTO({ id: "some-id", lastName: "Smith" }));
+    });
+
+    test("✅ patches user if same user (only firstName, lastName)", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "basic-id" });
+      UserRepository.update.mockResolvedValue({
+        id: "basic-id",
+        firstName: "Patched",
+        lastName: "User",
+      });
+      const patchData = { firstName: "Patched", lastName: "User" };
+      const result = await patchUserService(basicUser, "basic-id", patchData);
+      expect(UserRepository.update).toHaveBeenCalledWith(
+        { id: "basic-id" },
+        { firstName: "Patched", lastName: "User" }
+      );
+      expect(result).toEqual(new UserDTO({ id: "basic-id", firstName: "Patched", lastName: "User" }));
+    });
+
+    test("🚫 rejects with 409 if email conflict on patch", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "some-id" });
+      UserRepository.update.mockRejectedValue({ code: "P2002", meta: { target: ["email"] } });
       await expect(
-        patchUserService(adminUser, mockUser.id, { email: "conflict@x.com" })
+        patchUserService(adminUser, "some-id", { email: "dup@example.com" })
       ).rejects.toEqual({
         status: 409,
         message: "A user with that email already exists",
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockRejectedValue(new Error("Patch DB error"));
-
+    test("🚫 rejects with 500 on other errors", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "some-id" });
+      UserRepository.update.mockRejectedValue(new Error("DB error"));
       await expect(
-        patchUserService(adminUser, mockUser.id, { lastName: "X" })
+        patchUserService(adminUser, "some-id", { email: "err@example.com" })
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -492,186 +399,65 @@ describe("🧪 User Service Tests", () => {
     });
   });
 
-  //
-  // 6) deleteUserService
-  //
   describe("deleteUserService", () => {
-    test("✅ deletes user if admin", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.delete.mockResolvedValue({});
-
-      const result = await deleteUserService(adminUser, mockUser.id);
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-      });
-      expect(prisma.user.delete).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-      });
-      expect(result).toEqual({ message: "User deleted successfully" });
-    });
-
-    test("🚫 rejects with 403 if not admin", async () => {
-      await expect(
-        deleteUserService(managerUser, mockUser.id)
-      ).rejects.toEqual({
+    test("🚫 rejects if not admin", async () => {
+      await expect(deleteUserService(basicUser, "any-id")).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins can delete users",
       });
     });
 
     test("🚫 rejects with 404 if user not found", async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
-      await expect(
-        deleteUserService(adminUser, "missing-id")
-      ).rejects.toEqual({
+      UserRepository.findUnique.mockResolvedValue(null);
+      await expect(deleteUserService(adminUser, "ghost-id")).rejects.toEqual({
         status: 404,
         message: "User not found",
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.delete.mockRejectedValue(new Error("Delete error"));
+    test("✅ deletes user if admin", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "to-delete" });
+      UserRepository.delete.mockResolvedValue({ id: "to-delete" });
+      const result = await deleteUserService(adminUser, "to-delete");
+      expect(UserRepository.delete).toHaveBeenCalledWith({ id: "to-delete" });
+      expect(result).toEqual({ message: "User deleted successfully" });
+    });
 
-      await expect(
-        deleteUserService(adminUser, mockUser.id)
-      ).rejects.toEqual({
+    test("🚫 rejects with 500 on repo error", async () => {
+      UserRepository.findUnique.mockResolvedValue({ id: "to-delete" });
+      UserRepository.delete.mockRejectedValue(new Error("DB error"));
+      await expect(deleteUserService(adminUser, "to-delete")).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
   });
-
-  //
-  // 7) getUsersByIdsService
-  //
+  
   describe("getUsersByIdsService", () => {
-    test("✅ returns minimal user info array", async () => {
-      const body = { ids: ["id-1", "id-2"] };
-      prisma.user.findMany.mockResolvedValue([
-        { id: "id-1", firstName: "Alice", lastName: "Smith", role: "ROLE_MANAGER" },
-        { id: "id-2", firstName: "Bob", lastName: "Jones", role: "ROLE_EMPLOYEE" },
-      ]);
-
-      const result = await getUsersByIdsService(adminUser, body);
-      expect(prisma.user.findMany).toHaveBeenCalledWith({
-        where: { id: { in: ["id-1", "id-2"] } },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-        },
-      });
-      expect(result).toEqual([
-        new UserBatchDTO({
-          id: "id-1",
-          firstName: "Alice",
-          lastName: "Smith",
-          role: "ROLE_MANAGER",
-        }),
-        new UserBatchDTO({
-          id: "id-2",
-          firstName: "Bob",
-          lastName: "Jones",
-          role: "ROLE_EMPLOYEE",
-        }),
-      ]);
-    });
-
-    test("🚫 rejects with 400 if no IDs provided", async () => {
-      const body = { ids: [] };
-      await expect(getUsersByIdsService(adminUser, body)).rejects.toEqual({
+    test("🚫 rejects if no IDs provided", async () => {
+      await expect(getUsersByIdsService(adminUser, { ids: [] })).rejects.toEqual({
         status: 400,
         message: "No user ids provided",
       });
     });
 
-    test("🚫 rejects with 500 on unknown error", async () => {
-      prisma.user.findMany.mockRejectedValue(new Error("Batch DB error"));
-      await expect(
-        getUsersByIdsService(adminUser, { ids: ["any"] })
-      ).rejects.toEqual({
+    test("✅ returns minimal user info array", async () => {
+      UserRepository.findManyByIds.mockResolvedValue([
+        { id: "u1", role: "ROLE_EMPLOYEE" },
+        { id: "u2", role: "ROLE_MANAGER" },
+      ]);
+      const result = await getUsersByIdsService(adminUser, { ids: ["u1", "u2"] });
+      expect(result).toEqual([
+        new UserBatchDTO({ id: "u1", role: "ROLE_EMPLOYEE" }),
+        new UserBatchDTO({ id: "u2", role: "ROLE_MANAGER" }),
+      ]);
+    });
+
+    test("🚫 rejects with 500 on repo error", async () => {
+      UserRepository.findManyByIds.mockRejectedValue(new Error("DB error"));
+      await expect(getUsersByIdsService(adminUser, { ids: ["x"] })).rejects.toEqual({
         status: 500,
         message: "Internal server error",
-      });
-    });
-
-    test("✅ role check is optional, but we can keep them open to any user", async () => {
-      // If you wanted to block employees from using batch, you'd check for role inside getUsersByIdsService
-      prisma.user.findMany.mockResolvedValue([]);
-      const result = await getUsersByIdsService(employeeUser, { ids: ["id-1"] });
-      expect(result).toEqual([]);
-    });
-  });
-
-  //
-  // 8) Additional Branch / Edge Cases
-  //
-  describe("Additional Edge Cases", () => {
-    test("getAllUsersService => page < 1 => page forced to 1", async () => {
-      prisma.user.findMany.mockResolvedValue([mockUser]);
-      prisma.user.count.mockResolvedValue(1);
-
-      const query = { page: "-2", limit: "5" };
-      const result = await getAllUsersService(adminUser, query);
-      expect(result.page).toBe(1); // forced to 1
-    });
-
-    test("getAllUsersService => limit < 1 => forced to 10", async () => {
-      prisma.user.findMany.mockResolvedValue([mockUser]);
-      prisma.user.count.mockResolvedValue(1);
-
-      const query = { page: "2", limit: "0" };
-      const result = await getAllUsersService(adminUser, query);
-      expect(result.limit).toBe(10);
-    });
-
-    test("createUserService => ensures isVerified is forced to true", async () => {
-      prisma.user.create.mockResolvedValue({ ...mockUser, isVerified: true });
-      prisma.passwordResetToken.deleteMany.mockResolvedValue({});
-      prisma.passwordResetToken.create.mockResolvedValue({});
-      const userData = {
-        firstName: "Forcing",
-        lastName: "Verified",
-        email: "force@example.com",
-        password: "Passw0rd!",
-        isVerified: false, // we pass false but service sets it to true
-      };
-      await createUserService(adminUser, userData);
-      expect(prisma.user.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          isVerified: true,
-        }),
-      });
-    });
-
-    test("patchUserService => filters out undefined fields only", async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.user.update.mockResolvedValue({ ...mockUser, firstName: "OnlyThis" });
-
-      const patchData = {
-        firstName: "OnlyThis",
-        lastName: undefined, // do not set
-      };
-      await patchUserService(adminUser, mockUser.id, patchData);
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-        data: { firstName: "OnlyThis" },
-      });
-    });
-
-    test("patchUserService => normal user tries to patch both lastName and an invalid field => rejects", async () => {
-      prisma.user.findUnique.mockResolvedValue({ ...mockUser, id: employeeUser.id });
-      await expect(
-        patchUserService(
-          employeeUser,
-          employeeUser.id,
-          { lastName: "Ok", email: "NoWay" } // email is not allowed for normal user
-        )
-      ).rejects.toEqual({
-        status: 403,
-        message: "Access denied: Only firstName and lastName can be patched",
       });
     });
   });

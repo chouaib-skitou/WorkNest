@@ -14,6 +14,8 @@ jest.mock("../../../services/task.service.js");
 
 describe("🛠 Task Controller Tests", () => {
   let req, res;
+  const testToken = "test-token";
+  const authHeader = `Bearer ${testToken}`;
   const taskData = {
     id: "task-uuid",
     title: "task title",
@@ -33,6 +35,7 @@ describe("🛠 Task Controller Tests", () => {
       params: {},
       query: {},
       user: { id: "user-id", role: "ROLE_ADMIN" },
+      headers: { authorization: authHeader },
     };
     res = {
       status: jest.fn().mockReturnThis(),
@@ -54,6 +57,11 @@ describe("🛠 Task Controller Tests", () => {
       req.query.limit = "10";
 
       await taskController.getTasks(req, res);
+      expect(getTasksService).toHaveBeenCalledWith(
+        req.user,
+        req.query,
+        testToken
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         data: [new TaskDTO(taskData)],
@@ -76,8 +84,13 @@ describe("🛠 Task Controller Tests", () => {
     test("✅ should return task by ID successfully (200)", async () => {
       req.params.id = taskData.id;
       getTaskByIdService.mockResolvedValue(new TaskDTO(taskData));
-      // getTaskById is an array; invoke its handler at index 2.
+      // Since getTaskById is an array, invoke its final handler (index 2)
       await taskController.getTaskById[2](req, res);
+      expect(getTaskByIdService).toHaveBeenCalledWith(
+        req.user,
+        taskData.id,
+        testToken
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(new TaskDTO(taskData));
     });
@@ -112,6 +125,11 @@ describe("🛠 Task Controller Tests", () => {
       };
       createTaskService.mockResolvedValue(new TaskDTO(taskData));
       await taskController.createTask[2](req, res);
+      expect(createTaskService).toHaveBeenCalledWith(
+        req.user,
+        req.body,
+        testToken
+      );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith({
         message: "Task created successfully",
@@ -120,10 +138,7 @@ describe("🛠 Task Controller Tests", () => {
     });
 
     test("🚫 should handle duplicate task title error (409) in createTask", async () => {
-      req.body = {
-        title: "Task Title",
-        projectId: taskData.projectId,
-      };
+      req.body = { title: "Task Title", projectId: taskData.projectId };
       createTaskService.mockRejectedValue({
         status: 409,
         message: "A task with this title already exists for this project",
@@ -158,14 +173,16 @@ describe("🛠 Task Controller Tests", () => {
         new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" })
       );
       await taskController.updateTask[2](req, res);
+      expect(updateTaskService).toHaveBeenCalledWith(
+        req.user,
+        taskData.id,
+        req.body,
+        testToken
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         message: "Task updated successfully",
-        task: new TaskDTO({
-          ...taskData,
-          title: "updated task",
-          priority: "LOW",
-        }),
+        task: new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" }),
       });
     });
 
@@ -201,6 +218,12 @@ describe("🛠 Task Controller Tests", () => {
         new TaskDTO({ ...taskData, title: "patched task" })
       );
       await taskController.patchTask[2](req, res);
+      expect(patchTaskService).toHaveBeenCalledWith(
+        req.user,
+        taskData.id,
+        req.body,
+        testToken
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         message: "Task updated successfully",
@@ -254,6 +277,7 @@ describe("🛠 Task Controller Tests", () => {
         message: "Task deleted successfully",
       });
       await taskController.deleteTask[2](req, res);
+      expect(deleteTaskService).toHaveBeenCalledWith(req.user, taskData.id);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         status: 200,

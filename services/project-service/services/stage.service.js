@@ -1,11 +1,10 @@
-// stage.service.js
-import { prisma } from "../config/database.js";
+import { StageRepository } from "../repositories/stage.repository.js";
 import { StageDTO } from "../dtos/stage.dto.js";
 
 /**
  * Generate dynamic filter conditions based on query parameters.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Filter conditions for Prisma query.
+ * @returns {Object} - Filter conditions for repository query.
  */
 const getDynamicFilters = (query) => {
   const filters = {};
@@ -27,7 +26,7 @@ const getDynamicFilters = (query) => {
 /**
  * Generate sorting options for stage queries.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Sorting options for Prisma query.
+ * @returns {Object} - Sorting options for repository query.
  */
 const getSortingOptions = (query) => {
   const allowedFields = ["name", "position"];
@@ -41,7 +40,7 @@ const getSortingOptions = (query) => {
 /**
  * Generate role-based filter for GET operations on stages.
  * ROLE_EMPLOYEE: stages from projects where employeeIds contains user.id.
- * ROLE_MANAGER: stages from projects where managerId, createdBy, or employeeIds match user.id.
+ * ROLE_MANAGER: stages from projects where Project.managerId, Project.createdBy, or Project.employeeIds match user.id.
  * ROLE_ADMIN: no additional filter.
  * @param {Object} user - The user object.
  * @returns {Object} - Filter object for stage queries.
@@ -64,14 +63,14 @@ const getStageRoleBasedFilter = (user) => {
 /**
  * Authorize stage modification (update or patch) based on user role.
  * ROLE_ADMIN: allowed.
- * ROLE_MANAGER: allowed if the related project's managerId or createdBy matches user.id.
+ * ROLE_MANAGER: allowed if the related Project's managerId or createdBy matches user.id.
  * @param {Object} user - The user performing the operation.
  * @param {string} id - The stage ID.
  * @param {Object} logConfig - Custom logging messages.
  * @returns {Promise<Object>} - Resolves with the stage if authorized.
  */
 const authorizeStageModification = async (user, id, logConfig) => {
-  const stage = await prisma.stage.findUnique({
+  const stage = await StageRepository.findUnique({
     where: { id },
     include: { Project: true },
   });
@@ -99,13 +98,13 @@ const authorizeStageModification = async (user, id, logConfig) => {
 /**
  * Authorize stage deletion based on user role.
  * ROLE_ADMIN: allowed.
- * ROLE_MANAGER: allowed only if the stage’s related project was created by the user.
+ * ROLE_MANAGER: allowed only if the related Project was created by the user.
  * @param {Object} user - The user performing the deletion.
  * @param {string} id - The stage ID.
  * @returns {Promise<Object>} - Resolves with the stage if authorized.
  */
 const authorizeStageDeletion = async (user, id) => {
-  const stage = await prisma.stage.findUnique({
+  const stage = await StageRepository.findUnique({
     where: { id },
     include: { Project: true },
   });
@@ -130,7 +129,7 @@ const authorizeStageDeletion = async (user, id) => {
 /**
  * Authorize stage creation based on user role.
  * ROLE_ADMIN: allowed.
- * ROLE_MANAGER: allowed if the related project's managerId or createdBy matches user.id.
+ * ROLE_MANAGER: allowed if the related Project's managerId or createdBy matches user.id.
  * @param {Object} user - The user creating the stage.
  * @param {string} projectId - The project ID for which the stage is being created.
  * @returns {Promise<void>} - Resolves if authorized, otherwise rejects with an error.
@@ -140,16 +139,13 @@ const authorizeStageCreation = async (user, projectId) => {
     console.log(`Admin authorized to create stage for project: ${projectId}`);
     return;
   } else if (user.role === "ROLE_MANAGER") {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
+    // Here we use StageRepository.findUnique for project lookup for simplicity.
+    const project = await StageRepository.findUnique({ where: { id: projectId } });
     if (!project) {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(
-        `Manager authorized to create stage for project: ${projectId}`
-      );
+      console.log(`Manager authorized to create stage for project: ${projectId}`);
       return;
     } else {
       return Promise.reject({
@@ -188,14 +184,14 @@ export const getStagesService = async (user, query) => {
 
   try {
     const [stages, totalCount] = await Promise.all([
-      prisma.stage.findMany({
+      StageRepository.findMany({
         where,
         skip,
         take: limit,
         orderBy,
         include: { tasks: true, Project: true },
       }),
-      prisma.stage.count({ where }),
+      StageRepository.count({ where }),
     ]);
 
     if (totalCount === 0) {
@@ -237,17 +233,17 @@ export const getStagesService = async (user, query) => {
 export const getStageByIdService = async (user, id) => {
   try {
     const where = { id, ...getStageRoleBasedFilter(user) };
-
     console.log("🔍 Debug: Stage role-based filter", where);
 
-    const stage = await prisma.stage.findFirst({
+    // Use findMany and take the first result (if any)
+    const stage = await StageRepository.findMany({
       where,
       include: { tasks: true, Project: true },
-    });
+    }).then((results) => results[0] || null);
 
     if (!stage) {
       console.log("Debug: No stage found with filters", where);
-      const existingStage = await prisma.stage.findUnique({
+      const existingStage = await StageRepository.findUnique({
         where: { id },
         select: { id: true },
       });
@@ -255,8 +251,7 @@ export const getStageByIdService = async (user, id) => {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message:
-            "Access denied: You do not have permission to view this stage",
+          message: "Access denied: You do not have permission to view this stage",
         });
       } else {
         console.warn("Stage not found in database");
@@ -281,19 +276,12 @@ export const getStageByIdService = async (user, id) => {
  */
 export const createStageService = async (user, data) => {
   try {
-    // Authorize stage creation based on user role and project
     await authorizeStageCreation(user, data.projectId);
-
     const stageData = {
       ...data,
       name: data.name.toLowerCase(),
     };
-
-    const newStage = await prisma.stage.create({
-      data: stageData,
-      include: { tasks: true, Project: true },
-    });
-
+    const newStage = await StageRepository.create(stageData, { tasks: true, Project: true });
     return new StageDTO(newStage);
   } catch (error) {
     console.error("Error creating stage:", error);
@@ -324,23 +312,14 @@ export const updateStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog:
-        "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage:
-        "Access denied: You do not have permission to update this stage",
+      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);
-
     const updateData = { ...data };
     if (updateData.name) updateData.name = updateData.name.toLowerCase();
-
-    const updatedStage = await prisma.stage.update({
-      where: { id },
-      data: updateData,
-      include: { tasks: true, Project: true },
-    });
-
+    const updatedStage = await StageRepository.update(id, updateData, { tasks: true, Project: true });
     return new StageDTO(updatedStage);
   } catch (error) {
     console.error("Error updating stage:", error);
@@ -371,10 +350,8 @@ export const patchStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog:
-        "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage:
-        "Access denied: You do not have permission to update this stage",
+      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);
@@ -383,24 +360,16 @@ export const patchStageService = async (user, id, data) => {
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined) updateData[key] = value;
     });
-
     if (Object.keys(updateData).length === 0) {
       return Promise.reject({
         status: 400,
         message: "No valid fields provided for update",
       });
     }
-
     if (updateData.name) {
       updateData.name = updateData.name.toLowerCase();
     }
-
-    const updatedStage = await prisma.stage.update({
-      where: { id },
-      data: updateData,
-      include: { tasks: true, Project: true },
-    });
-
+    const updatedStage = await StageRepository.update(id, updateData, { tasks: true, Project: true });
     return new StageDTO(updatedStage);
   } catch (error) {
     console.error("Error updating stage:", error);
@@ -428,7 +397,7 @@ export const patchStageService = async (user, id, data) => {
 export const deleteStageService = async (user, id) => {
   try {
     await authorizeStageDeletion(user, id);
-    await prisma.stage.delete({ where: { id } });
+    await StageRepository.delete(id);
     return { status: 200, message: "Stage deleted successfully" };
   } catch (error) {
     console.error("Error deleting stage:", error);

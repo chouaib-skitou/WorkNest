@@ -1,21 +1,29 @@
 // tests/unit/services/task.service.test.js
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    task: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    project: {
-      findUnique: jest.fn(),
-    },
+
+jest.mock("../../../repositories/task.repository.js", () => ({
+  TaskRepository: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+    findUnique: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
-import { prisma } from "../../../config/database.js";
+jest.mock("../../../repositories/project.repository.js", () => ({
+  ProjectRepository: {
+    findUnique: jest.fn(),
+  },
+}));
+
+// Mock user enrichment so we can control whether it returns a user object or remains empty
+jest.mock("../../../services/helpers/user.enrichment.js", () => ({
+  fetchUsersByIds: jest.fn(),
+}));
+
+import { TaskRepository } from "../../../repositories/task.repository.js";
+import { ProjectRepository } from "../../../repositories/project.repository.js";
 import { TaskDTO } from "../../../dtos/task.dto.js";
 import {
   getTasksService,
@@ -26,6 +34,7 @@ import {
   deleteTaskService,
   authorizeTaskModification,
 } from "../../../services/task.service.js";
+import { fetchUsersByIds } from "../../../services/helpers/user.enrichment.js";
 
 describe("🛠 Task Service Tests", () => {
   let adminUser, managerUser, employeeUser, query, mockTask, mockProject;
@@ -38,7 +47,7 @@ describe("🛠 Task Service Tests", () => {
     // Project used in task relation:
     mockProject = {
       id: "project-uuid",
-      createdBy: "manager-id", // For manager authorization
+      createdBy: "manager-id",
       managerId: "manager-id",
       employeeIds: ["employee-id"],
     };
@@ -60,16 +69,19 @@ describe("🛠 Task Service Tests", () => {
 
     query = {};
 
+    // By default, return an empty object so 'assignedTo' remains the original string.
+    // Tests that specifically want to see the user object can override this.
+    fetchUsersByIds.mockResolvedValue({});
+
     jest.clearAllMocks();
   });
 
-  // --- getTasksService ---
   describe("getTasksService", () => {
     test("✅ returns tasks successfully with default pagination", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
-      const result = await getTasksService(adminUser, query);
+      const result = await getTasksService(adminUser, query, "fake-token");
 
       expect(result).toEqual({
         data: [new TaskDTO(mockTask)],
@@ -78,13 +90,16 @@ describe("🛠 Task Service Tests", () => {
         totalCount: 1,
         totalPages: 1,
       });
+      // Since assignedTo was "user-uuid", we do call fetchUsersByIds, but it returns {}
+      // => no override for assignedTo
+      expect(fetchUsersByIds).toHaveBeenCalledWith(["user-uuid"], "fake-token");
     });
 
     test("✅ returns empty data when no tasks found", async () => {
-      prisma.task.findMany.mockResolvedValue([]);
-      prisma.task.count.mockResolvedValue(0);
+      TaskRepository.findMany.mockResolvedValue([]);
+      TaskRepository.count.mockResolvedValue(0);
 
-      const result = await getTasksService(adminUser, query);
+      const result = await getTasksService(adminUser, query, "fake-token");
       expect(result).toEqual({
         data: [],
         page: 1,
@@ -92,11 +107,13 @@ describe("🛠 Task Service Tests", () => {
         totalCount: 0,
         totalPages: 0,
       });
+      // No tasks => no call for assignedTo
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
     });
 
     test("✅ applies dynamic filters correctly", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
       const customQuery = {
         title: "Task",
@@ -105,9 +122,9 @@ describe("🛠 Task Service Tests", () => {
         projectId: "project-uuid",
       };
 
-      await getTasksService(adminUser, customQuery);
+      await getTasksService(adminUser, customQuery, "fake-token");
 
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             title: { contains: "Task", mode: "insensitive" },
@@ -120,13 +137,13 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ applies sort options correctly", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
       const customQuery = { sortField: "title", sortOrder: "asc" };
-      await getTasksService(adminUser, customQuery);
+      await getTasksService(adminUser, customQuery, "fake-token");
 
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { title: "asc" },
         })
@@ -134,14 +151,14 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ uses provided numeric page and limit", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
       const customQuery = { page: "2", limit: "5" };
-      const result = await getTasksService(adminUser, customQuery);
+      const result = await getTasksService(adminUser, customQuery, "fake-token");
       expect(result.page).toBe(2);
       expect(result.limit).toBe(5);
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 5,
           take: 5,
@@ -150,27 +167,31 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 403 if error code is P2025", async () => {
-      prisma.task.findMany.mockRejectedValue({ code: "P2025" });
-      await expect(getTasksService(adminUser, query)).rejects.toEqual({
+      TaskRepository.findMany.mockRejectedValue({ code: "P2025" });
+      await expect(
+        getTasksService(adminUser, query, "fake-token")
+      ).rejects.toEqual({
         status: 403,
         message: "Access denied: You do not have permission to view tasks",
       });
     });
 
     test("🚫 rejects with 500 on generic error", async () => {
-      prisma.task.findMany.mockRejectedValue(new Error("Database error"));
-      await expect(getTasksService(adminUser, query)).rejects.toEqual({
+      TaskRepository.findMany.mockRejectedValue(new Error("Database error"));
+      await expect(
+        getTasksService(adminUser, query, "fake-token")
+      ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
 
     test("✅ enforces role-based filter for ROLE_EMPLOYEE", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
-      await getTasksService(employeeUser, {});
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      await getTasksService(employeeUser, {}, "fake-token");
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { Project: { employeeIds: { has: "employee-id" } } },
         })
@@ -178,11 +199,11 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ enforces role-based filter for ROLE_MANAGER", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
-      await getTasksService(managerUser, {});
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      await getTasksService(managerUser, {}, "fake-token");
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             OR: [
@@ -196,11 +217,11 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ no additional filter for ROLE_ADMIN", async () => {
-      prisma.task.findMany.mockResolvedValue([mockTask]);
-      prisma.task.count.mockResolvedValue(1);
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
 
-      await getTasksService(adminUser, {});
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      await getTasksService(adminUser, {}, "fake-token");
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {},
         })
@@ -208,46 +229,89 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ defaults to page=1 if provided page < 1", async () => {
-      prisma.task.findMany.mockResolvedValue([]);
-      prisma.task.count.mockResolvedValue(0);
+      TaskRepository.findMany.mockResolvedValue([]);
+      TaskRepository.count.mockResolvedValue(0);
 
-      const result = await getTasksService(adminUser, { page: "-5" });
+      const result = await getTasksService(
+        adminUser,
+        { page: "-5" },
+        "fake-token"
+      );
       expect(result.page).toBe(1);
     });
 
     test("✅ defaults to limit=10 if provided limit < 1", async () => {
-      prisma.task.findMany.mockResolvedValue([]);
-      prisma.task.count.mockResolvedValue(0);
+      TaskRepository.findMany.mockResolvedValue([]);
+      TaskRepository.count.mockResolvedValue(0);
 
-      const result = await getTasksService(adminUser, { limit: "0" });
+      const result = await getTasksService(
+        adminUser,
+        { limit: "0" },
+        "fake-token"
+      );
       expect(result.limit).toBe(10);
     });
 
     test("✅ falls back to sort by createdAt if sortField is invalid", async () => {
-      prisma.task.findMany.mockResolvedValue([]);
-      prisma.task.count.mockResolvedValue(0);
+      TaskRepository.findMany.mockResolvedValue([]);
+      TaskRepository.count.mockResolvedValue(0);
 
-      await getTasksService(adminUser, { sortField: "invalidField" });
-      expect(prisma.task.findMany).toHaveBeenCalledWith(
+      await getTasksService(adminUser, { sortField: "invalidField" }, "fake-token");
+      expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { createdAt: "desc" },
         })
       );
     });
+
+    test("✅ does not call fetchUsersByIds if assignedTo is null", async () => {
+      const taskNoAssigned = { ...mockTask, assignedTo: null };
+      TaskRepository.findMany.mockResolvedValue([taskNoAssigned]);
+      TaskRepository.count.mockResolvedValue(1);
+
+      const result = await getTasksService(adminUser, {}, "fake-token");
+      expect(result.data).toHaveLength(1);
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
+      expect(result.data[0].assignedTo).toBeNull();
+    });
+
+    // Additional coverage test: demonstrate that if fetchUsersByIds returns a user object,
+    // assignedTo is replaced
+    test("✅ returns an enriched assignedTo if fetchUsersByIds returns a user object", async () => {
+      TaskRepository.findMany.mockResolvedValue([mockTask]);
+      TaskRepository.count.mockResolvedValue(1);
+      // Now we actually return a user
+      fetchUsersByIds.mockResolvedValue({
+        "user-uuid": { id: "user-uuid", name: "Test User" },
+      });
+
+      const result = await getTasksService(adminUser, query, "fake-token");
+      expect(result.data[0].assignedTo).toEqual({
+        id: "user-uuid",
+        name: "Test User",
+      });
+    });
   });
 
-  // --- getTaskByIdService ---
   describe("getTaskByIdService", () => {
     test("✅ returns task successfully if found", async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-      const result = await getTaskByIdService(adminUser, mockTask.id);
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+
+      const result = await getTaskByIdService(
+        adminUser,
+        mockTask.id,
+        "fake-token"
+      );
+      // assignedTo remains "user-uuid" since we return {}
       expect(result).toEqual(new TaskDTO(mockTask));
+      // But we do call fetchUsersByIds
+      expect(fetchUsersByIds).toHaveBeenCalledWith(["user-uuid"], "fake-token");
     });
 
     test("🚫 rejects with 404 if task not found", async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
-        getTaskByIdService(adminUser, "non-existent-id")
+        getTaskByIdService(adminUser, "non-existent-id", "fake-token")
       ).rejects.toEqual({
         status: 404,
         message: "Task not found",
@@ -255,19 +319,47 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 500 on generic error", async () => {
-      prisma.task.findUnique.mockRejectedValue(new Error("Database error"));
-      await expect(getTaskByIdService(adminUser, mockTask.id)).rejects.toEqual({
+      TaskRepository.findUnique.mockRejectedValue(new Error("Database error"));
+      await expect(
+        getTaskByIdService(adminUser, mockTask.id, "fake-token")
+      ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
+
+    test("✅ does not call fetchUsersByIds if assignedTo is null on getTaskByIdService", async () => {
+      const taskNoAssigned = { ...mockTask, assignedTo: null };
+      TaskRepository.findUnique.mockResolvedValue(taskNoAssigned);
+
+      const result = await getTaskByIdService(
+        adminUser,
+        taskNoAssigned.id,
+        "fake-token"
+      );
+      expect(result).toEqual(new TaskDTO(taskNoAssigned));
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
+    });
+
+    // Coverage for actual enrichment if assignedTo is returned from userMap
+    test("✅ returns enriched assignedTo if user found by fetchUsersByIds", async () => {
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      fetchUsersByIds.mockResolvedValue({
+        "user-uuid": { id: "user-uuid", name: "Test User" },
+      });
+      const result = await getTaskByIdService(
+        adminUser,
+        mockTask.id,
+        "fake-token"
+      );
+      expect(result.assignedTo).toEqual({ id: "user-uuid", name: "Test User" });
+    });
   });
 
-  // --- createTaskService ---
   describe("createTaskService", () => {
     test("🚫 rejects with 403 if user is not allowed to create task", async () => {
       await expect(
-        createTaskService(employeeUser, { title: "Test" })
+        createTaskService(employeeUser, { title: "Test" }, "fake-token")
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins and managers can create tasks",
@@ -278,10 +370,11 @@ describe("🛠 Task Service Tests", () => {
       const unknownRoleUser = { id: "unknown-user", role: "ROLE_UNKNOWN" };
 
       await expect(
-        createTaskService(unknownRoleUser, {
-          title: "Title",
-          projectId: "proj-123",
-        })
+        createTaskService(
+          unknownRoleUser,
+          { title: "Title", projectId: "proj-123" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins and managers can create tasks",
@@ -289,13 +382,12 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 404 if project does not exist (manager)", async () => {
-      // Manager tries to create a task, but prisma.project.findUnique => null
-      prisma.project.findUnique.mockResolvedValue(null);
-
+      ProjectRepository.findUnique.mockResolvedValue(null);
       await expect(
         createTaskService(
-          { id: "some-manager", role: "ROLE_MANAGER" },
-          { projectId: "non-existent-proj", title: "Sample" }
+          { id: "managerX", role: "ROLE_MANAGER" },
+          { projectId: "non-existent-proj", title: "Sample" },
+          "fake-token"
         )
       ).rejects.toEqual({
         status: 404,
@@ -304,8 +396,7 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 403 if manager is neither managerId nor createdBy", async () => {
-      // project exists but managerId & createdBy are different
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         ...mockProject,
         managerId: "other-manager",
         createdBy: "other-creator",
@@ -314,7 +405,8 @@ describe("🛠 Task Service Tests", () => {
       await expect(
         createTaskService(
           { id: "some-manager", role: "ROLE_MANAGER" },
-          { projectId: mockProject.id, title: "Sample" }
+          { projectId: mockProject.id, title: "Sample" },
+          "fake-token"
         )
       ).rejects.toEqual({
         status: 403,
@@ -324,7 +416,8 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ creates task successfully (ADMIN)", async () => {
-      prisma.task.create.mockResolvedValue(mockTask);
+      TaskRepository.create.mockResolvedValue(mockTask);
+
       const inputData = {
         title: "New Task",
         description: "Task description",
@@ -334,21 +427,27 @@ describe("🛠 Task Service Tests", () => {
         assignedTo: mockTask.assignedTo,
         images: mockTask.images,
       };
-      const result = await createTaskService(adminUser, inputData);
-      expect(prisma.task.create).toHaveBeenCalledWith(
+      const result = await createTaskService(adminUser, inputData, "fake-token");
+
+      expect(TaskRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { ...inputData, title: "new task" },
+          title: "new task",
+          description: "Task description",
+          projectId: "project-uuid",
+        }),
+        expect.objectContaining({
+          Project: true,
+          Stage: true,
         })
       );
+      // assignedTo was "user-uuid" but fetchUsersByIds is empty => remains a string
       expect(result).toEqual(new TaskDTO(mockTask));
     });
 
     test("✅ creates task successfully for ROLE_MANAGER when authorized", async () => {
-      // For managers, authorizeTaskCreation must succeed.
-      prisma.project.findUnique.mockResolvedValue({
-        ...mockProject,
-      });
-      prisma.task.create.mockResolvedValue(mockTask);
+      ProjectRepository.findUnique.mockResolvedValue(mockProject);
+      TaskRepository.create.mockResolvedValue(mockTask);
+
       const inputData = {
         title: "New Task",
         description: "Task description",
@@ -358,20 +457,25 @@ describe("🛠 Task Service Tests", () => {
         assignedTo: mockTask.assignedTo,
         images: mockTask.images,
       };
-      const result = await createTaskService(managerUser, inputData);
-      expect(prisma.project.findUnique).toHaveBeenCalledWith({
+      const result = await createTaskService(
+        managerUser,
+        inputData,
+        "fake-token"
+      );
+      expect(ProjectRepository.findUnique).toHaveBeenCalledWith({
         where: { id: mockProject.id },
       });
       expect(result).toEqual(new TaskDTO(mockTask));
     });
 
     test("🚫 rejects with 409 on duplicate title (P2002)", async () => {
-      prisma.task.create.mockRejectedValue({ code: "P2002" });
+      TaskRepository.create.mockRejectedValue({ code: "P2002" });
       await expect(
-        createTaskService(adminUser, {
-          title: "Duplicate",
-          projectId: "project-uuid",
-        })
+        createTaskService(
+          adminUser,
+          { title: "Duplicate", projectId: "project-uuid" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 409,
         message: "A task with this title already exists for this project",
@@ -379,28 +483,64 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 500 on generic error in createTaskService", async () => {
-      prisma.task.create.mockRejectedValue(new Error("Database error"));
+      TaskRepository.create.mockRejectedValue(new Error("Database error"));
       await expect(
-        createTaskService(adminUser, {
-          title: "Test",
-          projectId: "project-uuid",
-        })
+        createTaskService(
+          adminUser,
+          { title: "Test", projectId: "project-uuid" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
+
+    test("✅ does not call fetchUsersByIds if newTask.assignedTo is null", async () => {
+      const taskWithoutAssigned = { ...mockTask, assignedTo: null };
+      TaskRepository.create.mockResolvedValue(taskWithoutAssigned);
+
+      const inputData = {
+        title: "Some task",
+        projectId: mockProject.id,
+        assignedTo: null,
+      };
+
+      const result = await createTaskService(adminUser, inputData, "fake-token");
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
+      expect(result.assignedTo).toBeNull();
+    });
+
+    // Additional coverage test: assignedTo is replaced with user object if found
+    test("✅ creates and enriches assignedTo if fetchUsersByIds returns user", async () => {
+      TaskRepository.create.mockResolvedValue(mockTask);
+      fetchUsersByIds.mockResolvedValue({
+        "user-uuid": { id: "user-uuid", name: "Some Manager" },
+      });
+
+      const inputData = {
+        title: "Another Task",
+        projectId: mockProject.id,
+        assignedTo: "user-uuid",
+      };
+      const result = await createTaskService(adminUser, inputData, "fake-token");
+      expect(result.assignedTo).toEqual({
+        id: "user-uuid",
+        name: "Some Manager",
+      });
+    });
   });
 
-  // --- updateTaskService ---
   describe("updateTaskService", () => {
     beforeEach(() => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.update.mockResolvedValue({
         ...mockTask,
         title: "updated task",
         priority: "LOW",
       });
+      // By default, fetchUsersByIds returns {}
+      // so assignedTo remains "user-uuid"
     });
 
     test("🚫 rejects with 403 if manager is neither managerId nor project creator when updating", async () => {
@@ -413,48 +553,48 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: projectWithDifferentManager,
       };
-      prisma.task.findUnique.mockResolvedValue(taskWithDifferentProject);
+      TaskRepository.findUnique.mockResolvedValue(taskWithDifferentProject);
 
       await expect(
-        updateTaskService(managerUser, mockTask.id, { title: "new title" })
+        updateTaskService(
+          managerUser,
+          mockTask.id,
+          { title: "new title" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to update this task",
+        message: "Access denied: You do not have permission to update this task",
       });
     });
 
     test("✅ allows manager to fully update if they are project.createdBy", async () => {
       const managerCreatedProject = {
         ...mockProject,
-        // Manager is not the actual 'managerId' but is the 'createdBy'
         managerId: "someone-else",
         createdBy: managerUser.id,
       };
       const taskInThatProject = { ...mockTask, Project: managerCreatedProject };
 
-      // Make the findUnique call return our special project
-      prisma.task.findUnique.mockResolvedValue(taskInThatProject);
-
-      // Simulate a successful update
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(taskInThatProject);
+      TaskRepository.update.mockResolvedValue({
         ...taskInThatProject,
         title: "manager-updated",
       });
 
-      // Manager tries to update
-      const result = await updateTaskService(managerUser, mockTask.id, {
-        title: "MANAGER-UPDATED",
-      });
-
-      // Confirm Prisma was called with updated data
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { title: "manager-updated" },
-          where: { id: mockTask.id },
-        })
+      const result = await updateTaskService(
+        managerUser,
+        mockTask.id,
+        { title: "MANAGER-UPDATED" },
+        "fake-token"
       );
-      // Confirm we get back the updated task
+
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { title: "manager-updated" },
+        { Stage: true, Project: true }
+      );
+      // assignedTo remains "user-uuid" because fetchUsersByIds = {}
       expect(result).toEqual(
         new TaskDTO({
           ...taskInThatProject,
@@ -463,32 +603,15 @@ describe("🛠 Task Service Tests", () => {
       );
     });
 
-    test("✅ skips undefined fields in patchTaskService", async () => {
-      // Provide a partial object with an undefined property
-      const partialData = { title: undefined, priority: "MEDIUM" };
-
-      // The final updated record only changes priority
-      prisma.task.update.mockResolvedValue({ ...mockTask, priority: "MEDIUM" });
-
-      const result = await patchTaskService(
-        adminUser,
-        mockTask.id,
-        partialData
-      );
-
-      // Confirm prisma.task.update was *not* called with "title"
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { priority: "MEDIUM" },
-        })
-      );
-      expect(result).toEqual(new TaskDTO({ ...mockTask, priority: "MEDIUM" }));
-    });
-
     test("🚫 rejects with 404 if task not found in updateTaskService", async () => {
-      prisma.task.findUnique.mockResolvedValue(null); // no task
+      TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
-        updateTaskService(adminUser, "non-existent-task", { title: "anything" })
+        updateTaskService(
+          adminUser,
+          "non-existent-task",
+          { title: "anything" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Task not found",
@@ -496,7 +619,6 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ allows manager to fully update if they are project.managerId", async () => {
-      // Manager is the actual managerId
       const projectWhereManagerIsId = {
         ...mockProject,
         managerId: managerUser.id,
@@ -505,66 +627,86 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: projectWhereManagerIsId,
       };
-      prisma.task.findUnique.mockResolvedValue(taskManagedByManager);
-
-      // Simulate a successful update
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(taskManagedByManager);
+      TaskRepository.update.mockResolvedValue({
         ...taskManagedByManager,
         title: "manager-updated",
       });
 
-      const result = await updateTaskService(managerUser, mockTask.id, {
-        title: "MANAGER-UPDATED",
-      });
-
+      const result = await updateTaskService(
+        managerUser,
+        mockTask.id,
+        { title: "MANAGER-UPDATED" },
+        "fake-token"
+      );
       expect(result).toEqual(
-        new TaskDTO({ ...taskManagedByManager, title: "manager-updated" })
+        new TaskDTO({
+          ...taskManagedByManager,
+          title: "manager-updated",
+        })
       );
     });
 
     test("🚫 rejects with 403 if employee tries to fully update a task", async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
       await expect(
-        updateTaskService(employeeUser, mockTask.id, { title: "new title" })
+        updateTaskService(
+          employeeUser,
+          mockTask.id,
+          { title: "new title" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Employees can only update the task stage",
       });
     });
 
-    test("🚫 rejects with 403 for any unknown role when updating a task", async () => {
+    test("🚫 rejects with 403 for unknown role when updating a task", async () => {
       const unknownRoleUser = { id: "unknown-user", role: "ROLE_UNKNOWN" };
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
 
       await expect(
-        updateTaskService(unknownRoleUser, mockTask.id, { title: "any" })
+        updateTaskService(
+          unknownRoleUser,
+          mockTask.id,
+          { title: "any" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to update this task",
+        message: "Access denied: You do not have permission to update this task",
       });
     });
 
     test("✅ updates task successfully and converts title to lowercase", async () => {
       const inputData = { title: "UPDATED TASK", priority: "LOW" };
-      const result = await updateTaskService(adminUser, mockTask.id, inputData);
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockTask.id },
-          data: { title: "updated task", priority: "LOW" },
-          include: { Stage: true, Project: true },
-        })
+      const result = await updateTaskService(
+        adminUser,
+        mockTask.id,
+        inputData,
+        "fake-token"
       );
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { title: "updated task", priority: "LOW" },
+        { Stage: true, Project: true }
+      );
+      // Because fetchUsersByIds is empty => assignedTo remains "user-uuid"
       expect(result).toEqual(
         new TaskDTO({ ...mockTask, title: "updated task", priority: "LOW" })
       );
     });
 
     test("🚫 rejects with 409 on duplicate title in updateTaskService", async () => {
-      prisma.task.update.mockRejectedValue({ code: "P2002" });
+      TaskRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        updateTaskService(adminUser, mockTask.id, { title: "Duplicate" })
+        updateTaskService(
+          adminUser,
+          mockTask.id,
+          { title: "Duplicate" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 409,
         message: "A task with this title already exists for this project",
@@ -572,9 +714,14 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 500 on generic error in updateTaskService", async () => {
-      prisma.task.update.mockRejectedValue(new Error("Database error"));
+      TaskRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        updateTaskService(adminUser, mockTask.id, { title: "Updated Task" })
+        updateTaskService(
+          adminUser,
+          mockTask.id,
+          { title: "Updated Task" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -582,27 +729,65 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("✅ does not modify title if not provided in updateTaskService", async () => {
-      await updateTaskService(adminUser, mockTask.id, { priority: "MEDIUM" });
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { priority: "MEDIUM" },
-        })
+      await updateTaskService(
+        adminUser,
+        mockTask.id,
+        { priority: "MEDIUM" },
+        "fake-token"
+      );
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { priority: "MEDIUM" },
+        { Stage: true, Project: true }
       );
     });
-  });
 
-  // --- patchTaskService ---
+    test("✅ does not call fetchUsersByIds if updatedTask.assignedTo is null", async () => {
+      const updatedTaskWithNoAssigned = { ...mockTask, assignedTo: null };
+      TaskRepository.update.mockResolvedValue(updatedTaskWithNoAssigned);
+
+      const result = await updateTaskService(
+        adminUser,
+        mockTask.id,
+        { title: "No-Assign" },
+        "fake-token"
+      );
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
+      expect(result.assignedTo).toBeNull();
+    });
+
+    // Additional coverage test: assignedTo is replaced with user object if found
+    test("✅ updates and enriches assignedTo if fetchUsersByIds returns user", async () => {
+      // Overwrite default so we get an actual user
+      fetchUsersByIds.mockResolvedValue({
+        "user-uuid": { id: "user-uuid", name: "Enriched User" },
+      });
+      TaskRepository.update.mockResolvedValue({
+        ...mockTask,
+        title: "updated task",
+        assignedTo: "user-uuid",
+      });
+      const result = await updateTaskService(
+        adminUser,
+        mockTask.id,
+        { title: "Updated Task" },
+        "fake-token"
+      );
+      expect(result.assignedTo).toEqual({ id: "user-uuid", name: "Enriched User" });
+    });
+  });
+  
   describe("patchTaskService", () => {
     beforeEach(() => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.update.mockResolvedValue({
         ...mockTask,
         title: "patched task",
       });
+      // By default fetchUsersByIds returns {}
     });
+
     test("🚫 rejects with 403 if manager tries to PATCH multiple fields (not just stageId)", async () => {
-      // Manager is *not* managerId or createdBy, but is in employeeIds
-      // so they're only allowed to PATCH if it's a single field = stageId
       const projectWithManagerAsEmployee = {
         ...mockProject,
         managerId: "another-user",
@@ -613,56 +798,87 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: projectWithManagerAsEmployee,
       };
-      prisma.task.findUnique.mockResolvedValue(taskForThatProject);
+      TaskRepository.findUnique.mockResolvedValue(taskForThatProject);
 
       const multiPatch = { stageId: "new-stage", priority: "MEDIUM" };
       await expect(
-        patchTaskService(managerUser, mockTask.id, multiPatch)
+        patchTaskService(managerUser, mockTask.id, multiPatch, "fake-token")
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to update this task",
+        message: "Access denied: You do not have permission to update this task",
       });
     });
 
     test("🚫 rejects with 403 for any unknown role when patching a task", async () => {
       const unknownRoleUser = { id: "unknown-user", role: "ROLE_UNKNOWN" };
-      prisma.task.findUnique.mockResolvedValue(mockTask);
 
       await expect(
-        patchTaskService(unknownRoleUser, mockTask.id, { stageId: "only" })
+        patchTaskService(
+          unknownRoleUser,
+          mockTask.id,
+          { stageId: "only" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to update this task",
+        message: "Access denied: You do not have permission to update this task",
       });
     });
+
+    test("✅ skips undefined fields when patching (covers else path for 'if (value !== undefined)')", async () => {
+      // We'll patch stageId but pass title=undefined
+      const partialData = { title: undefined, stageId: "updated-stage" };
+      TaskRepository.update.mockResolvedValue({
+        ...mockTask,
+        stageId: "updated-stage",
+        // title remains "Task Title" because it wasn't patched
+      });
+    
+      const result = await patchTaskService(
+        adminUser,
+        mockTask.id,
+        partialData,
+        "fake-token"
+      );
+    
+      // 'title' was not included in the final update
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { stageId: "updated-stage" },
+        { Stage: true, Project: true }
+      );
+      expect(result.stageId).toEqual("updated-stage");
+      expect(result.title).toEqual("Task Title");
+    });    
 
     test("✅ patches task successfully and converts title to lowercase", async () => {
       const partialData = { title: "PATCHED TASK" };
       const result = await patchTaskService(
         adminUser,
         mockTask.id,
-        partialData
+        partialData,
+        "fake-token"
       );
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockTask.id },
-          data: { title: "patched task" },
-          include: { Stage: true, Project: true },
-        })
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { title: "patched task" },
+        { Stage: true, Project: true }
       );
+      // assignedTo remains "user-uuid"
       expect(result).toEqual(
         new TaskDTO({ ...mockTask, title: "patched task" })
       );
     });
 
     test("🚫 rejects with 404 if task not found in patchTaskService", async () => {
-      prisma.task.findUnique.mockResolvedValue(null); // no task
+      TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
-        patchTaskService(adminUser, "non-existent-task", {
-          stageId: "anything",
-        })
+        patchTaskService(
+          adminUser,
+          "non-existent-task",
+          { stageId: "anything" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Task not found",
@@ -678,57 +894,53 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: projectManagedByUser,
       };
-      prisma.task.findUnique.mockResolvedValue(taskManagedByManager);
-
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(taskManagedByManager);
+      TaskRepository.update.mockResolvedValue({
         ...taskManagedByManager,
         stageId: "patched-stage",
       });
 
-      const result = await patchTaskService(managerUser, mockTask.id, {
-        stageId: "patched-stage",
-      });
-
+      const result = await patchTaskService(
+        managerUser,
+        mockTask.id,
+        { stageId: "patched-stage" },
+        "fake-token"
+      );
       expect(result).toEqual(
         new TaskDTO({ ...taskManagedByManager, stageId: "patched-stage" })
       );
     });
 
     test("✅ allows ROLE_MANAGER to patch task if they are only in employeeIds and only stageId is updated", async () => {
-      // Manager’s ID is in employeeIds, but they are NOT the managerId or the creator
       const projectWithManagerAsEmployee = {
         ...mockProject,
         managerId: "some-other-user",
         createdBy: "some-other-user",
-        employeeIds: ["manager-id"], // The manager’s ID
+        employeeIds: ["manager-id"],
       };
       const taskInThatProject = {
         ...mockTask,
         Project: projectWithManagerAsEmployee,
       };
 
-      // The only field we are updating is stageId
       const partialData = { stageId: "new-stage-uuid" };
 
-      prisma.task.findUnique.mockResolvedValue(taskInThatProject);
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue(taskInThatProject);
+      TaskRepository.update.mockResolvedValue({
         ...taskInThatProject,
         stageId: "new-stage-uuid",
       });
 
-      // Manager user tries to patch
       const result = await patchTaskService(
         managerUser,
         mockTask.id,
-        partialData
+        partialData,
+        "fake-token"
       );
-
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockTask.id },
-          data: { stageId: "new-stage-uuid" },
-          include: { Stage: true, Project: true },
-        })
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { stageId: "new-stage-uuid" },
+        { Stage: true, Project: true }
       );
       expect(result).toEqual(
         new TaskDTO({
@@ -738,43 +950,22 @@ describe("🛠 Task Service Tests", () => {
       );
     });
 
-    test("✅ patches task successfully and converts title to lowercase", async () => {
-      const partialData = { title: "PATCHED TASK" };
-      const result = await patchTaskService(
-        adminUser,
-        mockTask.id,
-        partialData
-      );
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockTask.id },
-          data: { title: "patched task" },
-          include: { Stage: true, Project: true },
-        })
-      );
-      expect(result).toEqual(
-        new TaskDTO({ ...mockTask, title: "patched task" })
-      );
-    });
-
     test("✅ allows ROLE_EMPLOYEE to patch task if only stageId is updated", async () => {
-      // For an employee, allow patching only if only stageId is provided.
       const partialData = { stageId: "new-stage-uuid" };
-      prisma.task.update.mockResolvedValue({
+      TaskRepository.update.mockResolvedValue({
         ...mockTask,
         stageId: "new-stage-uuid",
       });
       const result = await patchTaskService(
         employeeUser,
         mockTask.id,
-        partialData
+        partialData,
+        "fake-token"
       );
-      expect(prisma.task.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: mockTask.id },
-          data: { stageId: "new-stage-uuid" },
-          include: { Stage: true, Project: true },
-        })
+      expect(TaskRepository.update).toHaveBeenCalledWith(
+        mockTask.id,
+        { stageId: "new-stage-uuid" },
+        { Stage: true, Project: true }
       );
       expect(result).toEqual(
         new TaskDTO({ ...mockTask, stageId: "new-stage-uuid" })
@@ -784,7 +975,12 @@ describe("🛠 Task Service Tests", () => {
     test("🚫 rejects for ROLE_EMPLOYEE if patching fields other than stageId", async () => {
       const partialData = { title: "Not Allowed" };
       await expect(
-        patchTaskService(employeeUser, mockTask.id, partialData)
+        patchTaskService(
+          employeeUser,
+          mockTask.id,
+          partialData,
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Employees can only update the task stage",
@@ -793,7 +989,7 @@ describe("🛠 Task Service Tests", () => {
 
     test("🚫 rejects with 400 if no valid fields provided in patchTaskService", async () => {
       await expect(
-        patchTaskService(adminUser, mockTask.id, {})
+        patchTaskService(adminUser, mockTask.id, {}, "fake-token")
       ).rejects.toEqual({
         status: 400,
         message: "No valid fields provided for update",
@@ -801,9 +997,14 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 409 on duplicate title in patchTaskService", async () => {
-      prisma.task.update.mockRejectedValue({ code: "P2002" });
+      TaskRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        patchTaskService(adminUser, mockTask.id, { title: "Duplicate" })
+        patchTaskService(
+          adminUser,
+          mockTask.id,
+          { title: "Duplicate" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 409,
         message: "A task with this title already exists for this project",
@@ -811,25 +1012,59 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 500 on generic error in patchTaskService", async () => {
-      prisma.task.update.mockRejectedValue(new Error("Database error"));
+      TaskRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        patchTaskService(adminUser, mockTask.id, { title: "Updated Task" })
+        patchTaskService(
+          adminUser,
+          mockTask.id,
+          { title: "Updated Task" },
+          "fake-token"
+        )
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
-  });
 
-  // --- deleteTaskService ---
+    test("✅ does not call fetchUsersByIds if updatedTask.assignedTo is null in patchTaskService", async () => {
+      const updatedTaskNoAssigned = { ...mockTask, assignedTo: null };
+      TaskRepository.update.mockResolvedValue(updatedTaskNoAssigned);
+
+      const result = await patchTaskService(
+        adminUser,
+        mockTask.id,
+        { title: "just patching" },
+        "fake-token"
+      );
+      expect(fetchUsersByIds).not.toHaveBeenCalled();
+      expect(result.assignedTo).toBeNull();
+    });
+
+    test("✅ patches and enriches assignedTo if fetchUsersByIds returns user", async () => {
+      fetchUsersByIds.mockResolvedValue({
+        "user-uuid": { id: "user-uuid", name: "Enriched Patch" },
+      });
+      TaskRepository.update.mockResolvedValue({
+        ...mockTask,
+        assignedTo: "user-uuid",
+        title: "patched task",
+      });
+      const result = await patchTaskService(
+        adminUser,
+        mockTask.id,
+        { title: "PATCH IT" },
+        "fake-token"
+      );
+      expect(result.assignedTo).toEqual({ id: "user-uuid", name: "Enriched Patch" });
+    });
+  });
+  
   describe("deleteTaskService", () => {
     test("✅ deletes task successfully (200)", async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-      prisma.task.delete.mockResolvedValue(mockTask);
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.delete.mockResolvedValue(mockTask);
       const result = await deleteTaskService(adminUser, mockTask.id);
-      expect(prisma.task.delete).toHaveBeenCalledWith({
-        where: { id: mockTask.id },
-      });
+      expect(TaskRepository.delete).toHaveBeenCalledWith(mockTask.id);
       expect(result).toEqual({
         status: 200,
         message: "Task deleted successfully",
@@ -845,50 +1080,45 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: projectWithDifferentCreator,
       };
-      prisma.task.findUnique.mockResolvedValue(taskWithDiffCreator);
+      TaskRepository.findUnique.mockResolvedValue(taskWithDiffCreator);
 
-      await expect(deleteTaskService(managerUser, mockTask.id)).rejects.toEqual(
-        {
-          status: 403,
-          message:
-            "Access denied: You do not have permission to delete this task",
-        }
-      );
+      await expect(
+        deleteTaskService(managerUser, mockTask.id)
+      ).rejects.toEqual({
+        status: 403,
+        message: "Access denied: You do not have permission to delete this task",
+      });
     });
 
     test("🚫 rejects with 403 if unknown role tries to delete", async () => {
       const unknownRoleUser = { id: "unknown-user", role: "ROLE_UNKNOWN" };
-      prisma.task.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
 
       await expect(
         deleteTaskService(unknownRoleUser, mockTask.id)
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to delete this task",
+        message: "Access denied: You do not have permission to delete this task",
       });
     });
 
     test("✅ deletes task successfully for manager if they are project creator", async () => {
-      // Make the manager the creator of the project:
       const projectCreatedByManager = {
         ...mockProject,
         createdBy: managerUser.id,
-        managerId: "some-other-user", // So that it’s clear the manager has rights via createdBy
+        managerId: "some-other-user",
       };
       const taskWithManagerAsCreator = {
         ...mockTask,
         Project: projectCreatedByManager,
       };
 
-      prisma.task.findUnique.mockResolvedValue(taskWithManagerAsCreator);
-      prisma.task.delete.mockResolvedValue(taskWithManagerAsCreator);
+      TaskRepository.findUnique.mockResolvedValue(taskWithManagerAsCreator);
+      TaskRepository.delete.mockResolvedValue(taskWithManagerAsCreator);
 
       const result = await deleteTaskService(managerUser, mockTask.id);
 
-      expect(prisma.task.delete).toHaveBeenCalledWith({
-        where: { id: mockTask.id },
-      });
+      expect(TaskRepository.delete).toHaveBeenCalledWith(mockTask.id);
       expect(result).toEqual({
         status: 200,
         message: "Task deleted successfully",
@@ -896,7 +1126,7 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 404 if task not found in deleteTaskService", async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
         deleteTaskService(adminUser, "non-existent-task")
       ).rejects.toEqual({
@@ -906,23 +1136,21 @@ describe("🛠 Task Service Tests", () => {
     });
 
     test("🚫 rejects with 403 if user not authorized to delete task", async () => {
-      // Simulate that the task exists but the project.createdBy does not match manager's id.
-      prisma.task.findUnique.mockResolvedValue({
+      TaskRepository.findUnique.mockResolvedValue({
         ...mockTask,
         Project: { ...mockTask.Project, createdBy: "another-user" },
       });
-      await expect(deleteTaskService(managerUser, mockTask.id)).rejects.toEqual(
-        {
-          status: 403,
-          message:
-            "Access denied: You do not have permission to delete this task",
-        }
-      );
+      await expect(
+        deleteTaskService(managerUser, mockTask.id)
+      ).rejects.toEqual({
+        status: 403,
+        message: "Access denied: You do not have permission to delete this task",
+      });
     });
 
     test("🚫 rejects with 500 on generic error in deleteTaskService", async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-      prisma.task.delete.mockRejectedValue(new Error("Database error"));
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      TaskRepository.delete.mockRejectedValue(new Error("Database error"));
       await expect(deleteTaskService(adminUser, mockTask.id)).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -930,26 +1158,43 @@ describe("🛠 Task Service Tests", () => {
     });
   });
 
+  // Direct tests for authorizeTaskModification
   describe("authorizeTaskModification direct tests", () => {
     test("✅ covers default opType = 'update'", async () => {
-      prisma.task.findUnique.mockResolvedValue(mockTask);
-
-      // Call WITHOUT the 4th param, so it defaults to "update"
-      const result = await authorizeTaskModification(adminUser, mockTask.id, {
-        priority: "LOW",
-      });
+      TaskRepository.findUnique.mockResolvedValue(mockTask);
+      const result = await authorizeTaskModification(
+        adminUser,
+        mockTask.id,
+        { priority: "LOW" }
+      );
       expect(result).toEqual(mockTask); // Should succeed for ROLE_ADMIN
     });
 
     test("🚫 rejects if task not found (default opType = 'update')", async () => {
-      prisma.task.findUnique.mockResolvedValue(null);
+      TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
-        authorizeTaskModification(adminUser, "non-existent-id", {
-          priority: "LOW",
-        })
+        authorizeTaskModification(adminUser, "non-existent-id", { priority: "LOW" })
       ).rejects.toEqual({
         status: 404,
         message: "Task not found",
+      });
+    });
+
+    // Covers the destructuring fallback { managerId, createdBy, employeeIds }
+    // if task.Project is undefined
+    test("🚫 rejects manager if Project is undefined (covers destructuring fallback)", async () => {
+      const noProjectTask = { ...mockTask, Project: undefined };
+      TaskRepository.findUnique.mockResolvedValue(noProjectTask);
+
+      await expect(
+        authorizeTaskModification(
+          managerUser,
+          noProjectTask.id,
+          { priority: "LOW" }
+        )
+      ).rejects.toEqual({
+        status: 403,
+        message: "Access denied: You do not have permission to update this task",
       });
     });
   });
