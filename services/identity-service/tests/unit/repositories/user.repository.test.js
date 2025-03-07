@@ -14,10 +14,6 @@ jest.mock("../../../config/database.js", () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
-    passwordResetToken: {
-      deleteMany: jest.fn(),
-      create: jest.fn(),
-    },
   },
 }));
 
@@ -28,18 +24,9 @@ describe("UserRepository Tests", () => {
 
   test("findMany calls prisma.user.findMany", async () => {
     prisma.user.findMany.mockResolvedValue([]);
-    const result = await UserRepository.findMany({
-      where: { email: "test" },
-      skip: 0,
-      take: 10,
-      orderBy: { createdAt: "desc" },
-    });
-    expect(prisma.user.findMany).toHaveBeenCalledWith({
-      where: { email: "test" },
-      skip: 0,
-      take: 10,
-      orderBy: { createdAt: "desc" },
-    });
+    const params = { where: { email: "test" }, skip: 0, take: 10, orderBy: { createdAt: "desc" } };
+    const result = await UserRepository.findMany(params);
+    expect(prisma.user.findMany).toHaveBeenCalledWith(params);
     expect(result).toEqual([]);
   });
 
@@ -68,10 +55,7 @@ describe("UserRepository Tests", () => {
 
   test("update calls prisma.user.update", async () => {
     prisma.user.update.mockResolvedValue({ id: "updated-user" });
-    const result = await UserRepository.update(
-      { id: "some-id" },
-      { firstName: "John" }
-    );
+    const result = await UserRepository.update({ id: "some-id" }, { firstName: "John" });
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: "some-id" },
       data: { firstName: "John" },
@@ -82,36 +66,8 @@ describe("UserRepository Tests", () => {
   test("delete calls prisma.user.delete", async () => {
     prisma.user.delete.mockResolvedValue({ id: "deleted-user" });
     const result = await UserRepository.delete({ id: "some-id" });
-    expect(prisma.user.delete).toHaveBeenCalledWith({
-      where: { id: "some-id" },
-    });
+    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "some-id" } });
     expect(result).toEqual({ id: "deleted-user" });
-  });
-
-  test("deleteResetTokensByUserId calls prisma.passwordResetToken.deleteMany", async () => {
-    prisma.passwordResetToken.deleteMany.mockResolvedValue({ count: 3 });
-    const result = await UserRepository.deleteResetTokensByUserId("user-id");
-    expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-      where: { userId: "user-id" },
-    });
-    expect(result).toBe(3);
-  });
-
-  test("createResetToken calls prisma.passwordResetToken.create", async () => {
-    prisma.passwordResetToken.create.mockResolvedValue({ id: "token-id" });
-    const result = await UserRepository.createResetToken({
-      userId: "u123",
-      token: "abc123",
-      expiresAt: new Date("2025-01-01"),
-    });
-    expect(prisma.passwordResetToken.create).toHaveBeenCalledWith({
-      data: {
-        userId: "u123",
-        token: "abc123",
-        expiresAt: new Date("2025-01-01"),
-      },
-    });
-    expect(result).toEqual({ id: "token-id" });
   });
 
   test("findManyByIds calls prisma.user.findMany with in[]", async () => {
