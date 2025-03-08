@@ -1,13 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ProjectService, Project, Status, Priority } from '../core/services/project.service';
+import { ProjectService, Project, Status, Priority, ProjectCreateUpdate } from '../core/services/project.service';
+import { UserService, User } from '../core/services/user.service';
+import { finalize, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './projects.component.html',
   styleUrls: ['./projects.component.scss'],
 })
@@ -32,10 +34,81 @@ export class ProjectsComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  constructor(private projectService: ProjectService) {}
+  // Modal state
+  showCreateModal = false;
+  showUpdateModal = false;
+  
+  // Form state
+  createProjectForm: FormGroup;
+  updateProjectForm: FormGroup;
+  formSubmitting = false;
+  formError: string | null = null;
+  
+  // User lists for dropdowns
+  managers: User[] = [];
+  employees: User[] = [];
+  
+  // Selected project for update
+  selectedProject: Project | null = null;
+  
+  // File upload
+  selectedImage: File | null = null;
+  selectedDocuments: File[] = [];
+  imagePreview: string | null = null;
+
+  constructor(
+    private projectService: ProjectService,
+    private userService: UserService,
+    private fb: FormBuilder
+  ) {
+    // Initialize forms
+    this.createProjectForm = this.createProjectFormGroup();
+    this.updateProjectForm = this.createProjectFormGroup();
+  }
 
   ngOnInit() {
     this.fetchProjects();
+    this.loadUserData();
+  }
+
+  /**
+   * Create a form group for project creation/update
+   */
+  createProjectFormGroup(): FormGroup {
+    return this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      description: [''],
+      managerId: [''],
+      employeeIds: [[]],
+      dueDate: ['', Validators.required],
+      status: [Status.PENDING, Validators.required],
+      priority: [Priority.MEDIUM, Validators.required]
+    });
+  }
+
+  /**
+   * Load managers and employees for dropdowns
+   */
+  loadUserData() {
+    forkJoin({
+      managers: this.userService.getManagers(),
+      employees: this.userService.getEmployees()
+    }).subscribe({
+      next: (result) => {
+        this.managers = result.managers.data.map(user => ({
+          ...user,
+          fullName: this.userService.formatFullName(user)
+        }));
+        
+        this.employees = result.employees.data.map(user => ({
+          ...user,
+          fullName: this.userService.formatFullName(user)
+        }));
+      },
+      error: (error) => {
+        console.error('Error loading user data:', error);
+      }
+    });
   }
 
   /**
@@ -91,7 +164,6 @@ export class ProjectsComponent implements OnInit {
 
   /**
    * Change the current page and re-fetch projects.
-   * Updated to handle both number and string types.
    */
   changePage(page: number | string) {
     // Convert to number if it's a string and not an ellipsis
@@ -107,7 +179,6 @@ export class ProjectsComponent implements OnInit {
 
   /**
    * Generate an array of page numbers for pagination.
-   * Shows a limited number of pages with ellipsis for better UX.
    */
   getPages(): (number | string)[] {
     const totalPages = this.totalPages;
@@ -209,8 +280,6 @@ export class ProjectsComponent implements OnInit {
 
   /**
    * Get the assignee name based on manager and createdBy fields
-   * Returns manager's fullName if available, otherwise createdBy's fullName,
-   * or "Not assigned" if both are null
    */
   getAssigneeName(project: Project): string {
     if (project.manager?.fullName) {
@@ -220,5 +289,207 @@ export class ProjectsComponent implements OnInit {
     } else {
       return 'Not assigned';
     }
+  }
+
+  /**
+   * Open create project modal
+   */
+  openCreateModal() {
+    this.createProjectForm.reset({
+      status: Status.PENDING,
+      priority: Priority.MEDIUM,
+      dueDate: this.formatDateForInput(new Date())
+    });
+    this.selectedImage = null;
+    this.selectedDocuments = [];
+    this.imagePreview = null;
+    this.formError = null;
+    this.showCreateModal = true;
+  }
+
+  /**
+   * Close create project modal
+   */
+  closeCreateModal() {
+    this.showCreateModal = false;
+  }
+
+  /**
+   * Open update project modal
+   */
+  openUpdateModal(project: Project) {
+    this.selectedProject = project;
+    
+    // Reset form with project data
+    this.updateProjectForm.reset({
+      name: project.name,
+      description: project.description || '',
+      managerId: project.manager?.id || '',
+      employeeIds: project.employees?.map(emp => emp.id) || [],
+      dueDate: this.formatDateForInput(new Date(project.dueDate)),
+      status: project.status,
+      priority: project.priority
+    });
+    
+    this.selectedImage = null;
+    this.selectedDocuments = [];
+    this.imagePreview = project.image || null;
+    this.formError = null;
+    this.showUpdateModal = true;
+  }
+
+  /**
+   * Close update project modal
+   */
+  closeUpdateModal() {
+    this.showUpdateModal = false;
+    this.selectedProject = null;
+  }
+
+  /**
+   * Format date for input field
+   */
+  formatDateForInput(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * Handle image selection
+   */
+  onImageSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedImage = input.files[0];
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.imagePreview = reader.result as string;
+      };
+      reader.readAsDataURL(this.selectedImage);
+    }
+  }
+
+  /**
+   * Handle document selection
+   */
+  onDocumentsSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedDocuments = Array.from(input.files);
+    }
+  }
+
+  /**
+   * Submit create project form
+   */
+  submitCreateForm() {
+    if (this.createProjectForm.invalid) {
+      this.markFormGroupTouched(this.createProjectForm);
+      return;
+    }
+
+    this.formSubmitting = true;
+    this.formError = null;
+
+    const formData: ProjectCreateUpdate = {
+      ...this.createProjectForm.value,
+      image: this.selectedImage || undefined,
+      documents: this.selectedDocuments.length > 0 ? this.selectedDocuments : undefined
+    };
+
+    this.projectService.addProject(formData)
+      .pipe(finalize(() => this.formSubmitting = false))
+      .subscribe({
+        next: (project) => {
+          console.log('Project created:', project);
+          this.closeCreateModal();
+          this.fetchProjects();
+        },
+        error: (error) => {
+          console.error('Error creating project:', error);
+          this.formError = 'Failed to create project. Please try again.';
+        }
+      });
+  }
+
+  /**
+   * Submit update project form
+   */
+  submitUpdateForm() {
+    if (!this.selectedProject || this.updateProjectForm.invalid) {
+      this.markFormGroupTouched(this.updateProjectForm);
+      return;
+    }
+
+    this.formSubmitting = true;
+    this.formError = null;
+
+    const formData: ProjectCreateUpdate = {
+      ...this.updateProjectForm.value,
+      image: this.selectedImage || undefined,
+      documents: this.selectedDocuments.length > 0 ? this.selectedDocuments : undefined
+    };
+
+    this.projectService.updateProject(this.selectedProject.id, formData)
+      .pipe(finalize(() => this.formSubmitting = false))
+      .subscribe({
+        next: (project) => {
+          console.log('Project updated:', project);
+          this.closeUpdateModal();
+          this.fetchProjects();
+        },
+        error: (error) => {
+          console.error('Error updating project:', error);
+          this.formError = 'Failed to update project. Please try again.';
+        }
+      });
+  }
+
+  /**
+   * Mark all form controls as touched to trigger validation
+   */
+  markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
+  }
+
+  /**
+   * Check if form control is invalid and touched
+   */
+  isInvalidControl(formGroup: FormGroup, controlName: string): boolean {
+    const control = formGroup.get(controlName);
+    return control ? control.invalid && control.touched : false;
+  }
+
+  /**
+   * Get error message for form control
+   */
+  getControlErrorMessage(formGroup: FormGroup, controlName: string): string {
+    const control = formGroup.get(controlName);
+    if (!control) return '';
+    
+    if (control.hasError('required')) {
+      return 'This field is required';
+    }
+    if (control.hasError('minlength')) {
+      return `Minimum length is ${control.getError('minlength').requiredLength} characters`;
+    }
+    if (control.hasError('maxlength')) {
+      return `Maximum length is ${control.getError('maxlength').requiredLength} characters`;
+    }
+    
+    return '';
+  }
+
+  /**
+   * Compare function for select options
+   */
+  compareById(item1: any, item2: any): boolean {
+    return item1 && item2 && item1 === item2;
   }
 }
