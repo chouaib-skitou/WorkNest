@@ -5,11 +5,19 @@ import { RouterModule } from '@angular/router';
 import { ProjectService, Project, Status, Priority, ProjectCreateUpdate } from '../core/services/project.service';
 import { UserService, User } from '../core/services/user.service';
 import { finalize, forkJoin } from 'rxjs';
+import { FlashMessageService, MessageType } from '../core/services/flash-message.service';
+import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ReactiveFormsModule, 
+    RouterModule,
+    FlashMessagesComponent
+  ],
   templateUrl: './projects.component.html',
   styleUrls: ['./projects.component.scss'],
 })
@@ -30,26 +38,30 @@ export class ProjectsComponent implements OnInit {
   statusOptions = Object.values(Status);
   priorityOptions = Object.values(Priority);
 
-  // Loading state
+  // Loading states
   loading = false;
+  pageLoading = false;
   error: string | null = null;
 
-  // Modal state
+  // Modal states
   showCreateModal = false;
   showUpdateModal = false;
+  showDeleteModal = false;
   
-  // Form state
+  // Form states
   createProjectForm: FormGroup;
   updateProjectForm: FormGroup;
   formSubmitting = false;
+  deleteSubmitting = false;
   formError: string | null = null;
   
   // User lists for dropdowns
   managers: User[] = [];
   employees: User[] = [];
   
-  // Selected project for update
+  // Selected project for update/delete
   selectedProject: Project | null = null;
+  projectToDelete: Project | null = null;
   
   // File upload
   selectedImage: File | null = null;
@@ -59,6 +71,7 @@ export class ProjectsComponent implements OnInit {
   constructor(
     private projectService: ProjectService,
     private userService: UserService,
+    private flashMessageService: FlashMessageService,
     private fb: FormBuilder
   ) {
     // Initialize forms
@@ -107,6 +120,7 @@ export class ProjectsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading user data:', error);
+        this.flashMessageService.showError('Failed to load user data');
       }
     });
   }
@@ -116,6 +130,7 @@ export class ProjectsComponent implements OnInit {
    */
   fetchProjects() {
     this.loading = true;
+    this.pageLoading = true;
     this.error = null;
 
     const filters: { name?: string; status?: Status; priority?: Priority } = {};
@@ -136,6 +151,12 @@ export class ProjectsComponent implements OnInit {
     }
 
     this.projectService.getAllProjects(this.currentPage, this.itemsPerPage, filters)
+      .pipe(finalize(() => {
+        this.loading = false;
+        setTimeout(() => {
+          this.pageLoading = false;
+        }, 300); // Small delay to ensure smooth transition
+      }))
       .subscribe({
         next: (response) => {
           console.log('Fetched projects:', response);
@@ -143,13 +164,12 @@ export class ProjectsComponent implements OnInit {
           this.filteredProjects = this.projects;
           this.totalPages = response.totalPages;
           this.totalCount = response.totalCount;
-          this.loading = false;
           console.log('Total pages:', this.totalPages);
         },
         error: (error) => {
           console.error('Error fetching projects:', error);
           this.error = 'Failed to load projects. Please try again.';
-          this.loading = false;
+          this.flashMessageService.showError('Failed to load projects');
         }
       });
   }
@@ -347,6 +367,45 @@ export class ProjectsComponent implements OnInit {
   }
 
   /**
+   * Open delete confirmation modal
+   */
+  confirmDeleteProject(project: Project) {
+    this.projectToDelete = project;
+    this.showDeleteModal = true;
+  }
+
+  /**
+   * Close delete confirmation modal
+   */
+  closeDeleteModal() {
+    this.showDeleteModal = false;
+    this.projectToDelete = null;
+  }
+
+  /**
+   * Delete the selected project
+   */
+  deleteProject() {
+    if (!this.projectToDelete) return;
+    
+    this.deleteSubmitting = true;
+    
+    this.projectService.deleteProject(this.projectToDelete.id)
+      .pipe(finalize(() => this.deleteSubmitting = false))
+      .subscribe({
+        next: () => {
+          this.flashMessageService.showSuccess(`Project "${this.projectToDelete?.name}" has been deleted`);
+          this.closeDeleteModal();
+          this.fetchProjects();
+        },
+        error: (error) => {
+          console.error('Error deleting project:', error);
+          this.flashMessageService.showError('Failed to delete project');
+        }
+      });
+  }
+
+  /**
    * Format date for input field
    */
   formatDateForInput(date: Date): string {
@@ -405,10 +464,12 @@ export class ProjectsComponent implements OnInit {
           console.log('Project created:', project);
           this.closeCreateModal();
           this.fetchProjects();
+          this.flashMessageService.showSuccess(`Project "${project.name}" has been created successfully`);
         },
         error: (error) => {
           console.error('Error creating project:', error);
           this.formError = 'Failed to create project. Please try again.';
+          this.flashMessageService.showError('Failed to create project');
         }
       });
   }
@@ -438,10 +499,12 @@ export class ProjectsComponent implements OnInit {
           console.log('Project updated:', project);
           this.closeUpdateModal();
           this.fetchProjects();
+          this.flashMessageService.showSuccess(`Project "${project.name}" has been updated successfully`);
         },
         error: (error) => {
           console.error('Error updating project:', error);
           this.formError = 'Failed to update project. Please try again.';
+          this.flashMessageService.showError('Failed to update project');
         }
       });
   }
