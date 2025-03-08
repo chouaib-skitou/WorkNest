@@ -15,6 +15,7 @@ import {
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 import { ProjectService, Project } from '../core/services/project.service';
+import { TaskService } from '../core/services/task.service';
 
 // Define a proper Task interface including the missing 'type' property
 interface Task {
@@ -24,6 +25,8 @@ interface Task {
   status: string;
   estimate?: number;
   projectId: string;
+  // Optionally, include stageId if your backend uses it on tasks
+  stageId?: string;
 }
 
 // Define an interface for Stage as expected from the backend
@@ -36,9 +39,9 @@ interface Stage {
   tasks: Task[];
 }
 
-// Define a Column interface for our board
+// Define a Column interface for our board. Here, column.id will be the same as stage.id.
 interface Column {
-  id: string;
+  id: string; // this will be stage.id now
   name: string;
   tasks: Task[];
   total: number;
@@ -74,11 +77,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   constructor(
     private route: ActivatedRoute,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private taskService: TaskService
   ) {}
 
   ngOnInit(): void {
-    // Get the projectId from the route parameter
+    // Get the project id from the route parameter (named 'id')
     this.projectId = this.route.snapshot.paramMap.get('id') || '';
     // Fetch the full project details from the backend
     this.projectService.getOneById(this.projectId).subscribe(
@@ -92,7 +96,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           const stages = project.stages as unknown as Stage[];
           this.columns = stages.map((stage) => {
             return {
-              id: stage.name.toLowerCase().replace(/\s+/g, '-'),
+              // Use the actual stage id from the backend
+              id: stage.id,
               name: stage.name,
               tasks: stage.tasks || [],
               total: stage.tasks ? stage.tasks.length : 0,
@@ -107,10 +112,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             } as Column;
           });
         } else {
-          // If no stages are provided, initialize with an empty array or default columns
           this.columns = [];
         }
-        // Store the column IDs for drag & drop connectivity
+        // Store the column IDs for drag & drop connectivity (now these are stage ids)
         this.columnIds = this.columns.map((col) => col.id);
         // Determine nextTaskId from existing tasks (if numeric)
         const allTaskIds = this.columns.flatMap((col) =>
@@ -158,6 +162,19 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         event.previousIndex,
         event.currentIndex
       );
+      // The task has been moved to a new stage (column)
+      const movedTask = event.container.data[event.currentIndex];
+      // The new stageId is now the column id (which is the actual stage id)
+      const newStageId = event.container.id;
+      // Update the task locally with the new stage id
+      movedTask.stageId = newStageId;
+
+      // Now send a patch request to update the task's stageId on the backend
+      this.taskService.partialUpdateTask(movedTask.id, { stageId: newStageId })
+        .subscribe(
+          () => console.log(`Task ${movedTask.id} updated to new stage ${newStageId}`),
+          (error) => console.error('Error updating task stage', error)
+        );
     }
     this.updateColumnTotals();
   }
@@ -182,10 +199,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           type: 'Task', // Default type for new tasks
           status: column.name, // Set status based on the column name
           projectId: this.projectName,
+          stageId: column.id, // New task gets the current column (stage) id
         };
         column.tasks.push(newTask);
         this.updateColumnTotals();
         this.hideAddItem();
+        // Optionally, you could also call a service to add the new task to the backend here.
       }
     } else if (event.key === 'Escape') {
       this.hideAddItem();
