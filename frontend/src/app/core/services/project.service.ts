@@ -7,13 +7,13 @@ import { environment } from '../../../environments/environment';
 export enum Status {
   PENDING = 'PENDING',
   IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 export enum Priority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
-  HIGH = 'HIGH'
+  HIGH = 'HIGH',
 }
 
 // User interface for createdBy and manager
@@ -139,23 +139,25 @@ export class ProjectService {
    * @param projectData - The project data to be created.
    * @returns {Observable<Project>} - Returns the created project.
    */
-  addProject(projectData: Partial<Project> | ProjectCreateUpdate): Observable<Project> {
+  addProject(
+    projectData: Partial<Project> | ProjectCreateUpdate
+  ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     // Check if we're dealing with a ProjectCreateUpdate with files
     if (this.isProjectCreateUpdate(projectData)) {
       // Format the date properly
       const formattedData = {
         ...projectData,
-        dueDate: this.formatDateForAPI(projectData.dueDate)
+        dueDate: this.formatDateForAPI(projectData.dueDate),
       };
-      
+
       if (projectData.image instanceof File) {
         const formData = new FormData();
         const headers = new HttpHeaders({
           Authorization: `Bearer ${accessToken}`,
         });
-        
+
         // Add basic project data
         formData.append('name', formattedData.name);
         if (formattedData.description) {
@@ -164,27 +166,27 @@ export class ProjectService {
         formData.append('status', formattedData.status);
         formData.append('priority', formattedData.priority);
         formData.append('dueDate', formattedData.dueDate);
-        
+
         // Add relations
         if (formattedData.managerId) {
           formData.append('managerId', formattedData.managerId);
         }
-        
+
         if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
           formattedData.employeeIds.forEach((id: string) => {
             formData.append('employeeIds', id);
           });
         }
-        
+
         // Add files
         formData.append('image', projectData.image);
-        
+
         if (projectData.documents && projectData.documents.length > 0) {
           projectData.documents.forEach((doc: File) => {
             formData.append('documents', doc);
           });
         }
-        
+
         return this.http.post<Project>(
           `${this.projectServiceUrl}/projects`,
           formData,
@@ -196,7 +198,7 @@ export class ProjectService {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         });
-        
+
         return this.http.post<Project>(
           `${this.projectServiceUrl}/projects`,
           formattedData,
@@ -206,17 +208,17 @@ export class ProjectService {
     } else {
       // Handle Partial<Project> case
       const jsonData = { ...projectData };
-      
+
       // Format the date if it exists
       if (jsonData.dueDate) {
         jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
       }
-      
+
       const jsonHeaders = new HttpHeaders({
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       });
-      
+
       return this.http.post<Project>(
         `${this.projectServiceUrl}/projects`,
         jsonData,
@@ -236,21 +238,21 @@ export class ProjectService {
     projectData: Partial<Project> | ProjectCreateUpdate
   ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     // Check if we're dealing with a ProjectCreateUpdate
     if (this.isProjectCreateUpdate(projectData)) {
       // Format the date properly
       const formattedData = {
         ...projectData,
-        dueDate: this.formatDateForAPI(projectData.dueDate)
+        dueDate: this.formatDateForAPI(projectData.dueDate),
       };
-      
+
       if (projectData.image instanceof File) {
         const formData = new FormData();
         const headers = new HttpHeaders({
           Authorization: `Bearer ${accessToken}`,
         });
-        
+
         // Add basic project data
         formData.append('name', formattedData.name);
         if (formattedData.description) {
@@ -259,27 +261,27 @@ export class ProjectService {
         formData.append('status', formattedData.status);
         formData.append('priority', formattedData.priority);
         formData.append('dueDate', formattedData.dueDate);
-        
+
         // Add relations
         if (formattedData.managerId) {
           formData.append('managerId', formattedData.managerId);
         }
-        
+
         if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
           formattedData.employeeIds.forEach((id: string) => {
             formData.append('employeeIds', id);
           });
         }
-        
+
         // Add files
         formData.append('image', projectData.image);
-        
+
         if (projectData.documents && projectData.documents.length > 0) {
           projectData.documents.forEach((doc: File) => {
             formData.append('documents', doc);
           });
         }
-        
+
         return this.http.put<Project>(
           `${this.projectServiceUrl}/projects/${projectId}`,
           formData,
@@ -291,7 +293,7 @@ export class ProjectService {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         });
-        
+
         return this.http.put<Project>(
           `${this.projectServiceUrl}/projects/${projectId}`,
           formattedData,
@@ -301,17 +303,17 @@ export class ProjectService {
     } else {
       // Handle Partial<Project> case
       const jsonData = { ...projectData };
-      
+
       // Format the date if it exists
       if (jsonData.dueDate) {
         jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
       }
-      
+
       const jsonHeaders = new HttpHeaders({
         Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       });
-      
+
       return this.http.put<Project>(
         `${this.projectServiceUrl}/projects/${projectId}`,
         jsonData,

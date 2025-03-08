@@ -6,7 +6,7 @@ export enum MessageType {
   SUCCESS = 'success',
   ERROR = 'error',
   INFO = 'info',
-  WARNING = 'warning'
+  WARNING = 'warning',
 }
 
 export interface FlashMessage {
@@ -16,12 +16,13 @@ export interface FlashMessage {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FlashMessageService {
   private messageCounter = 0;
   private messagesSubject = new BehaviorSubject<FlashMessage[]>([]);
-  public messages$: Observable<FlashMessage[]> = this.messagesSubject.asObservable();
+  public messages$: Observable<FlashMessage[]> =
+    this.messagesSubject.asObservable();
 
   /**
    * Show a flash message
@@ -29,18 +30,22 @@ export class FlashMessageService {
    * @param type Message type
    * @param duration Duration in milliseconds (default: 5000ms)
    */
-  showMessage(text: string, type: MessageType = MessageType.INFO, duration = 5000): number {
+  showMessage(
+    text: string,
+    type: MessageType = MessageType.INFO,
+    duration = 5000
+  ): number {
     const id = ++this.messageCounter;
     const message: FlashMessage = { type, text, id };
-    
+
     const currentMessages = this.messagesSubject.getValue();
     this.messagesSubject.next([...currentMessages, message]);
-    
+
     // Auto-remove after duration
     setTimeout(() => {
       this.removeMessage(id);
     }, duration);
-    
+
     return id;
   }
 
@@ -77,7 +82,9 @@ export class FlashMessageService {
    */
   removeMessage(id: number): void {
     const currentMessages = this.messagesSubject.getValue();
-    this.messagesSubject.next(currentMessages.filter(message => message.id !== id));
+    this.messagesSubject.next(
+      currentMessages.filter((message) => message.id !== id)
+    );
   }
 
   /**
