@@ -11,7 +11,7 @@ export class TaskService {
 
   constructor(private http: HttpClient) {}
 
-  partialUpdateTask(taskId: string | number, partialData: any): Observable<any> {
+  partialUpdateTask(taskId: string | number, partialData: unknown): Observable<unknown> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,

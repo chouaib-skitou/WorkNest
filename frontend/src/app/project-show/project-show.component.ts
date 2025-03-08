@@ -61,7 +61,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   @ViewChild('newTaskInput') newTaskInput!: ElementRef;
 
   // Project information loaded from the backend
-  projectId: string = '';
+  projectId = '';
   projectName = '';
   projectDescription = '';
 
