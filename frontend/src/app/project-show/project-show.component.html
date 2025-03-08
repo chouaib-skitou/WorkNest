@@ -36,9 +36,7 @@
       />
     </div>
     <div class="filter-actions">
-      <button class="btn-secondary">
-        <i class="fas fa-sort"></i> Sort
-      </button>
+      <button class="btn-secondary"><i class="fas fa-sort"></i> Sort</button>
       <button class="btn-secondary">
         <i class="fas fa-filter"></i> Filter
       </button>
@@ -72,10 +70,18 @@
           <span class="count">{{ column.total }}</span>
         </div>
         <div class="column-actions">
-          <button class="btn-icon" (click)="openEditStageModal(column.id)" title="Edit Stage">
+          <button
+            class="btn-icon"
+            (click)="openEditStageModal(column.id)"
+            title="Edit Stage"
+          >
             <i class="fas fa-edit"></i>
           </button>
-          <button class="btn-icon" (click)="openDeleteStageModal(column.id)" title="Delete Stage">
+          <button
+            class="btn-icon"
+            (click)="openDeleteStageModal(column.id)"
+            title="Delete Stage"
+          >
             <i class="fas fa-trash-alt"></i>
           </button>
         </div>
@@ -94,33 +100,53 @@
         [cdkDropListConnectedTo]="columnIds"
       >
         <!-- Filter tasks based on search query -->
-        <div 
-          class="task-card" 
-          *ngFor="let task of column.tasks | filter: searchQuery" 
+        <div
+          class="task-card"
+          *ngFor="let task of column.tasks | filter: searchQuery"
           cdkDrag
+          tabindex="0"
+          (click)="openEditTaskModal(task)"
+          (keydown.enter)="openEditTaskModal(task)"
         >
           <div class="task-header">
             <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
             <div class="task-actions">
-              <button class="btn-icon-sm" (click)="openEditTaskModal(task)" title="Edit Task">
+              <button
+                class="btn-icon-sm"
+                (click)="openEditTaskModal(task); $event.stopPropagation()"
+                (keydown.enter)="
+                  openEditTaskModal(task); $event.stopPropagation()
+                "
+                title="Edit Task"
+                tabindex="0"
+              >
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn-icon-sm" (click)="openDeleteTaskModal(task)" title="Delete Task">
+              <button
+                class="btn-icon-sm"
+                (click)="openDeleteTaskModal(task); $event.stopPropagation()"
+                (keydown.enter)="
+                  openDeleteTaskModal(task); $event.stopPropagation()
+                "
+                title="Delete Task"
+                tabindex="0"
+              >
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
           </div>
           <div class="task-title">{{ task.title }}</div>
           <div class="task-description" *ngIf="task.description">
-            {{ task.description | slice:0:50 }}{{ task.description.length > 50 ? '...' : '' }}
+            {{ task.description | slice: 0 : 50
+            }}{{ task.description.length > 50 ? '...' : '' }}
           </div>
           <div class="task-footer">
             <div class="task-meta">
               <span class="task-assignee" *ngIf="task.assignedTo">
                 <i class="fas fa-user"></i> {{ getUserName(task.assignedTo) }}
               </span>
-              <span 
-                class="task-priority" 
+              <span
+                class="task-priority"
                 [ngClass]="getPriorityClass(task.priority)"
               >
                 {{ formatPriority(task.priority) }}
@@ -130,7 +156,12 @@
         </div>
 
         <div class="add-item-container">
-          <button class="add-item-button" (click)="openCreateTaskModal(column.id)">
+          <button
+            class="add-item-button"
+            (click)="openCreateTaskModal(column.id)"
+            (keydown.enter)="openCreateTaskModal(column.id)"
+            tabindex="0"
+          >
             <i class="fas fa-plus"></i> Add task
           </button>
         </div>
@@ -140,25 +171,40 @@
 
   <!-- Create Stage Modal -->
   <div class="modal" *ngIf="showCreateStageModal">
-    <div class="modal-overlay" (click)="closeCreateStageModal()" (keydown.escape)="closeCreateStageModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeCreateStageModal()"
+      (keydown.escape)="closeCreateStageModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content">
       <div class="modal-header">
         <h2>Create New Stage</h2>
-        <button class="close-button" (click)="closeCreateStageModal()">&times;</button>
+        <button class="close-button" (click)="closeCreateStageModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
-        <form [formGroup]="createStageForm" (ngSubmit)="submitCreateStageForm()">
+        <form
+          [formGroup]="createStageForm"
+          (ngSubmit)="submitCreateStageForm()"
+        >
           <!-- Stage Name -->
           <div class="form-group">
             <label for="name">Stage Name <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="name" 
-              formControlName="name" 
+            <input
+              type="text"
+              id="name"
+              formControlName="name"
               [class.invalid]="isInvalidControl(createStageForm, 'name')"
               placeholder="Enter stage name"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(createStageForm, 'name')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(createStageForm, 'name')">
               {{ getControlErrorMessage(createStageForm, 'name') }}
             </div>
           </div>
@@ -166,19 +212,22 @@
           <!-- Color -->
           <div class="form-group">
             <label for="color">Color <span class="required">*</span></label>
-            <input 
-              type="color" 
-              id="color" 
+            <input
+              type="color"
+              id="color"
               formControlName="color"
               [class.invalid]="isInvalidControl(createStageForm, 'color')"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(createStageForm, 'color')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(createStageForm, 'color')">
               {{ getControlErrorMessage(createStageForm, 'color') }}
             </div>
           </div>
 
           <!-- Position (hidden) -->
-          <input type="hidden" formControlName="position">
+          <input type="hidden" formControlName="position" />
 
           <!-- Form Error -->
           <div class="form-error" *ngIf="formError">
@@ -188,12 +237,16 @@
 
           <!-- Submit Button -->
           <div class="form-actions">
-            <button type="button" class="cancel-button" (click)="closeCreateStageModal()">
+            <button
+              type="button"
+              class="cancel-button"
+              (click)="closeCreateStageModal()"
+            >
               <i class="fas fa-times"></i> Cancel
             </button>
-            <button 
-              type="submit" 
-              class="submit-button" 
+            <button
+              type="submit"
+              class="submit-button"
               [disabled]="formSubmitting || createStageForm.invalid"
             >
               <i class="fas fa-save"></i>
@@ -208,39 +261,58 @@
 
   <!-- Edit Stage Modal -->
   <div class="modal" *ngIf="showEditStageModal">
-    <div class="modal-overlay" (click)="closeEditStageModal()" (keydown.escape)="closeEditStageModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeEditStageModal()"
+      (keydown.escape)="closeEditStageModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content">
       <div class="modal-header">
         <h2>Edit Stage</h2>
-        <button class="close-button" (click)="closeEditStageModal()">&times;</button>
+        <button class="close-button" (click)="closeEditStageModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <form [formGroup]="editStageForm" (ngSubmit)="submitEditStageForm()">
           <!-- Stage Name -->
           <div class="form-group">
-            <label for="edit-name">Stage Name <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="edit-name" 
-              formControlName="name" 
+            <label for="edit-name"
+              >Stage Name <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="edit-name"
+              formControlName="name"
               [class.invalid]="isInvalidControl(editStageForm, 'name')"
               placeholder="Enter stage name"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(editStageForm, 'name')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(editStageForm, 'name')">
               {{ getControlErrorMessage(editStageForm, 'name') }}
             </div>
           </div>
 
           <!-- Color -->
           <div class="form-group">
-            <label for="edit-color">Color <span class="required">*</span></label>
-            <input 
-              type="color" 
-              id="edit-color" 
+            <label for="edit-color"
+              >Color <span class="required">*</span></label
+            >
+            <input
+              type="color"
+              id="edit-color"
               formControlName="color"
               [class.invalid]="isInvalidControl(editStageForm, 'color')"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(editStageForm, 'color')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(editStageForm, 'color')">
               {{ getControlErrorMessage(editStageForm, 'color') }}
             </div>
           </div>
@@ -248,12 +320,12 @@
           <!-- Position -->
           <div class="form-group">
             <label for="edit-position">Position</label>
-            <input 
-              type="number" 
-              id="edit-position" 
+            <input
+              type="number"
+              id="edit-position"
               formControlName="position"
               min="0"
-            >
+            />
             <small>Lower numbers appear first</small>
           </div>
 
@@ -265,12 +337,16 @@
 
           <!-- Submit Button -->
           <div class="form-actions">
-            <button type="button" class="cancel-button" (click)="closeEditStageModal()">
+            <button
+              type="button"
+              class="cancel-button"
+              (click)="closeEditStageModal()"
+            >
               <i class="fas fa-times"></i> Cancel
             </button>
-            <button 
-              type="submit" 
-              class="submit-button" 
+            <button
+              type="submit"
+              class="submit-button"
               [disabled]="formSubmitting || editStageForm.invalid"
             >
               <i class="fas fa-save"></i>
@@ -285,30 +361,54 @@
 
   <!-- Delete Stage Modal -->
   <div class="modal" *ngIf="showDeleteStageModal">
-    <div class="modal-overlay" (click)="closeDeleteStageModal()" (keydown.escape)="closeDeleteStageModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeDeleteStageModal()"
+      (keydown.escape)="closeDeleteStageModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content delete-modal">
       <div class="modal-header">
         <h2>Delete Stage</h2>
-        <button class="close-button" (click)="closeDeleteStageModal()">&times;</button>
+        <button class="close-button" (click)="closeDeleteStageModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <div class="delete-confirmation">
           <i class="fas fa-exclamation-triangle warning-icon"></i>
-          <p>Are you sure you want to delete the stage "<strong>{{ selectedStage?.name }}</strong>"?</p>
+          <p>
+            Are you sure you want to delete the stage "<strong>{{
+              selectedStage?.name
+            }}</strong
+            >"?
+          </p>
           <p class="delete-warning">This action cannot be undone.</p>
         </div>
-        
+
         <div class="form-actions">
-          <button type="button" class="cancel-button" (click)="closeDeleteStageModal()">
+          <button
+            type="button"
+            class="cancel-button"
+            (click)="closeDeleteStageModal()"
+          >
             <i class="fas fa-times"></i> Cancel
           </button>
-          <button 
-            type="button" 
-            class="delete-confirm-button" 
+          <button
+            type="button"
+            class="delete-confirm-button"
             [disabled]="formSubmitting"
             (click)="deleteStage()"
           >
-            <i class="fas" [ngClass]="{'fa-spinner fa-spin': formSubmitting, 'fa-trash-alt': !formSubmitting}"></i>
+            <i
+              class="fas"
+              [ngClass]="{
+                'fa-spinner fa-spin': formSubmitting,
+                'fa-trash-alt': !formSubmitting,
+              }"
+            ></i>
             <span *ngIf="formSubmitting">Deleting...</span>
             <span *ngIf="!formSubmitting">Delete Stage</span>
           </button>
@@ -319,25 +419,39 @@
 
   <!-- Create Task Modal -->
   <div class="modal" *ngIf="showCreateTaskModal">
-    <div class="modal-overlay" (click)="closeCreateTaskModal()" (keydown.escape)="closeCreateTaskModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeCreateTaskModal()"
+      (keydown.escape)="closeCreateTaskModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content">
       <div class="modal-header">
         <h2>Create New Task</h2>
-        <button class="close-button" (click)="closeCreateTaskModal()">&times;</button>
+        <button class="close-button" (click)="closeCreateTaskModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <form [formGroup]="createTaskForm" (ngSubmit)="submitCreateTaskForm()">
           <!-- Task Title -->
           <div class="form-group">
-            <label for="title">Task Title <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="title" 
-              formControlName="title" 
+            <label for="title"
+              >Task Title <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="title"
+              formControlName="title"
               [class.invalid]="isInvalidControl(createTaskForm, 'title')"
               placeholder="Enter task title"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(createTaskForm, 'title')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(createTaskForm, 'title')">
               {{ getControlErrorMessage(createTaskForm, 'title') }}
             </div>
           </div>
@@ -345,9 +459,9 @@
           <!-- Description -->
           <div class="form-group">
             <label for="description">Description</label>
-            <textarea 
-              id="description" 
-              formControlName="description" 
+            <textarea
+              id="description"
+              formControlName="description"
               rows="3"
               placeholder="Enter task description"
             ></textarea>
@@ -356,8 +470,8 @@
           <!-- Stage -->
           <div class="form-group">
             <label for="stageId">Stage <span class="required">*</span></label>
-            <select 
-              id="stageId" 
+            <select
+              id="stageId"
               formControlName="stageId"
               [class.invalid]="isInvalidControl(createTaskForm, 'stageId')"
             >
@@ -365,7 +479,10 @@
                 {{ column.name }}
               </option>
             </select>
-            <div class="error-message" *ngIf="isInvalidControl(createTaskForm, 'stageId')">
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(createTaskForm, 'stageId')"
+            >
               {{ getControlErrorMessage(createTaskForm, 'stageId') }}
             </div>
           </div>
@@ -374,7 +491,10 @@
           <div class="form-group">
             <label for="priority">Priority</label>
             <select id="priority" formControlName="priority">
-              <option *ngFor="let priority of priorityOptions" [value]="priority">
+              <option
+                *ngFor="let priority of priorityOptions"
+                [value]="priority"
+              >
                 {{ formatPriority(priority) }}
               </option>
             </select>
@@ -386,7 +506,7 @@
             <select id="assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
               <option *ngFor="let user of users" [value]="user.id">
-                {{ user.fullName || (user.firstName + ' ' + user.lastName) }}
+                {{ user.fullName || user.firstName + ' ' + user.lastName }}
               </option>
             </select>
           </div>
@@ -405,21 +525,25 @@
           <!-- Estimate -->
           <div class="form-group">
             <label for="estimate">Estimate (hours)</label>
-            <input 
-              type="number" 
-              id="estimate" 
+            <input
+              type="number"
+              id="estimate"
               formControlName="estimate"
               min="0"
               step="0.5"
-            >
+            />
           </div>
 
           <!-- Task Images -->
           <div class="form-group">
             <label for="images">Task Images</label>
-            <div 
+            <div
               class="file-upload"
               (click)="fileInput.click()"
+              (keydown.enter)="fileInput.click()"
+              tabindex="0"
+              role="button"
+              aria-label="Upload images"
             >
               <input
                 #fileInput
@@ -428,16 +552,25 @@
                 accept="image/*"
                 multiple
                 (change)="onTaskImagesSelected($event)"
-                style="display: none;"
-              >
+                style="display: none"
+              />
               <i class="fas fa-cloud-upload-alt"></i>
               <p class="upload-text">Click to upload images</p>
             </div>
-            
+
             <div class="image-previews" *ngIf="taskImagePreviews.length > 0">
-              <div class="image-preview" *ngFor="let preview of taskImagePreviews; let i = index">
-                <img [src]="preview" alt="Task image preview">
-                <button class="remove-image" (click)="removeTaskImage(i)">
+              <div
+                class="image-preview"
+                *ngFor="let preview of taskImagePreviews; let i = index"
+              >
+                <img [src]="preview" alt="Task image preview" />
+                <button
+                  class="remove-image"
+                  (click)="removeTaskImage(i)"
+                  (keydown.enter)="removeTaskImage(i)"
+                  tabindex="0"
+                  aria-label="Remove image"
+                >
                   <i class="fas fa-times"></i>
                 </button>
               </div>
@@ -452,12 +585,16 @@
 
           <!-- Submit Button -->
           <div class="form-actions">
-            <button type="button" class="cancel-button" (click)="closeCreateTaskModal()">
+            <button
+              type="button"
+              class="cancel-button"
+              (click)="closeCreateTaskModal()"
+            >
               <i class="fas fa-times"></i> Cancel
             </button>
-            <button 
-              type="submit" 
-              class="submit-button" 
+            <button
+              type="submit"
+              class="submit-button"
               [disabled]="formSubmitting || createTaskForm.invalid"
             >
               <i class="fas fa-save"></i>
@@ -472,25 +609,39 @@
 
   <!-- Edit Task Modal -->
   <div class="modal" *ngIf="showEditTaskModal">
-    <div class="modal-overlay" (click)="closeEditTaskModal()" (keydown.escape)="closeEditTaskModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeEditTaskModal()"
+      (keydown.escape)="closeEditTaskModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content">
       <div class="modal-header">
         <h2>Edit Task</h2>
-        <button class="close-button" (click)="closeEditTaskModal()">&times;</button>
+        <button class="close-button" (click)="closeEditTaskModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <form [formGroup]="editTaskForm" (ngSubmit)="submitEditTaskForm()">
           <!-- Task Title -->
           <div class="form-group">
-            <label for="edit-title">Task Title <span class="required">*</span></label>
-            <input 
-              type="text" 
-              id="edit-title" 
-              formControlName="title" 
+            <label for="edit-title"
+              >Task Title <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="edit-title"
+              formControlName="title"
               [class.invalid]="isInvalidControl(editTaskForm, 'title')"
               placeholder="Enter task title"
+            />
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(editTaskForm, 'title')"
             >
-            <div class="error-message" *ngIf="isInvalidControl(editTaskForm, 'title')">
               {{ getControlErrorMessage(editTaskForm, 'title') }}
             </div>
           </div>
@@ -498,9 +649,9 @@
           <!-- Description -->
           <div class="form-group">
             <label for="edit-description">Description</label>
-            <textarea 
-              id="edit-description" 
-              formControlName="description" 
+            <textarea
+              id="edit-description"
+              formControlName="description"
               rows="3"
               placeholder="Enter task description"
             ></textarea>
@@ -508,9 +659,11 @@
 
           <!-- Stage -->
           <div class="form-group">
-            <label for="edit-stageId">Stage <span class="required">*</span></label>
-            <select 
-              id="edit-stageId" 
+            <label for="edit-stageId"
+              >Stage <span class="required">*</span></label
+            >
+            <select
+              id="edit-stageId"
               formControlName="stageId"
               [class.invalid]="isInvalidControl(editTaskForm, 'stageId')"
             >
@@ -518,7 +671,10 @@
                 {{ column.name }}
               </option>
             </select>
-            <div class="error-message" *ngIf="isInvalidControl(editTaskForm, 'stageId')">
+            <div
+              class="error-message"
+              *ngIf="isInvalidControl(editTaskForm, 'stageId')"
+            >
               {{ getControlErrorMessage(editTaskForm, 'stageId') }}
             </div>
           </div>
@@ -527,7 +683,10 @@
           <div class="form-group">
             <label for="edit-priority">Priority</label>
             <select id="edit-priority" formControlName="priority">
-              <option *ngFor="let priority of priorityOptions" [value]="priority">
+              <option
+                *ngFor="let priority of priorityOptions"
+                [value]="priority"
+              >
                 {{ formatPriority(priority) }}
               </option>
             </select>
@@ -539,7 +698,7 @@
             <select id="edit-assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
               <option *ngFor="let user of users" [value]="user.id">
-                {{ user.fullName || (user.firstName + ' ' + user.lastName) }}
+                {{ user.fullName || user.firstName + ' ' + user.lastName }}
               </option>
             </select>
           </div>
@@ -558,21 +717,25 @@
           <!-- Estimate -->
           <div class="form-group">
             <label for="edit-estimate">Estimate (hours)</label>
-            <input 
-              type="number" 
-              id="edit-estimate" 
+            <input
+              type="number"
+              id="edit-estimate"
               formControlName="estimate"
               min="0"
               step="0.5"
-            >
+            />
           </div>
 
           <!-- Task Images -->
           <div class="form-group">
             <label for="edit-images">Task Images</label>
-            <div 
+            <div
               class="file-upload"
               (click)="editFileInput.click()"
+              (keydown.enter)="editFileInput.click()"
+              tabindex="0"
+              role="button"
+              aria-label="Upload images"
             >
               <input
                 #editFileInput
@@ -581,26 +744,41 @@
                 accept="image/*"
                 multiple
                 (change)="onTaskImagesSelected($event)"
-                style="display: none;"
-              >
+                style="display: none"
+              />
               <i class="fas fa-cloud-upload-alt"></i>
               <p class="upload-text">Click to upload new images</p>
             </div>
-            
+
             <!-- New image previews -->
             <div class="image-previews" *ngIf="taskImagePreviews.length > 0">
-              <div class="image-preview" *ngFor="let preview of taskImagePreviews; let i = index">
-                <img [src]="preview" alt="Task image preview">
-                <button class="remove-image" (click)="removeTaskImage(i)">
+              <div
+                class="image-preview"
+                *ngFor="let preview of taskImagePreviews; let i = index"
+              >
+                <img [src]="preview" alt="Task image preview" />
+                <button
+                  class="remove-image"
+                  (click)="removeTaskImage(i)"
+                  (keydown.enter)="removeTaskImage(i)"
+                  tabindex="0"
+                  aria-label="Remove image"
+                >
                   <i class="fas fa-times"></i>
                 </button>
               </div>
             </div>
-            
+
             <!-- Existing image previews -->
-            <div class="image-previews" *ngIf="editTaskImagePreviews.length > 0">
-              <div class="image-preview" *ngFor="let url of editTaskImagePreviews">
-                <img [src]="url" alt="Existing task image">
+            <div
+              class="image-previews"
+              *ngIf="editTaskImagePreviews.length > 0"
+            >
+              <div
+                class="image-preview"
+                *ngFor="let url of editTaskImagePreviews"
+              >
+                <img [src]="url" alt="Existing task image" />
               </div>
             </div>
           </div>
@@ -613,12 +791,16 @@
 
           <!-- Submit Button -->
           <div class="form-actions">
-            <button type="button" class="cancel-button" (click)="closeEditTaskModal()">
+            <button
+              type="button"
+              class="cancel-button"
+              (click)="closeEditTaskModal()"
+            >
               <i class="fas fa-times"></i> Cancel
             </button>
-            <button 
-              type="submit" 
-              class="submit-button" 
+            <button
+              type="submit"
+              class="submit-button"
               [disabled]="formSubmitting || editTaskForm.invalid"
             >
               <i class="fas fa-save"></i>
@@ -633,30 +815,54 @@
 
   <!-- Delete Task Modal -->
   <div class="modal" *ngIf="showDeleteTaskModal">
-    <div class="modal-overlay" (click)="closeDeleteTaskModal()" (keydown.escape)="closeDeleteTaskModal()" tabindex="0" role="button" aria  (keydown.escape)="closeDeleteTaskModal()" tabindex="0" role="button" aria-label="Close modal"></div>
+    <div
+      class="modal-overlay"
+      (click)="closeDeleteTaskModal()"
+      (keydown.escape)="closeDeleteTaskModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
     <div class="modal-content delete-modal">
       <div class="modal-header">
         <h2>Delete Task</h2>
-        <button class="close-button" (click)="closeDeleteTaskModal()">&times;</button>
+        <button class="close-button" (click)="closeDeleteTaskModal()">
+          &times;
+        </button>
       </div>
       <div class="modal-body">
         <div class="delete-confirmation">
           <i class="fas fa-exclamation-triangle warning-icon"></i>
-          <p>Are you sure you want to delete the task "<strong>{{ selectedTask?.title }}</strong>"?</p>
+          <p>
+            Are you sure you want to delete the task "<strong>{{
+              selectedTask?.title
+            }}</strong
+            >"?
+          </p>
           <p class="delete-warning">This action cannot be undone.</p>
         </div>
-        
+
         <div class="form-actions">
-          <button type="button" class="cancel-button" (click)="closeDeleteTaskModal()">
+          <button
+            type="button"
+            class="cancel-button"
+            (click)="closeDeleteTaskModal()"
+          >
             <i class="fas fa-times"></i> Cancel
           </button>
-          <button 
-            type="button" 
-            class="delete-confirm-button" 
+          <button
+            type="button"
+            class="delete-confirm-button"
             [disabled]="formSubmitting"
             (click)="deleteTask()"
           >
-            <i class="fas" [ngClass]="{'fa-spinner fa-spin': formSubmitting, 'fa-trash-alt': !formSubmitting}"></i>
+            <i
+              class="fas"
+              [ngClass]="{
+                'fa-spinner fa-spin': formSubmitting,
+                'fa-trash-alt': !formSubmitting,
+              }"
+            ></i>
             <span *ngIf="formSubmitting">Deleting...</span>
             <span *ngIf="!formSubmitting">Delete Task</span>
           </button>

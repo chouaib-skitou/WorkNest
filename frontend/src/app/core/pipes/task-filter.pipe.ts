@@ -4,7 +4,7 @@ import { Task } from '../services/task.service';
 
 @Pipe({
   name: 'filter',
-  standalone: true
+  standalone: true,
 })
 export class TaskFilterPipe implements PipeTransform {
   transform(tasks: Task[], searchQuery: string): Task[] {
@@ -12,13 +12,13 @@ export class TaskFilterPipe implements PipeTransform {
     if (!searchQuery) return tasks;
 
     searchQuery = searchQuery.toLowerCase();
-    
-    return tasks.filter(task => {
+
+    return tasks.filter((task) => {
       const titleMatch = task.title.toLowerCase().includes(searchQuery);
-      const descriptionMatch = task.description ? 
-        task.description.toLowerCase().includes(searchQuery) : 
-        false;
-      
+      const descriptionMatch = task.description
+        ? task.description.toLowerCase().includes(searchQuery)
+        : false;
+
       return titleMatch || descriptionMatch;
     });
   }

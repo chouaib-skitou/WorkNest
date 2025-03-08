@@ -51,10 +51,9 @@ export class StageService {
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
     });
-    return this.http.get<Stage>(
-      `${this.projectServiceUrl}/stages/${stageId}`,
-      { headers }
-    );
+    return this.http.get<Stage>(`${this.projectServiceUrl}/stages/${stageId}`, {
+      headers,
+    });
   }
 
   /**
@@ -76,7 +75,10 @@ export class StageService {
   /**
    * Update a stage
    */
-  updateStage(stageId: string, stageData: Partial<StageCreateUpdate>): Observable<Stage> {
+  updateStage(
+    stageId: string,
+    stageData: Partial<StageCreateUpdate>
+  ): Observable<Stage> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
