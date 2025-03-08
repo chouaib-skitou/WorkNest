@@ -7,22 +7,36 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import {
   CdkDragDrop,
   moveItemInArray,
   transferArrayItem,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
+import { ProjectService, Project } from '../core/services/project.service';
 
+// Define a proper Task interface including the missing 'type' property
 interface Task {
-  id: number;
+  id: number | string;
   title: string;
-  status: 'Backlog' | 'Ready' | 'In progress' | 'In review' | 'Done';
-  estimate?: number;
   type: 'Draft' | 'Bug' | 'Feature' | 'Task';
+  status: string;
+  estimate?: number;
   projectId: string;
 }
 
+// Define an interface for Stage as expected from the backend
+interface Stage {
+  id: string;
+  name: string;
+  position: number;
+  color: string;
+  projectId: string;
+  tasks: Task[];
+}
+
+// Define a Column interface for our board
 interface Column {
   id: string;
   name: string;
@@ -43,82 +57,73 @@ interface Column {
 export class ProjectShowComponent implements OnInit, AfterViewInit {
   @ViewChild('newTaskInput') newTaskInput!: ElementRef;
 
-  projectName = 'WorkNest';
-  projectDescription = 'A project management tool for modern teams';
+  // Project information loaded from the backend
+  projectId: string = '';
+  projectName = '';
+  projectDescription = '';
+
+  // Local state for new tasks and filtering
   searchQuery = '';
   newTaskTitle = '';
   activeColumn: string | null = null;
   columnIds: string[] = [];
   nextTaskId = 1;
 
-  columns: Column[] = [
-    {
-      id: 'backlog',
-      name: 'Backlog',
-      tasks: [
-        {
-          id: 1,
-          title: 'test',
-          type: 'Draft',
-          status: 'Backlog',
-          projectId: 'WorkNest #29',
-        },
-        {
-          id: 2,
-          title: 's;.xnskine',
-          type: 'Draft',
-          status: 'Backlog',
-          projectId: 'WorkNest #30',
-        },
-      ],
-      total: 2,
-      color: '#1a7f37',
-      description: "This item hasn't been started",
-      estimate: 0,
-    },
-    {
-      id: 'ready',
-      name: 'Ready',
-      tasks: [],
-      total: 0,
-      color: '#0969da',
-      description: 'This is ready to be picked up',
-      estimate: 0,
-    },
-    {
-      id: 'in-progress',
-      name: 'In progress',
-      tasks: [],
-      total: 0,
-      color: '#9a6700',
-      description: 'This is actively being worked on',
-      estimate: 0,
-    },
-    {
-      id: 'in-review',
-      name: 'In review',
-      tasks: [],
-      total: 0,
-      color: '#8250df',
-      description: 'This item is in review',
-      estimate: 0,
-    },
-    {
-      id: 'done',
-      name: 'Done',
-      tasks: [],
-      total: 0,
-      color: '#cf222e',
-      description: 'This has been completed',
-      estimate: 0,
-    },
-  ];
+  // The board columns derived from the project's stages
+  columns: Column[] = [];
+
+  constructor(
+    private route: ActivatedRoute,
+    private projectService: ProjectService
+  ) {}
 
   ngOnInit(): void {
-    this.updateColumnTotals();
-    this.columnIds = this.columns.map((c) => c.id);
-    this.nextTaskId =
-      Math.max(...this.columns.flatMap((c) => c.tasks.map((t) => t.id)), 0) + 1;
+    // Get the projectId from the route parameter
+    this.projectId = this.route.snapshot.paramMap.get('id') || '';
+    // Fetch the full project details from the backend
+    this.projectService.getOneById(this.projectId).subscribe(
+      (project: Project) => {
+        this.projectName = project.name;
+        this.projectDescription = project.description || '';
+
+        // Map the project's stages into our board columns
+        if (project.stages && project.stages.length > 0) {
+          // Cast through unknown to Stage[] to avoid type errors
+          const stages = project.stages as unknown as Stage[];
+          this.columns = stages.map((stage) => {
+            return {
+              id: stage.name.toLowerCase().replace(/\s+/g, '-'),
+              name: stage.name,
+              tasks: stage.tasks || [],
+              total: stage.tasks ? stage.tasks.length : 0,
+              color: stage.color || '#000',
+              description: stage.name,
+              estimate: stage.tasks
+                ? stage.tasks.reduce(
+                    (sum: number, task: Task) => sum + (task.estimate || 0),
+                    0
+                  )
+                : 0,
+            } as Column;
+          });
+        } else {
+          // If no stages are provided, initialize with an empty array or default columns
+          this.columns = [];
+        }
+        // Store the column IDs for drag & drop connectivity
+        this.columnIds = this.columns.map((col) => col.id);
+        // Determine nextTaskId from existing tasks (if numeric)
+        const allTaskIds = this.columns.flatMap((col) =>
+          col.tasks.map((t) =>
+            typeof t.id === 'number' ? t.id : parseInt(t.id, 10)
+          )
+        );
+        this.nextTaskId = allTaskIds.length > 0 ? Math.max(...allTaskIds) + 1 : 1;
+      },
+      (error) => {
+        console.error('Error fetching project details:', error);
+      }
+    );
   }
 
   ngAfterViewInit(): void {
@@ -174,14 +179,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         const newTask: Task = {
           id: this.nextTaskId++,
           title: this.newTaskTitle.trim(),
-          type: 'Task',
-          status: column.name as
-            | 'Backlog'
-            | 'Ready'
-            | 'In progress'
-            | 'In review'
-            | 'Done',
-          projectId: `WorkNest #${this.nextTaskId}`,
+          type: 'Task', // Default type for new tasks
+          status: column.name, // Set status based on the column name
+          projectId: this.projectName,
         };
         column.tasks.push(newTask);
         this.updateColumnTotals();

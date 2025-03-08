@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-// Update the Project interface to match the backend response
+// Updated Project interface to match the backend response
 export interface Project {
   id: string;
   name: string;
@@ -19,9 +19,9 @@ export interface Project {
   // New properties coming from the backend:
   status: 'In Progress' | 'Completed' | 'On Hold';
   priority: 'Low' | 'Medium' | 'High';
-  dueDate: string; // or Date if you convert it
+  dueDate: string; // You can convert this to a Date if needed
   assignee: string;
-  // Optionally, if you have additional properties like manager, employees, stages, etc.
+  // Optionally, additional properties like manager, employees, stages, etc.
   manager?: {
     id: string;
     fullName: string;
@@ -84,9 +84,7 @@ export class ProjectService {
 
     return this.http.get<Project>(
       `${this.projectServiceUrl}/projects/${projectId}`,
-      {
-        headers,
-      }
+      { headers }
     );
   }
 
@@ -105,9 +103,7 @@ export class ProjectService {
     return this.http.post<Project>(
       `${this.projectServiceUrl}/projects`,
       projectData,
-      {
-        headers,
-      }
+      { headers }
     );
   }
 
@@ -130,9 +126,7 @@ export class ProjectService {
     return this.http.put<Project>(
       `${this.projectServiceUrl}/projects/${projectId}`,
       projectData,
-      {
-        headers,
-      }
+      { headers }
     );
   }
 
@@ -155,9 +149,7 @@ export class ProjectService {
     return this.http.patch<Project>(
       `${this.projectServiceUrl}/projects/${projectId}`,
       partialData,
-      {
-        headers,
-      }
+      { headers }
     );
   }
 
@@ -174,9 +166,7 @@ export class ProjectService {
 
     return this.http.delete<void>(
       `${this.projectServiceUrl}/projects/${projectId}`,
-      {
-        headers,
-      }
+      { headers }
     );
   }
 }
