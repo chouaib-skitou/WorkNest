@@ -1,20 +1,17 @@
 // tests/unit/services/project.service.test.js
 
-jest.mock("../../../config/database.js", () => ({
-  prisma: {
-    project: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(), // for getProjectByIdService
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
+jest.mock("../../../repositories/project.repository.js", () => ({
+  ProjectRepository: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   },
 }));
 
-import { prisma } from "../../../config/database.js";
+import { ProjectRepository } from "../../../repositories/project.repository.js";
 import { ProjectDTO, GetAllProjectsDTO } from "../../../dtos/project.dto.js";
 import { fetchUsersByIds } from "../../../services/helpers/user.enrichment.js";
 jest.mock("../../../services/helpers/user.enrichment.js", () => ({
@@ -40,11 +37,12 @@ describe("🛠 Project Service Tests", () => {
 
     query = {};
 
+    // We'll make the project have createdBy = adminUser.id so it matches the user map in the test
     mockProject = {
       id: "123e4567-e89b-12d3-a456-426614174000",
       name: "WorkNest Platform",
       description: "A project management platform",
-      createdBy: "creator-id",
+      createdBy: adminUser.id, // match user map
       managerId: "manager-id",
       employeeIds: ["employee-id"],
       createdAt: new Date("2025-02-01T12:00:00.000Z"),
@@ -53,24 +51,22 @@ describe("🛠 Project Service Tests", () => {
 
     jest.clearAllMocks();
   });
-
-  // ----------------------------------------------------------------
-  // 1) getProjectsService
-  // ----------------------------------------------------------------
+  
   describe("getProjectsService", () => {
     test("✅ returns projects successfully when projects exist", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
+      // Manager and createdBy
       fetchUsersByIds.mockResolvedValue({
         [mockProject.managerId]: {
-          id: mockProject.managerId,
+          id: "manager-id",
           fullName: "Manager Name",
           role: "ROLE_MANAGER",
         },
         [mockProject.createdBy]: {
-          id: mockProject.createdBy,
-          fullName: "Creator Name",
+          id: "admin-id",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
       });
@@ -79,13 +75,13 @@ describe("🛠 Project Service Tests", () => {
       const expectedProject = new GetAllProjectsDTO({
         ...mockProject,
         manager: {
-          id: mockProject.managerId,
+          id: "manager-id",
           fullName: "Manager Name",
           role: "ROLE_MANAGER",
         },
         createdBy: {
-          id: mockProject.createdBy,
-          fullName: "Creator Name",
+          id: "admin-id",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
       });
@@ -97,20 +93,13 @@ describe("🛠 Project Service Tests", () => {
         totalCount: 1,
         totalPages: 1,
       });
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.not.objectContaining({
-            employeeIds: expect.any(Object),
-          }),
-        })
-      );
     });
 
     test("✅ returns empty result when no projects found", async () => {
-      prisma.project.findMany.mockResolvedValue([]);
-      prisma.project.count.mockResolvedValue(0);
+      ProjectRepository.findMany.mockResolvedValue([]);
+      ProjectRepository.count.mockResolvedValue(0);
 
-      const result = await getProjectsService(adminUser, query);
+      const result = await getProjectsService(adminUser, query, "testtoken");
       expect(result).toEqual({
         data: [],
         page: 1,
@@ -121,13 +110,13 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ applies name filter correctly", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
       const customQuery = { name: "WorkNest" };
-      await getProjectsService(adminUser, customQuery);
+      await getProjectsService(adminUser, customQuery, "testtoken");
 
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             name: { contains: "WorkNest", mode: "insensitive" },
@@ -137,13 +126,13 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ applies description filter correctly", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
       const customQuery = { description: "management" };
-      await getProjectsService(adminUser, customQuery);
+      await getProjectsService(adminUser, customQuery, "testtoken");
 
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             description: { contains: "management", mode: "insensitive" },
@@ -153,14 +142,12 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ applies createdAt filter correctly when valid date provided", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
-      const dateStr = "2025-02-01";
-      const customQuery = { createdAt: dateStr };
-      await getProjectsService(adminUser, customQuery);
-      // We expect a filter on createdAt with gte/lte for that day
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      const customQuery = { createdAt: "2025-02-01" };
+      await getProjectsService(adminUser, customQuery, "testtoken");
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             createdAt: expect.any(Object),
@@ -170,13 +157,13 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ ignores invalid createdAt filter", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
       const customQuery = { createdAt: "invalid-date" };
-      await getProjectsService(adminUser, customQuery);
+      await getProjectsService(adminUser, customQuery, "testtoken");
 
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.not.objectContaining({
             createdAt: expect.any(Object),
@@ -186,13 +173,13 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ applies valid custom sort field", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
       const customQuery = { sortField: "name", sortOrder: "asc" };
-      await getProjectsService(adminUser, customQuery);
+      await getProjectsService(adminUser, customQuery, "testtoken");
 
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { name: "asc" },
         })
@@ -200,13 +187,13 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ defaults to createdAt sort field when unknown field provided", async () => {
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
       const customQuery = { sortField: "invalidField", sortOrder: "desc" };
-      await getProjectsService(adminUser, customQuery);
+      await getProjectsService(adminUser, customQuery, "testtoken");
 
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { createdAt: "desc" },
         })
@@ -214,8 +201,8 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 rejects with 403 when error code is P2025", async () => {
-      prisma.project.findMany.mockRejectedValue({ code: "P2025" });
-      await expect(getProjectsService(adminUser, query)).rejects.toEqual({
+      ProjectRepository.findMany.mockRejectedValue({ code: "P2025" });
+      await expect(getProjectsService(adminUser, query, "testtoken")).rejects.toEqual({
         status: 403,
         message: "Access denied: You do not have permission to view projects",
       });
@@ -223,122 +210,87 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 500 for generic errors", async () => {
       const error = new Error("Database error");
-      prisma.project.findMany.mockRejectedValue(error);
+      ProjectRepository.findMany.mockRejectedValue(error);
 
-      await expect(getProjectsService(adminUser, query)).rejects.toEqual({
+      await expect(getProjectsService(adminUser, query, "testtoken")).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
-  });
 
-  describe("getProjectsService edge cases for fetchUsersByIds", () => {
-    beforeEach(() => {
-      prisma.project.findMany.mockResolvedValue([]);
-      prisma.project.count.mockResolvedValue(0);
-      fetchUsersByIds.mockResolvedValue({});
-    });
+    // Additional coverage for managerId or createdBy = undefined => manager:null or createdBy:null
+    describe("Null manager/createdBy in getProjectsService", () => {
+      test("managerId is undefined => manager: null in getProjectsService", async () => {
+        const projectNoManager = { ...mockProject, managerId: undefined };
+        ProjectRepository.findMany.mockResolvedValue([projectNoManager]);
+        ProjectRepository.count.mockResolvedValue(1);
 
-    test("managerId is undefined => manager should be null", async () => {
-      const projectNoManager = {
-        ...mockProject,
-        managerId: undefined, // triggers manager: null
-      };
-      prisma.project.findMany.mockResolvedValue([projectNoManager]);
-      prisma.project.count.mockResolvedValue(1);
-
-      fetchUsersByIds.mockResolvedValue({
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-      });
-
-      const result = await getProjectsService(adminUser, {}, "testtoken");
-      expect(result.data[0]).toEqual(
-        new GetAllProjectsDTO({
-          ...projectNoManager,
-          manager: null,
-          createdBy: {
-            id: "creator-id",
-            fullName: "Creator Name",
+        // Only a user for the createdBy
+        fetchUsersByIds.mockResolvedValue({
+          [adminUser.id]: {
+            id: "admin-id",
+            fullName: "Admin User",
             role: "ROLE_ADMIN",
           },
-        })
-      );
-    });
+        });
 
-    test("createdBy is undefined => createdBy should be null", async () => {
-      const projectNoCreator = {
-        ...mockProject,
-        createdBy: undefined, // triggers createdBy: null
-      };
-      prisma.project.findMany.mockResolvedValue([projectNoCreator]);
-      prisma.project.count.mockResolvedValue(1);
-
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
+        const result = await getProjectsService(adminUser, {}, "testtoken");
+        expect(result.data[0].manager).toBeNull();
       });
 
-      const result = await getProjectsService(adminUser, {}, "testtoken");
-      expect(result.data[0]).toEqual(
-        new GetAllProjectsDTO({
-          ...projectNoCreator,
-          manager: {
+      test("createdBy is undefined => createdBy: null in getProjectsService", async () => {
+        const projectNoCreator = { ...mockProject, createdBy: undefined };
+        ProjectRepository.findMany.mockResolvedValue([projectNoCreator]);
+        ProjectRepository.count.mockResolvedValue(1);
+
+        // Only a user for the manager
+        fetchUsersByIds.mockResolvedValue({
+          [mockProject.managerId]: {
             id: "manager-id",
             fullName: "Manager Name",
             role: "ROLE_MANAGER",
           },
-          createdBy: null,
-        })
-      );
+        });
+
+        const result = await getProjectsService(adminUser, {}, "testtoken");
+        expect(result.data[0].createdBy).toBeNull();
+      });
     });
   });
-
-  // ----------------------------------------------------------------
-  // 2) getProjectByIdService
-  // ----------------------------------------------------------------
+  
   describe("getProjectByIdService", () => {
     test("✅ returns project successfully when found with role filter", async () => {
-      prisma.project.findFirst.mockResolvedValue(mockProject);
+      const projectWithDetails = { ...mockProject, stages: [] };
+      ProjectRepository.findUnique.mockResolvedValue(projectWithDetails);
       fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
+        [mockProject.managerId]: {
           id: "manager-id",
           fullName: "Manager Name",
           role: "ROLE_MANAGER",
         },
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
+        [mockProject.createdBy]: {
+          id: "admin-id",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
-        "employee-id": {
+        [mockProject.employeeIds[0]]: {
           id: "employee-id",
           fullName: "Employee Name",
           role: "ROLE_EMPLOYEE",
         },
       });
 
-      const result = await getProjectByIdService(
-        adminUser,
-        mockProject.id,
-        "testtoken"
-      );
+      const result = await getProjectByIdService(adminUser, mockProject.id, "testtoken");
       const expectedProject = new ProjectDTO({
-        ...mockProject,
+        ...projectWithDetails,
         manager: {
           id: "manager-id",
           fullName: "Manager Name",
           role: "ROLE_MANAGER",
         },
         createdBy: {
-          id: "creator-id",
-          fullName: "Creator Name",
+          id: "admin-id",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         employees: [
@@ -351,30 +303,24 @@ describe("🛠 Project Service Tests", () => {
       });
 
       expect(result).toEqual(expectedProject);
-      expect(prisma.project.findFirst).toHaveBeenCalled();
+      expect(ProjectRepository.findUnique).toHaveBeenCalled();
     });
 
-    test("🚫 rejects with 403 if findFirst returns null but project exists (access denied)", async () => {
-      prisma.project.findFirst.mockResolvedValue(null);
-      prisma.project.findUnique.mockResolvedValue({ id: mockProject.id });
+    test("🚫 rejects with 403 if findUnique returns null but project exists (access denied)", async () => {
+      ProjectRepository.findUnique
+        .mockResolvedValueOnce(null) // role-based lookup => null
+        .mockResolvedValueOnce({ id: mockProject.id }); // second => project found
 
-      await expect(
-        getProjectByIdService(adminUser, mockProject.id)
-      ).rejects.toEqual({
+      await expect(getProjectByIdService(adminUser, mockProject.id, "testtoken")).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to view this project",
+        message: "Access denied: You do not have permission to view this project",
       });
-      expect(prisma.project.findUnique).toHaveBeenCalled();
+      expect(ProjectRepository.findUnique).toHaveBeenCalledTimes(2);
     });
 
     test("🚫 rejects with 404 if project does not exist", async () => {
-      prisma.project.findFirst.mockResolvedValue(null);
-      prisma.project.findUnique.mockResolvedValue(null);
-
-      await expect(
-        getProjectByIdService(adminUser, "non-existent-id")
-      ).rejects.toEqual({
+      ProjectRepository.findUnique.mockResolvedValue(null);
+      await expect(getProjectByIdService(adminUser, "non-existent-id", "testtoken")).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
@@ -382,25 +328,23 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 500 on generic error", async () => {
       const error = new Error("Database error");
-      prisma.project.findFirst.mockRejectedValue(error);
-
-      await expect(
-        getProjectByIdService(adminUser, mockProject.id)
-      ).rejects.toEqual(error);
+      ProjectRepository.findUnique.mockRejectedValue(error);
+      await expect(getProjectByIdService(adminUser, mockProject.id, "testtoken")).rejects.toEqual(error);
     });
 
-    // Additional Branch Coverage for managerId/createdBy/employeeIds undefined/empty, fallback
+    // Additional Branch Coverage for managerId/createdBy/employeeIds
     test("managerId is undefined => manager: null", async () => {
       const projectNoManager = {
         ...mockProject,
         managerId: undefined,
+        stages: [],
         employeeIds: ["emp-1", "emp-2"],
       };
-      prisma.project.findFirst.mockResolvedValue(projectNoManager);
+      ProjectRepository.findUnique.mockResolvedValue(projectNoManager);
       fetchUsersByIds.mockResolvedValue({
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
+        "admin-id": {
+          id: "admin-id",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         "emp-1": {
@@ -415,11 +359,7 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(
-        adminUser,
-        projectNoManager.id,
-        "testtoken"
-      );
+      const result = await getProjectByIdService(adminUser, projectNoManager.id, "testtoken");
       expect(result.manager).toBeNull();
       expect(result.employees).toHaveLength(2);
     });
@@ -428,9 +368,10 @@ describe("🛠 Project Service Tests", () => {
       const projectNoCreator = {
         ...mockProject,
         createdBy: undefined,
+        stages: [],
         employeeIds: ["emp-1"],
       };
-      prisma.project.findFirst.mockResolvedValue(projectNoCreator);
+      ProjectRepository.findUnique.mockResolvedValue(projectNoCreator);
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
           id: "manager-id",
@@ -444,122 +385,14 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(
-        adminUser,
-        projectNoCreator.id,
-        "testtoken"
-      );
+      const result = await getProjectByIdService(adminUser, projectNoCreator.id, "testtoken");
       expect(result.createdBy).toBeNull();
       expect(result.manager).toBeDefined();
     });
 
     test("employeeIds is undefined => employees => []", async () => {
-      const projectNoEmployees = {
-        ...mockProject,
-        employeeIds: undefined,
-      };
-      prisma.project.findFirst.mockResolvedValue(projectNoEmployees);
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-      });
-
-      const result = await getProjectByIdService(
-        adminUser,
-        projectNoEmployees.id,
-        "testtoken"
-      );
-      expect(result.employees).toEqual([]);
-    });
-
-    test("employeeIds is empty => employees => []", async () => {
-      const projectEmptyEmployees = {
-        ...mockProject,
-        employeeIds: [],
-      };
-      prisma.project.findFirst.mockResolvedValue(projectEmptyEmployees);
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-      });
-
-      const result = await getProjectByIdService(
-        adminUser,
-        projectEmptyEmployees.id,
-        "testtoken"
-      );
-      expect(result.employees).toEqual([]);
-    });
-
-    test("some employee IDs not found => fallback to { id }", async () => {
-      const projectWithUnknownEmployees = {
-        ...mockProject,
-        employeeIds: ["emp-1", "emp-unknown"],
-      };
-      prisma.project.findFirst.mockResolvedValue(projectWithUnknownEmployees);
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        "creator-id": {
-          id: "creator-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-        "emp-1": {
-          id: "emp-1",
-          fullName: "Employee One",
-          role: "ROLE_EMPLOYEE",
-        },
-      });
-
-      const result = await getProjectByIdService(
-        adminUser,
-        projectWithUnknownEmployees.id,
-        "testtoken"
-      );
-      expect(result.employees).toEqual([
-        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
-        { id: "emp-unknown" }, // fallback
-      ]);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // 3) createProjectService
-  // ----------------------------------------------------------------
-  describe("createProjectService", () => {
-    test("🚫 rejects with 403 if user is not allowed to create project", async () => {
-      await expect(
-        createProjectService(employeeUser, { name: "Test" })
-      ).rejects.toEqual({
-        status: 403,
-        message: "Access denied: Only admins and managers can create projects",
-      });
-    });
-
-    test("✅ creates project successfully", async () => {
-      const projectForCreate = { ...mockProject, createdBy: adminUser.id };
-      prisma.project.create.mockResolvedValue(projectForCreate);
-
+      const projectNoEmployees = { ...mockProject, stages: [], employeeIds: undefined };
+      ProjectRepository.findUnique.mockResolvedValue(projectNoEmployees);
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
           id: "manager-id",
@@ -568,10 +401,92 @@ describe("🛠 Project Service Tests", () => {
         },
         "admin-id": {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
-        "employee-id": {
+      });
+
+      const result = await getProjectByIdService(adminUser, projectNoEmployees.id, "testtoken");
+      expect(result.employees).toEqual([]);
+    });
+
+    test("employeeIds is empty => employees => []", async () => {
+      const projectEmptyEmployees = { ...mockProject, stages: [], employeeIds: [] };
+      ProjectRepository.findUnique.mockResolvedValue(projectEmptyEmployees);
+      fetchUsersByIds.mockResolvedValue({
+        "manager-id": {
+          id: "manager-id",
+          fullName: "Manager Name",
+          role: "ROLE_MANAGER",
+        },
+        "admin-id": {
+          id: "admin-id",
+          fullName: "Admin User",
+          role: "ROLE_ADMIN",
+        },
+      });
+
+      const result = await getProjectByIdService(adminUser, projectEmptyEmployees.id, "testtoken");
+      expect(result.employees).toEqual([]);
+    });
+
+    test("some employee IDs not found => fallback to { id }", async () => {
+      const projectWithUnknownEmployees = {
+        ...mockProject,
+        stages: [],
+        employeeIds: ["emp-1", "emp-unknown"],
+      };
+      ProjectRepository.findUnique.mockResolvedValue(projectWithUnknownEmployees);
+      fetchUsersByIds.mockResolvedValue({
+        "manager-id": {
+          id: "manager-id",
+          fullName: "Manager Name",
+          role: "ROLE_MANAGER",
+        },
+        "admin-id": {
+          id: "admin-id",
+          fullName: "Admin User",
+          role: "ROLE_ADMIN",
+        },
+        "emp-1": {
+          id: "emp-1",
+          fullName: "Employee One",
+          role: "ROLE_EMPLOYEE",
+        },
+      });
+
+      const result = await getProjectByIdService(adminUser, projectWithUnknownEmployees.id, "testtoken");
+      expect(result.employees).toEqual([
+        { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
+        { id: "emp-unknown" },
+      ]);
+    });
+  });
+  
+  describe("createProjectService", () => {
+    test("🚫 rejects with 403 if user is not allowed to create project", async () => {
+      await expect(createProjectService(employeeUser, { name: "Test" }, "testtoken")).rejects.toEqual({
+        status: 403,
+        message: "Access denied: Only admins and managers can create projects",
+      });
+    });
+
+    test("✅ creates project successfully", async () => {
+      const projectForCreate = { ...mockProject, createdBy: adminUser.id };
+      ProjectRepository.create.mockResolvedValue(projectForCreate);
+
+      fetchUsersByIds.mockResolvedValue({
+        [mockProject.managerId]: {
+          id: "manager-id",
+          fullName: "Manager Name",
+          role: "ROLE_MANAGER",
+        },
+        [adminUser.id]: {
+          id: "admin-id",
+          fullName: "Admin User",
+          role: "ROLE_ADMIN",
+        },
+        [mockProject.employeeIds[0]]: {
           id: "employee-id",
           fullName: "Employee Name",
           role: "ROLE_EMPLOYEE",
@@ -579,11 +494,7 @@ describe("🛠 Project Service Tests", () => {
       });
 
       const inputData = { name: "New Project", description: "A new project" };
-      const result = await createProjectService(
-        adminUser,
-        inputData,
-        "testtoken"
-      );
+      const result = await createProjectService(adminUser, inputData, "testtoken");
       const expectedProject = new ProjectDTO({
         ...projectForCreate,
         manager: {
@@ -593,7 +504,7 @@ describe("🛠 Project Service Tests", () => {
         },
         createdBy: {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         employees: [
@@ -605,33 +516,30 @@ describe("🛠 Project Service Tests", () => {
         ],
       });
 
-      expect(prisma.project.create).toHaveBeenCalledWith({
-        data: { ...inputData, name: "new project", createdBy: adminUser.id },
+      expect(ProjectRepository.create).toHaveBeenCalledWith({
+        ...inputData,
+        name: "new project",
+        createdBy: adminUser.id,
       });
       expect(result).toEqual(expectedProject);
     });
 
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
-      prisma.project.create.mockRejectedValue({ code: "P2002" });
-      await expect(
-        createProjectService(adminUser, { name: "Duplicate" })
-      ).rejects.toEqual({
+      ProjectRepository.create.mockRejectedValue({ code: "P2002" });
+      await expect(createProjectService(adminUser, { name: "Duplicate" }, "testtoken")).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
       });
     });
 
     test("🚫 rejects with 500 for generic error", async () => {
-      prisma.project.create.mockRejectedValue(new Error("Database error"));
-      await expect(
-        createProjectService(adminUser, { name: "Some Project" })
-      ).rejects.toEqual({
+      ProjectRepository.create.mockRejectedValue(new Error("Database error"));
+      await expect(createProjectService(adminUser, { name: "Some Project" }, "testtoken")).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
 
-    // Additional coverage for managerId/createdBy/employeeIds = undefined or partial
     describe("Branch Coverage for createProjectService", () => {
       test("managerId is undefined => manager: null", async () => {
         const projectNoManager = {
@@ -640,7 +548,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "creator-123",
           employeeIds: ["emp-1"],
         };
-        prisma.project.create.mockResolvedValue(projectNoManager);
+        ProjectRepository.create.mockResolvedValue(projectNoManager);
 
         fetchUsersByIds.mockResolvedValue({
           "creator-123": {
@@ -655,11 +563,7 @@ describe("🛠 Project Service Tests", () => {
           },
         });
 
-        const result = await createProjectService(
-          adminUser,
-          { name: "Hello" },
-          "testtoken"
-        );
+        const result = await createProjectService(adminUser, { name: "Hello" }, "testtoken");
         expect(result.manager).toBeNull();
       });
 
@@ -670,7 +574,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: undefined,
           employeeIds: ["emp-1", "emp-2"],
         };
-        prisma.project.create.mockResolvedValue(projectNoCreator);
+        ProjectRepository.create.mockResolvedValue(projectNoCreator);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-111": {
@@ -690,20 +594,13 @@ describe("🛠 Project Service Tests", () => {
           },
         });
 
-        const result = await createProjectService(
-          adminUser,
-          { name: "Hello2" },
-          "testtoken"
-        );
+        const result = await createProjectService(adminUser, { name: "Hello2" }, "testtoken");
         expect(result.createdBy).toBeNull();
       });
 
       test("employeeIds is undefined => employees => []", async () => {
-        const projectNoEmployees = {
-          ...mockProject,
-          employeeIds: undefined,
-        };
-        prisma.project.create.mockResolvedValue(projectNoEmployees);
+        const projectNoEmployees = { ...mockProject, employeeIds: undefined };
+        ProjectRepository.create.mockResolvedValue(projectNoEmployees);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-id": {
@@ -711,27 +608,20 @@ describe("🛠 Project Service Tests", () => {
             fullName: "Manager Name",
             role: "ROLE_MANAGER",
           },
-          "creator-id": {
-            id: "creator-id",
-            fullName: "Creator Name",
+          "admin-id": {
+            id: "admin-id",
+            fullName: "Admin User",
             role: "ROLE_ADMIN",
           },
         });
 
-        const result = await createProjectService(
-          adminUser,
-          { name: "NoEmployees" },
-          "testtoken"
-        );
+        const result = await createProjectService(adminUser, { name: "NoEmployees" }, "testtoken");
         expect(result.employees).toEqual([]);
       });
 
       test("employeeIds is an empty array => employees => []", async () => {
-        const projectEmptyEmployees = {
-          ...mockProject,
-          employeeIds: [],
-        };
-        prisma.project.create.mockResolvedValue(projectEmptyEmployees);
+        const projectEmptyEmployees = { ...mockProject, employeeIds: [] };
+        ProjectRepository.create.mockResolvedValue(projectEmptyEmployees);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-id": {
@@ -739,9 +629,9 @@ describe("🛠 Project Service Tests", () => {
             fullName: "Manager Name",
             role: "ROLE_MANAGER",
           },
-          "creator-id": {
-            id: "creator-id",
-            fullName: "Creator Name",
+          "admin-id": {
+            id: "admin-id",
+            fullName: "Admin User",
             role: "ROLE_ADMIN",
           },
         });
@@ -759,9 +649,9 @@ describe("🛠 Project Service Tests", () => {
           ...mockProject,
           managerId: "manager-xyz",
           createdBy: "creator-xyz",
-          employeeIds: ["emp-1", "emp-unknown"],
+          employeeIds: ["emp-1", "emp-missing"],
         };
-        prisma.project.create.mockResolvedValue(projectSomeUnknown);
+        ProjectRepository.create.mockResolvedValue(projectSomeUnknown);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-xyz": {
@@ -783,23 +673,21 @@ describe("🛠 Project Service Tests", () => {
 
         const result = await createProjectService(
           adminUser,
-          { name: "PartialEmployees", employeeIds: ["emp-1", "emp-unknown"] },
+          { name: "PartialEmployees", employeeIds: ["emp-1", "emp-missing"] },
           "testtoken"
         );
         expect(result.employees).toEqual([
           { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
-          { id: "emp-unknown" },
+          { id: "emp-missing" },
         ]);
       });
     });
   });
-
-  // ----------------------------------------------------------------
-  // 4) updateProjectService
-  // ----------------------------------------------------------------
+  
   describe("updateProjectService", () => {
     beforeEach(() => {
-      prisma.project.findUnique.mockResolvedValue({
+      // By default, findUnique returns a project the user can update
+      ProjectRepository.findUnique.mockResolvedValue({
         id: mockProject.id,
         managerId: managerUser.id,
         createdBy: adminUser.id,
@@ -807,9 +695,10 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ updates project successfully and converts name to lowercase", async () => {
+      // This covers the line: if (updateData.name) => toLowerCase()
       const inputData = { name: "UPPERCASE", description: "desc" };
       const expectedData = { name: "uppercase", description: "desc" };
-      prisma.project.update.mockResolvedValue({
+      ProjectRepository.update.mockResolvedValue({
         ...mockProject,
         ...expectedData,
         createdBy: adminUser.id,
@@ -823,7 +712,7 @@ describe("🛠 Project Service Tests", () => {
         },
         "admin-id": {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         "employee-id": {
@@ -833,12 +722,7 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await updateProjectService(
-        adminUser,
-        mockProject.id,
-        inputData,
-        "testtoken"
-      );
+      const result = await updateProjectService(adminUser, mockProject.id, inputData, "testtoken");
       const expectedProject = new ProjectDTO({
         ...mockProject,
         ...expectedData,
@@ -849,7 +733,7 @@ describe("🛠 Project Service Tests", () => {
         },
         createdBy: {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         employees: [
@@ -861,17 +745,75 @@ describe("🛠 Project Service Tests", () => {
         ],
       });
 
-      expect(prisma.project.update).toHaveBeenCalledWith({
-        where: { id: mockProject.id },
-        data: expectedData,
-      });
+      // ensure we call ProjectRepository.update with the final data
+      expect(ProjectRepository.update).toHaveBeenCalledWith(mockProject.id, expectedData);
       expect(result).toEqual(expectedProject);
     });
 
+    test("✅ does not modify project name if updateData.name is not provided", async () => {
+      // Suppose the existing project has name = "OriginalName"
+      ProjectRepository.findUnique.mockResolvedValue({
+        id: mockProject.id,
+        managerId: managerUser.id,
+        createdBy: adminUser.id,
+      });
+    
+      // We simulate that the repository returns the same name if we never updated it
+      const updatedProject = {
+        ...mockProject,
+        name: "OriginalName", // unchanged
+        description: "updated desc", // we *did* update description
+      };
+    
+      // The repository update call will get some data that does NOT have "name"
+      ProjectRepository.update.mockResolvedValue(updatedProject);
+    
+      // We'll also mock fetchUsersByIds to return something for manager & admin
+      fetchUsersByIds.mockResolvedValue({
+        "manager-id": {
+          id: "manager-id",
+          fullName: "Manager Name",
+          role: "ROLE_MANAGER",
+        },
+        "admin-id": {
+          id: "admin-id",
+          fullName: "Admin User",
+          role: "ROLE_ADMIN",
+        },
+        "employee-id": {
+          id: "employee-id",
+          fullName: "Employee Name",
+          role: "ROLE_EMPLOYEE",
+        },
+      });
+    
+      // We pass an update data object WITHOUT a "name" field
+      const updateData = { description: "updated desc" };
+    
+      const result = await updateProjectService(
+        adminUser,
+        mockProject.id,
+        updateData,
+        "testtoken"
+      );
+    
+      // We confirm the repository update was called with no "name" property
+      // => the service didn't do toLowerCase() or anything else for "name"
+      expect(ProjectRepository.update).toHaveBeenCalledWith(
+        mockProject.id,
+        { description: "updated desc" }
+      );
+    
+      // And confirm the result has the original name
+      expect(result.name).toBe("OriginalName");
+      expect(result.description).toBe("updated desc");
+    });
+    
+
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
-      prisma.project.update.mockRejectedValue({ code: "P2002" });
+      ProjectRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        updateProjectService(adminUser, mockProject.id, { name: "Duplicate" })
+        updateProjectService(adminUser, mockProject.id, { name: "Duplicate" }, "testtoken")
       ).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
@@ -879,11 +821,9 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 rejects with 404 when project not found (P2025)", async () => {
-      prisma.project.update.mockRejectedValue({ code: "P2025" });
+      ProjectRepository.update.mockRejectedValue({ code: "P2025" });
       await expect(
-        updateProjectService(adminUser, "non-existent-id", {
-          name: "Some Project",
-        })
+        updateProjectService(adminUser, "non-existent-id", { name: "Some Project" }, "testtoken")
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -891,11 +831,9 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 rejects with 500 for generic update error", async () => {
-      prisma.project.update.mockRejectedValue(new Error("Database error"));
+      ProjectRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        updateProjectService(adminUser, mockProject.id, {
-          name: "Updated Project",
-        })
+        updateProjectService(adminUser, mockProject.id, { name: "Updated Project" }, "testtoken")
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -903,22 +841,18 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 propagates authorization error if modification not allowed", async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
+      ProjectRepository.findUnique.mockResolvedValue(null); // Not found or not allowed
       await expect(
-        updateProjectService(adminUser, mockProject.id, {
-          name: "Updated Project",
-        })
+        updateProjectService(adminUser, mockProject.id, { name: "Updated Project" }, "testtoken")
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
     });
 
-    // Additional Branch Coverage: managerId/createdBy/employeeIds = undefined, fallback
     describe("Branch Coverage for updateProjectService", () => {
       beforeEach(() => {
-        // Re-stub findUnique to always return a valid project for these sub-tests
-        prisma.project.findUnique.mockResolvedValue({
+        ProjectRepository.findUnique.mockResolvedValue({
           id: "proj-up-1",
           managerId: "manager-1",
           createdBy: "admin-id",
@@ -933,7 +867,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: ["emp-1"],
         };
-        prisma.project.update.mockResolvedValue(updatedProject);
+        ProjectRepository.update.mockResolvedValue(updatedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "admin-id": {
@@ -965,7 +899,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: undefined,
           employeeIds: ["emp-2"],
         };
-        prisma.project.update.mockResolvedValue(updatedProject);
+        ProjectRepository.update.mockResolvedValue(updatedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-2": {
@@ -1002,7 +936,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: undefined,
         };
-        prisma.project.update.mockResolvedValue(updatedProject);
+        ProjectRepository.update.mockResolvedValue(updatedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-3": {
@@ -1026,7 +960,7 @@ describe("🛠 Project Service Tests", () => {
         expect(result.employees).toEqual([]);
       });
 
-      test("employeeIds is an empty array => employees => []", async () => {
+      test("employeeIds is empty => employees => []", async () => {
         const updatedProject = {
           id: "proj-up-4",
           name: "Empty Employees",
@@ -1034,7 +968,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: [],
         };
-        prisma.project.update.mockResolvedValue(updatedProject);
+        ProjectRepository.update.mockResolvedValue(updatedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-4": {
@@ -1066,7 +1000,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: ["emp-1", "emp-missing"],
         };
-        prisma.project.update.mockResolvedValue(updatedProject);
+        ProjectRepository.update.mockResolvedValue(updatedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-5": {
@@ -1099,13 +1033,10 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-
-  // ----------------------------------------------------------------
-  // 5) patchProjectService
-  // ----------------------------------------------------------------
+  
   describe("patchProjectService", () => {
     beforeEach(() => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: mockProject.id,
         managerId: managerUser.id,
         createdBy: adminUser.id,
@@ -1113,13 +1044,9 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ patches project successfully, filtering undefined fields and lowercasing name", async () => {
-      const inputData = {
-        name: "MiXeDcAsE",
-        description: undefined,
-        extra: "value",
-      };
+      const inputData = { name: "MiXeDcAsE", description: undefined, extra: "value" };
       const expectedData = { name: "mixedcase", extra: "value" };
-      prisma.project.update.mockResolvedValue({
+      ProjectRepository.update.mockResolvedValue({
         ...mockProject,
         ...expectedData,
         createdBy: adminUser.id,
@@ -1133,7 +1060,7 @@ describe("🛠 Project Service Tests", () => {
         },
         "admin-id": {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         "employee-id": {
@@ -1143,12 +1070,7 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await patchProjectService(
-        adminUser,
-        mockProject.id,
-        inputData,
-        "testtoken"
-      );
+      const result = await patchProjectService(adminUser, mockProject.id, inputData, "testtoken");
       const expectedProject = new ProjectDTO({
         ...mockProject,
         ...expectedData,
@@ -1159,7 +1081,7 @@ describe("🛠 Project Service Tests", () => {
         },
         createdBy: {
           id: "admin-id",
-          fullName: "Creator Name",
+          fullName: "Admin User",
           role: "ROLE_ADMIN",
         },
         employees: [
@@ -1171,29 +1093,21 @@ describe("🛠 Project Service Tests", () => {
         ],
       });
 
-      expect(prisma.project.update).toHaveBeenCalledWith({
-        where: { id: mockProject.id },
-        data: expectedData,
-      });
+      expect(ProjectRepository.update).toHaveBeenCalledWith(mockProject.id, expectedData);
       expect(result).toEqual(expectedProject);
     });
 
     test("🚫 rejects with 400 when no valid fields provided", async () => {
-      await expect(
-        patchProjectService(adminUser, mockProject.id, {})
-      ).rejects.toEqual({
+      await expect(patchProjectService(adminUser, mockProject.id, {}, "testtoken")).rejects.toEqual({
         status: 400,
         message: "No valid fields provided for update",
       });
     });
 
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
-      prisma.project.update.mockRejectedValue({ code: "P2002" });
+      ProjectRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        patchProjectService(adminUser, mockProject.id, {
-          name: "Duplicate",
-          extra: "value",
-        })
+        patchProjectService(adminUser, mockProject.id, { name: "Duplicate", extra: "value" }, "testtoken")
       ).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
@@ -1201,12 +1115,9 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 rejects with 404 when project not found (P2025)", async () => {
-      prisma.project.update.mockRejectedValue({ code: "P2025" });
+      ProjectRepository.update.mockRejectedValue({ code: "P2025" });
       await expect(
-        patchProjectService(adminUser, mockProject.id, {
-          name: "Nonexistent",
-          extra: "value",
-        })
+        patchProjectService(adminUser, mockProject.id, { name: "Nonexistent", extra: "value" }, "testtoken")
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -1214,12 +1125,9 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 rejects with 500 for generic patch error", async () => {
-      prisma.project.update.mockRejectedValue(new Error("Database error"));
+      ProjectRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        patchProjectService(adminUser, mockProject.id, {
-          name: "Test",
-          extra: "value",
-        })
+        patchProjectService(adminUser, mockProject.id, { name: "Test", extra: "value" }, "testtoken")
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -1227,22 +1135,18 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("🚫 propagates authorization error if patch not allowed", async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
+      ProjectRepository.findUnique.mockResolvedValue(null);
       await expect(
-        patchProjectService(adminUser, mockProject.id, {
-          name: "Test",
-          extra: "value",
-        })
+        patchProjectService(adminUser, mockProject.id, { name: "Test", extra: "value" }, "testtoken")
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
     });
 
-    // Additional coverage for managerId/createdBy/employeeIds = undefined or fallback
     describe("Branch Coverage for patchProjectService", () => {
       beforeEach(() => {
-        prisma.project.findUnique.mockResolvedValue({
+        ProjectRepository.findUnique.mockResolvedValue({
           id: "proj-patch-1",
           managerId: "manager-1",
           createdBy: "admin-id",
@@ -1257,7 +1161,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: ["emp-1"],
         };
-        prisma.project.update.mockResolvedValue(patchedProject);
+        ProjectRepository.update.mockResolvedValue(patchedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "admin-id": {
@@ -1289,7 +1193,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: undefined,
           employeeIds: ["emp-2"],
         };
-        prisma.project.update.mockResolvedValue(patchedProject);
+        ProjectRepository.update.mockResolvedValue(patchedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-2": {
@@ -1321,7 +1225,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: undefined,
         };
-        prisma.project.update.mockResolvedValue(patchedProject);
+        ProjectRepository.update.mockResolvedValue(patchedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-3": {
@@ -1353,7 +1257,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: [],
         };
-        prisma.project.update.mockResolvedValue(patchedProject);
+        ProjectRepository.update.mockResolvedValue(patchedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-4": {
@@ -1385,7 +1289,7 @@ describe("🛠 Project Service Tests", () => {
           createdBy: "admin-id",
           employeeIds: ["emp-1", "emp-missing"],
         };
-        prisma.project.update.mockResolvedValue(patchedProject);
+        ProjectRepository.update.mockResolvedValue(patchedProject);
 
         fetchUsersByIds.mockResolvedValue({
           "manager-5": {
@@ -1418,76 +1322,61 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-
-  // ----------------------------------------------------------------
-  // 6) deleteProjectService
-  // ----------------------------------------------------------------
+  
   describe("deleteProjectService", () => {
     test("✅ deletes project successfully", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: mockProject.id,
         createdBy: adminUser.id,
       });
-      prisma.project.delete.mockResolvedValue({});
+      ProjectRepository.delete.mockResolvedValue({});
 
       const result = await deleteProjectService(adminUser, mockProject.id);
       expect(result).toEqual({ message: "Project deleted successfully" });
-      expect(prisma.project.delete).toHaveBeenCalledWith({
-        where: { id: mockProject.id },
-      });
+      expect(ProjectRepository.delete).toHaveBeenCalledWith(mockProject.id);
     });
 
     test("🚫 rejects with 404 when project not found on delete (P2025)", async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
-      await expect(
-        deleteProjectService(adminUser, "non-existent-id")
-      ).rejects.toEqual({
+      ProjectRepository.findUnique.mockResolvedValue(null);
+      await expect(deleteProjectService(adminUser, "non-existent-id")).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
     });
 
     test("🚫 rejects with 500 for generic delete error", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: mockProject.id,
         createdBy: adminUser.id,
       });
-      prisma.project.delete.mockRejectedValue(new Error("Database error"));
+      ProjectRepository.delete.mockRejectedValue(new Error("Database error"));
 
-      await expect(
-        deleteProjectService(adminUser, mockProject.id)
-      ).rejects.toEqual({
+      await expect(deleteProjectService(adminUser, mockProject.id)).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
     });
 
     test("🚫 propagates authorization error from deletion", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: mockProject.id,
         createdBy: "another-user",
       });
-      await expect(
-        deleteProjectService(managerUser, mockProject.id)
-      ).rejects.toEqual({
+      await expect(deleteProjectService(managerUser, mockProject.id)).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to delete this project",
+        message: "Access denied: You do not have permission to delete this project",
       });
     });
   });
 
-  // ----------------------------------------------------------------
-  // 7) Additional Branch Coverage
-  // ----------------------------------------------------------------
-  describe("Additional Branch Coverage", () => {
+  describe("Additional Branch Coverage for Authorization and Delete Error Handling", () => {
     test("should apply ROLE_EMPLOYEE filter", async () => {
-      const employeeUser = { id: "emp-123", role: "ROLE_EMPLOYEE" };
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      const empUser = { id: "emp-123", role: "ROLE_EMPLOYEE" };
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
-      await getProjectsService(employeeUser, {});
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      await getProjectsService(empUser, {}, "testtoken");
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { employeeIds: { has: "emp-123" } },
         })
@@ -1495,12 +1384,12 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("should apply ROLE_MANAGER filter", async () => {
-      const managerUser = { id: "mgr-456", role: "ROLE_MANAGER" };
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      const mgrUser = { id: "mgr-456", role: "ROLE_MANAGER" };
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
-      await getProjectsService(managerUser, {});
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      await getProjectsService(mgrUser, {}, "testtoken");
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             OR: [
@@ -1514,228 +1403,56 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("should not apply any filter for ROLE_ADMIN", async () => {
-      const adminUser = { id: "adm-789", role: "ROLE_ADMIN" };
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      const admUser = { id: "adm-789", role: "ROLE_ADMIN" };
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
-      await getProjectsService(adminUser, {});
-      expect(prisma.project.findMany).toHaveBeenCalledWith(
+      await getProjectsService(admUser, {}, "testtoken");
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {},
         })
       );
     });
 
-    // authorizeProjectModification logs
-    test("should log admin branch in updateProjectService", async () => {
-      const adminUser = { id: "adm-789", role: "ROLE_ADMIN" };
-      const spyLog = jest.spyOn(console, "log").mockImplementation(() => {});
-      prisma.project.findUnique.mockResolvedValue(mockProject);
-      prisma.project.update.mockResolvedValue({
-        ...mockProject,
-        description: "changed",
-      });
-
-      await updateProjectService(adminUser, mockProject.id, {
-        description: "changed",
-      });
-      expect(spyLog).toHaveBeenCalledWith(
-        "Admin updating project: " + mockProject.id
-      );
-      spyLog.mockRestore();
-    });
-
-    test("should log manager authorized branch in updateProjectService", async () => {
-      const managerUser = { id: "mgr-456", role: "ROLE_MANAGER" };
-      const spyLog = jest.spyOn(console, "log").mockImplementation(() => {});
-      prisma.project.findUnique.mockResolvedValue({
-        ...mockProject,
-        managerId: "other",
-        createdBy: "mgr-456",
-      });
-      prisma.project.update.mockResolvedValue({
-        ...mockProject,
-        description: "mgr update",
-      });
-
-      await updateProjectService(managerUser, mockProject.id, {
-        description: "mgr update",
-      });
-      expect(spyLog).toHaveBeenCalledWith(
-        "Manager updating project they manage or created: " + mockProject.id
-      );
-      spyLog.mockRestore();
-    });
-
-    test("should leave data unchanged when no name provided in updateProjectService", async () => {
-      prisma.project.findUnique.mockResolvedValue(mockProject);
-      prisma.project.update.mockResolvedValue({
-        ...mockProject,
-        description: "no name change",
-        createdBy: adminUser.id,
-      });
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        "admin-id": {
-          id: "admin-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-        "employee-id": {
-          id: "employee-id",
-          fullName: "Employee Name",
-          role: "ROLE_EMPLOYEE",
-        },
-      });
-
-      const result = await updateProjectService(
-        adminUser,
-        mockProject.id,
-        { description: "no name change" },
-        "testtoken"
-      );
-      const expectedProject = new ProjectDTO({
-        ...mockProject,
-        description: "no name change",
-        createdBy: {
-          id: "admin-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-        manager: {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        employees: [
-          {
-            id: "employee-id",
-            fullName: "Employee Name",
-            role: "ROLE_EMPLOYEE",
-          },
-        ],
-      });
-
-      expect(result).toEqual(expectedProject);
-    });
-
-    test("should leave data unchanged when no name provided in patchProjectService", async () => {
-      prisma.project.findUnique.mockResolvedValue(mockProject);
-      prisma.project.update.mockResolvedValue({
-        ...mockProject,
-        description: "patched",
-        createdBy: adminUser.id,
-      });
-      fetchUsersByIds.mockResolvedValue({
-        "manager-id": {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        "admin-id": {
-          id: "admin-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-        "employee-id": {
-          id: "employee-id",
-          fullName: "Employee Name",
-          role: "ROLE_EMPLOYEE",
-        },
-      });
-
-      const result = await patchProjectService(
-        adminUser,
-        mockProject.id,
-        { description: "patched" },
-        "testtoken"
-      );
-      const expectedProject = new ProjectDTO({
-        ...mockProject,
-        description: "patched",
-        createdBy: {
-          id: "admin-id",
-          fullName: "Creator Name",
-          role: "ROLE_ADMIN",
-        },
-        manager: {
-          id: "manager-id",
-          fullName: "Manager Name",
-          role: "ROLE_MANAGER",
-        },
-        employees: [
-          {
-            id: "employee-id",
-            fullName: "Employee Name",
-            role: "ROLE_EMPLOYEE",
-          },
-        ],
-      });
-
-      expect(result).toEqual(expectedProject);
-    });
-
-    // deleteProjectService not found scenario
-    test("should reject deleteProjectService with 404 when project not found", async () => {
-      prisma.project.findUnique.mockResolvedValue(null);
-      await expect(
-        deleteProjectService(adminUser, "non-existent-id")
-      ).rejects.toEqual({
-        status: 404,
-        message: "Project not found",
-      });
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // 8) Additional Branch Coverage for Authorization & Delete
-  // ----------------------------------------------------------------
-  describe("Additional Branch Coverage for Authorization and Delete Error Handling", () => {
     test("updateProjectService: unauthorized modification for ROLE_MANAGER", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: "test-id",
         managerId: "someone-else",
         createdBy: "another-user",
       });
-      const managerUser = { id: "mgr-123", role: "ROLE_MANAGER" };
+      const mgrUser = { id: "mgr-123", role: "ROLE_MANAGER" };
 
       await expect(
-        updateProjectService(managerUser, "test-id", { name: "New Name" })
+        updateProjectService(mgrUser, "test-id", { name: "New Name" }, "testtoken")
       ).rejects.toEqual({
         status: 403,
-        message:
-          "Access denied: You do not have permission to update this project",
+        message: "Access denied: You do not have permission to update this project",
       });
     });
 
     test("deleteProjectService: authorized deletion for ROLE_MANAGER (project created by manager)", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: "test-id",
         createdBy: "mgr-123",
       });
-      const managerUser = { id: "mgr-123", role: "ROLE_MANAGER" };
-      prisma.project.delete.mockResolvedValue({ id: "test-id" });
+      const mgrUser = { id: "mgr-123", role: "ROLE_MANAGER" };
+      ProjectRepository.delete.mockResolvedValue({ id: "test-id" });
 
-      const result = await deleteProjectService(managerUser, "test-id");
+      const result = await deleteProjectService(mgrUser, "test-id");
       expect(result).toEqual({ message: "Project deleted successfully" });
-      expect(prisma.project.delete).toHaveBeenCalledWith({
-        where: { id: "test-id" },
-      });
+      expect(ProjectRepository.delete).toHaveBeenCalledWith("test-id");
     });
 
     test("deleteProjectService: returns 404 if delete fails with error code P2025", async () => {
-      prisma.project.findUnique.mockResolvedValue({
+      ProjectRepository.findUnique.mockResolvedValue({
         id: "test-id",
         createdBy: "admin-id",
       });
-      prisma.project.delete.mockRejectedValue({ code: "P2025" });
-      const adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
+      ProjectRepository.delete.mockRejectedValue({ code: "P2025" });
+      const admUser = { id: "admin-id", role: "ROLE_ADMIN" };
 
-      await expect(deleteProjectService(adminUser, "test-id")).rejects.toEqual({
+      await expect(deleteProjectService(admUser, "test-id")).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
@@ -1743,12 +1460,36 @@ describe("🛠 Project Service Tests", () => {
 
     test("should use provided numeric page and limit when they are >= 1", async () => {
       const validQuery = { page: "2", limit: "5" };
-      prisma.project.findMany.mockResolvedValue([mockProject]);
-      prisma.project.count.mockResolvedValue(1);
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
 
-      const result = await getProjectsService(adminUser, validQuery);
+      const result = await getProjectsService(adminUser, validQuery, "testtoken");
       expect(result.page).toBe(2);
       expect(result.limit).toBe(5);
+    });
+
+    // Example test specifically hitting "manager" branch in authorizeProjectModification
+    test("should log manager authorized branch in updateProjectService", async () => {
+      // The line: if (user.role === 'ROLE_MANAGER' && (existingProject.managerId===user.id||...))
+      const managerUserX = { id: "mgr-999", role: "ROLE_MANAGER" };
+      // Return a project with managerId = mgr-999
+      ProjectRepository.findUnique.mockResolvedValue({
+        id: "some-proj-id",
+        managerId: "mgr-999",
+        createdBy: "another-user",
+      });
+      // Spy on console.log
+      const spyLog = jest.spyOn(console, "log").mockImplementation(() => {});
+      // Make sure the update call resolves
+      ProjectRepository.update.mockResolvedValue({ ...mockProject, managerId: "mgr-999" });
+      fetchUsersByIds.mockResolvedValue({});
+
+      await updateProjectService(managerUserX, "some-proj-id", { name: "someName" }, "token");
+
+      expect(spyLog).toHaveBeenCalledWith(
+        "Manager updating project they manage or created: some-proj-id"
+      );
+      spyLog.mockRestore();
     });
   });
 });

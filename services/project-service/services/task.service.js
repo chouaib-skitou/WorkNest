@@ -1,11 +1,14 @@
-// task.service.js
-import { prisma } from "../config/database.js";
+// services/task.service.js
+
 import { TaskDTO } from "../dtos/task.dto.js";
+import { TaskRepository } from "../repositories/task.repository.js";
+import { ProjectRepository } from "../repositories/project.repository.js";
+import { fetchUsersByIds } from "./helpers/user.enrichment.js";
 
 /**
  * Generate dynamic filter conditions for task queries.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Filter conditions for Prisma query.
+ * @returns {Object} - Filter conditions for repository query.
  */
 const getDynamicFilters = (query) => {
   const filters = {};
@@ -27,7 +30,7 @@ const getDynamicFilters = (query) => {
 /**
  * Generate sorting options for task queries.
  * @param {Object} query - Query parameters from the request.
- * @returns {Object} - Sorting options for Prisma query.
+ * @returns {Object} - Sorting options for repository query.
  */
 const getSortingOptions = (query) => {
   const allowedFields = ["title", "createdAt", "updatedAt"];
@@ -58,7 +61,7 @@ const getTaskRoleBasedFilter = (user) => {
       ],
     };
   }
-  return {}; // ROLE_ADMIN: no filter.
+  return {}; // ROLE_ADMIN: no filter
 };
 
 /**
@@ -75,16 +78,14 @@ const authorizeTaskCreation = async (user, projectId) => {
     return;
   }
   if (user.role === "ROLE_MANAGER") {
-    const project = await prisma.project.findUnique({
+    const project = await ProjectRepository.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(
-        `Manager authorized to create task for project: ${projectId}`
-      );
+      console.log(`Manager authorized to create task for project: ${projectId}`);
       return;
     }
     return Promise.reject({
@@ -117,24 +118,27 @@ export const authorizeTaskModification = async (
   updateData,
   opType = "update"
 ) => {
-  const task = await prisma.task.findUnique({
+  const task = await TaskRepository.findUnique({
     where: { id },
     include: { Project: true },
   });
   if (!task) {
     return Promise.reject({ status: 404, message: "Task not found" });
   }
+
+  // Admin => always allowed
   if (user.role === "ROLE_ADMIN") {
     return task;
   }
+
+  // Manager => must be managerId or createdBy, or patching only stageId
   if (user.role === "ROLE_MANAGER") {
-    if (
-      task.Project.managerId === user.id ||
-      task.Project.createdBy === user.id
-    ) {
+    // eslint-disable-next-line no-unused-vars
+    const { managerId, createdBy, employeeIds } = task.Project || {};
+    if (managerId === user.id || createdBy === user.id) {
       return task;
     }
-    // Allow managers who are only in the employeeIds to patch the stageId
+    // If manager is only in employeeIds, allow patching stageId only
     if (
       opType === "patch" &&
       Object.keys(updateData).length === 1 &&
@@ -147,8 +151,9 @@ export const authorizeTaskModification = async (
       message: "Access denied: You do not have permission to update this task",
     });
   }
+
+  // Employee => can only patch stageId, nothing else
   if (user.role === "ROLE_EMPLOYEE") {
-    // Allow employees to PATCH only the stageId (and nothing else)
     if (
       opType === "patch" &&
       Object.keys(updateData).length === 1 &&
@@ -161,6 +166,8 @@ export const authorizeTaskModification = async (
       message: "Access denied: Employees can only update the task stage",
     });
   }
+
+  // Unknown roles
   return Promise.reject({
     status: 403,
     message: "Access denied: You do not have permission to update this task",
@@ -176,7 +183,7 @@ export const authorizeTaskModification = async (
  * @returns {Promise<Object>} - Resolves with the task if authorized.
  */
 const authorizeTaskDeletion = async (user, id) => {
-  const task = await prisma.task.findUnique({
+  const task = await TaskRepository.findUnique({
     where: { id },
     include: { Project: true },
   });
@@ -197,11 +204,13 @@ const authorizeTaskDeletion = async (user, id) => {
 
 /**
  * Retrieve a paginated list of tasks based on filters, sorting, and role-based authorization.
+ * Enriches each task with user details for the assignedTo field using the provided token.
  * @param {Object} user - The user making the request.
  * @param {Object} query - Query parameters for filtering, pagination, and sorting.
+ * @param {string} token - JWT token used for fetching user details.
  * @returns {Promise<Object>} - Paginated tasks data.
  */
-export const getTasksService = async (user, query) => {
+export const getTasksService = async (user, query, token) => {
   const parsedPage = parseInt(query.page);
   const parsedLimit = parseInt(query.limit);
   const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
@@ -217,14 +226,14 @@ export const getTasksService = async (user, query) => {
 
   try {
     const [tasks, totalCount] = await Promise.all([
-      prisma.task.findMany({
+      TaskRepository.findMany({
         where,
         skip,
         take: limit,
         orderBy,
         include: { Stage: true, Project: true },
       }),
-      prisma.task.count({ where }),
+      TaskRepository.count({ where }),
     ]);
 
     if (totalCount === 0) {
@@ -237,8 +246,16 @@ export const getTasksService = async (user, query) => {
       };
     }
 
+    // Enrich assignedTo field for each task
+    for (const task of tasks) {
+      if (task.assignedTo) {
+        const userMap = await fetchUsersByIds([task.assignedTo], token);
+        task.assignedTo = userMap[task.assignedTo] || task.assignedTo;
+      }
+    }
+
     return {
-      data: tasks.map((task) => new TaskDTO(task)),
+      data: tasks.map((t) => new TaskDTO(t)),
       page,
       limit,
       totalCount,
@@ -258,20 +275,25 @@ export const getTasksService = async (user, query) => {
 
 /**
  * Retrieve a single task by its ID with associated Stage and Project.
+ * Enriches the task with user details for the assignedTo field using the provided token.
  * @param {Object} user - The user making the request.
  * @param {string} id - The task ID.
+ * @param {string} token - JWT token used for fetching user details.
  * @returns {Promise<TaskDTO>} - The task data transfer object.
  */
-export const getTaskByIdService = async (user, id) => {
+export const getTaskByIdService = async (user, id, token) => {
   try {
-    const task = await prisma.task.findUnique({
+    const task = await TaskRepository.findUnique({
       where: { id },
       include: { Stage: true, Project: true },
     });
     if (!task) {
       return Promise.reject({ status: 404, message: "Task not found" });
     }
-    // Here we assume role-based filtering has already been applied via getTaskRoleBasedFilter.
+    if (task.assignedTo) {
+      const userMap = await fetchUsersByIds([task.assignedTo], token);
+      task.assignedTo = userMap[task.assignedTo] || task.assignedTo;
+    }
     return new TaskDTO(task);
   } catch (error) {
     console.error("Error fetching task:", error);
@@ -283,21 +305,28 @@ export const getTaskByIdService = async (user, id) => {
  * Create a new task.
  * Only Admins and Managers can create tasks.
  * For Managers, creation is allowed only if they are the project's manager or creator.
+ * Enriches the task with user details for the assignedTo field using the provided token.
  * @param {Object} user - The user creating the task.
  * @param {Object} data - The task data.
+ * @param {string} token - JWT token used for fetching user details.
  * @returns {Promise<TaskDTO>} - The created task data transfer object.
  */
-export const createTaskService = async (user, data) => {
+export const createTaskService = async (user, data, token) => {
   try {
     await authorizeTaskCreation(user, data.projectId);
     const taskData = {
       ...data,
       title: data.title.toLowerCase(),
     };
-    const newTask = await prisma.task.create({
-      data: taskData,
-      include: { Stage: true, Project: true },
+    const newTask = await TaskRepository.create(taskData, {
+      Stage: true,
+      Project: true,
     });
+
+    if (newTask.assignedTo) {
+      const userMap = await fetchUsersByIds([newTask.assignedTo], token);
+      newTask.assignedTo = userMap[newTask.assignedTo] || newTask.assignedTo;
+    }
     return new TaskDTO(newTask);
   } catch (error) {
     console.error("Error creating task:", error);
@@ -315,24 +344,29 @@ export const createTaskService = async (user, data) => {
 };
 
 /**
- * Fully update a task.
- * - Admins can update all tasks.
- * - Managers can update tasks if they are the project's manager or creator.
+ * Fully update a task (PUT).
  * @param {Object} user - The user updating the task.
  * @param {string} id - The task ID.
  * @param {Object} data - The updated task data.
+ * @param {string} token - JWT token used for fetching user details.
  * @returns {Promise<TaskDTO>} - The updated task data transfer object.
  */
-export const updateTaskService = async (user, id, data) => {
+export const updateTaskService = async (user, id, data, token) => {
   try {
     await authorizeTaskModification(user, id, data, "update");
     const updateData = { ...data };
-    if (updateData.title) updateData.title = updateData.title.toLowerCase();
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: { Stage: true, Project: true },
+    if (updateData.title) {
+      updateData.title = updateData.title.toLowerCase();
+    }
+    const updatedTask = await TaskRepository.update(id, updateData, {
+      Stage: true,
+      Project: true,
     });
+    if (updatedTask.assignedTo) {
+      const userMap = await fetchUsersByIds([updatedTask.assignedTo], token);
+      updatedTask.assignedTo =
+        userMap[updatedTask.assignedTo] || updatedTask.assignedTo;
+    }
     return new TaskDTO(updatedTask);
   } catch (error) {
     console.error("Error updating task:", error);
@@ -350,22 +384,21 @@ export const updateTaskService = async (user, id, data) => {
 };
 
 /**
- * Partially update a task.
- * - Admins can update all tasks.
- * - Managers can update a task if they are the project's manager or creator.
- *   If a manager is only in the employee list, they may only update the stageId.
- * - Employees can update the stageId only.
+ * Partially update a task (PATCH).
  * @param {Object} user - The user updating the task.
  * @param {string} id - The task ID.
  * @param {Object} data - The partial task data to update.
+ * @param {string} token - JWT token used for fetching user details.
  * @returns {Promise<TaskDTO>} - The updated task data transfer object.
  */
-export const patchTaskService = async (user, id, data) => {
+export const patchTaskService = async (user, id, data, token) => {
   try {
     await authorizeTaskModification(user, id, data, "patch");
     const updateData = {};
     Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) updateData[key] = value;
+      if (value !== undefined) {
+        updateData[key] = value;
+      }
     });
     if (Object.keys(updateData).length === 0) {
       return Promise.reject({
@@ -376,11 +409,15 @@ export const patchTaskService = async (user, id, data) => {
     if (updateData.title) {
       updateData.title = updateData.title.toLowerCase();
     }
-    const updatedTask = await prisma.task.update({
-      where: { id },
-      data: updateData,
-      include: { Stage: true, Project: true },
+    const updatedTask = await TaskRepository.update(id, updateData, {
+      Stage: true,
+      Project: true,
     });
+    if (updatedTask.assignedTo) {
+      const userMap = await fetchUsersByIds([updatedTask.assignedTo], token);
+      updatedTask.assignedTo =
+        userMap[updatedTask.assignedTo] || updatedTask.assignedTo;
+    }
     return new TaskDTO(updatedTask);
   } catch (error) {
     console.error("Error updating task:", error);
@@ -408,7 +445,7 @@ export const patchTaskService = async (user, id, data) => {
 export const deleteTaskService = async (user, id) => {
   try {
     await authorizeTaskDeletion(user, id);
-    await prisma.task.delete({ where: { id } });
+    await TaskRepository.delete(id);
     return { status: 200, message: "Task deleted successfully" };
   } catch (error) {
     console.error("Error deleting task:", error);
