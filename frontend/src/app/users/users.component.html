@@ -1,8 +1,10 @@
 <div class="users-container">
   <app-flash-messages></app-flash-messages>
+  
   <div class="header-section">
     <h1>Users Management</h1>
-    <button class="create-button" (click)="openCreateModal()">
+    <!-- Only show Add User button for admins -->
+    <button *ngIf="isAdmin" class="create-button" (click)="openCreateModal()">
       <i class="fas fa-plus"></i> Add New User
     </button>
   </div>
@@ -47,7 +49,8 @@
           <th>Email</th>
           <th>Role</th>
           <th>Verified</th>
-          <th>Actions</th>
+          <!-- Only show Actions column for admins -->
+          <th *ngIf="isAdmin">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -68,7 +71,8 @@
               {{ user.isVerified ? 'Verified' : 'Not Verified' }}
             </span>
           </td>
-          <td class="actions-cell">
+          <!-- Only show action buttons for admins -->
+          <td class="actions-cell" *ngIf="isAdmin">
             <button class="action-button edit" (click)="openEditModal(user)" title="Edit User">
               <i class="fas fa-edit"></i>
             </button>
@@ -121,7 +125,7 @@
     </button>
   </div>
 
-  <!-- Create User Modal -->
+  <!-- Create User Modal (only for admins) -->
   <div class="modal" [class.show]="showCreateModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -227,7 +231,7 @@
     </div>
   </div>
 
-  <!-- Edit User Modal -->
+  <!-- Edit User Modal (only for admins) -->
   <div class="modal" [class.show]="showEditModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -332,7 +336,7 @@
     </div>
   </div>
 
-  <!-- Delete Confirmation Modal -->
+  <!-- Delete Confirmation Modal (only for admins) -->
   <div class="modal" [class.show]="showDeleteModal">
     <div class="modal-content delete-modal">
       <div class="modal-header">

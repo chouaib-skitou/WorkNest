@@ -4,6 +4,9 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../core/services/user.service';
 import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
+import { AuthService } from '../core/services/auth.service';
+import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-users',
@@ -20,8 +23,9 @@ export class UsersComponent implements OnInit {
   totalCount = 0;
   searchTerm = '';
   roleFilter = 'ALL';
-  isAdmin = true; // Set based on your auth logic
-  isLoading = false;
+  isAdmin = false;
+  isManager = false;
+  isLoading = true;
   
   // Modal states
   showCreateModal = false;
@@ -40,13 +44,65 @@ export class UsersComponent implements OnInit {
   constructor(
     private userService: UserService,
     private fb: FormBuilder,
-    private flashMessageService: FlashMessageService
+    private flashMessageService: FlashMessageService,
+    private authService: AuthService,
+    private router: Router
   ) {
     this.userForm = this.createUserForm();
   }
 
   ngOnInit(): void {
-    this.fetchUsers();
+    this.checkUserPermissions();
+  }
+
+  /**
+   * Check user permissions and fetch users if authorized
+   */
+  checkUserPermissions(): void {
+    this.isLoading = true;
+    
+    // Check if user is admin
+    this.authService.isAdmin().subscribe({
+      next: (isAdmin) => {
+        this.isAdmin = isAdmin;
+        
+        // If not admin, check if manager
+        if (!isAdmin) {
+          this.authService.isManager().subscribe({
+            next: (isManager) => {
+              this.isManager = isManager;
+              
+              // If neither admin nor manager, redirect to home
+              if (!isManager) {
+                this.flashMessageService.showError('You do not have permission to access this page');
+                this.router.navigate(['/']);
+                return;
+              }
+              
+              this.fetchUsers();
+            },
+            error: () => {
+              this.handleAuthError();
+            }
+          });
+        } else {
+          // User is admin, set manager to true as well (admin has all manager permissions)
+          this.isManager = true;
+          this.fetchUsers();
+        }
+      },
+      error: () => {
+        this.handleAuthError();
+      }
+    });
+  }
+
+  /**
+   * Handle authentication errors
+   */
+  private handleAuthError(): void {
+    this.flashMessageService.showError('Authentication failed. Please log in again.');
+    this.router.navigate(['/login']);
   }
 
   /**
@@ -74,17 +130,20 @@ export class UsersComponent implements OnInit {
         this.searchTerm,
         this.roleFilter
       )
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
       .subscribe({
         next: (response) => {
           this.users = response.data;
           this.totalPages = response.totalPages;
           this.totalCount = response.totalCount;
-          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error fetching users:', error);
           this.flashMessageService.showError('Failed to load users. Please try again.');
-          this.isLoading = false;
         }
       });
   }
@@ -118,6 +177,12 @@ export class UsersComponent implements OnInit {
    * Open create user modal
    */
   openCreateModal(): void {
+    // Only admin can create users
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to create users');
+      return;
+    }
+    
     this.userForm.reset({
       role: 'ROLE_EMPLOYEE'
     });
@@ -129,6 +194,12 @@ export class UsersComponent implements OnInit {
    * Open edit user modal
    */
   openEditModal(user: User): void {
+    // Only admin can edit users
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to edit users');
+      return;
+    }
+    
     this.selectedUser = user;
     this.userForm.patchValue({
       firstName: user.firstName,
@@ -148,6 +219,12 @@ export class UsersComponent implements OnInit {
    * Open delete confirmation modal
    */
   openDeleteModal(user: User): void {
+    // Only admin can delete users
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to delete users');
+      return;
+    }
+    
     this.selectedUser = user;
     this.showDeleteModal = true;
   }
@@ -180,6 +257,13 @@ export class UsersComponent implements OnInit {
    * Create a new user
    */
   createUser(): void {
+    // Double-check admin permission
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to create users');
+      this.closeModals();
+      return;
+    }
+    
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
@@ -209,6 +293,13 @@ export class UsersComponent implements OnInit {
    * Update an existing user
    */
   updateUser(): void {
+    // Double-check admin permission
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to update users');
+      this.closeModals();
+      return;
+    }
+    
     if (!this.selectedUser || this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
@@ -248,6 +339,13 @@ export class UsersComponent implements OnInit {
    * Delete a user
    */
   deleteUser(): void {
+    // Double-check admin permission
+    if (!this.isAdmin) {
+      this.flashMessageService.showError('You do not have permission to delete users');
+      this.closeModals();
+      return;
+    }
+    
     if (!this.selectedUser) return;
     
     this.formSubmitting = true;
