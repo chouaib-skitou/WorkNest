@@ -3,12 +3,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+// Update the Project interface to match the backend response
 export interface Project {
   id: string;
   name: string;
   description?: string;
   image?: string | null;
-  documents?: Record<string, unknown>[]; // Instead of any[]
   createdAt: string;
   updatedAt?: string;
   createdBy?: {
@@ -16,6 +16,12 @@ export interface Project {
     fullName: string;
     role: string;
   };
+  // New properties coming from the backend:
+  status: 'In Progress' | 'Completed' | 'On Hold';
+  priority: 'Low' | 'Medium' | 'High';
+  dueDate: string; // or Date if you convert it
+  assignee: string;
+  // Optionally, if you have additional properties like manager, employees, stages, etc.
   manager?: {
     id: string;
     fullName: string;
@@ -26,7 +32,7 @@ export interface Project {
     fullName: string;
     role: string;
   }[];
-  stages?: Record<string, unknown>[]; // Instead of any[]
+  stages?: Record<string, unknown>[];
 }
 
 interface ProjectResponse {
