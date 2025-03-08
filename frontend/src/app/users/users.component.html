@@ -5,7 +5,7 @@
     <input
       type="text"
       [(ngModel)]="searchTerm"
-      (input)="applyFilters()"
+      (ngModelChange)="applyFilters()"
       placeholder="Search users..."
       class="search-input"
     />

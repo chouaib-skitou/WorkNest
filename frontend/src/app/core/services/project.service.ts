@@ -3,33 +3,57 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+// Updated Status and Priority enums to match the API
+export enum Status {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum Priority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
+// User interface for createdBy and manager
+export interface User {
+  id: string;
+  fullName: string;
+  role: string;
+}
+
+// Updated Project interface to match the backend response
 export interface Project {
   id: string;
   name: string;
   description?: string;
   image?: string | null;
-  documents?: Record<string, unknown>[]; // Instead of any[]
   createdAt: string;
   updatedAt?: string;
-  createdBy?: {
-    id: string;
-    fullName: string;
-    role: string;
-  };
-  manager?: {
-    id: string;
-    fullName: string;
-    role: string;
-  };
-  employees?: {
-    id: string;
-    fullName: string;
-    role: string;
-  }[];
-  stages?: Record<string, unknown>[]; // Instead of any[]
+  createdBy?: User;
+  status: Status;
+  priority: Priority;
+  dueDate: string;
+  manager?: User;
+  employees?: User[];
+  stages?: Record<string, unknown>[];
 }
 
-interface ProjectResponse {
+// Add the missing ProjectCreateUpdate interface
+export interface ProjectCreateUpdate {
+  name: string;
+  description?: string;
+  status: Status;
+  priority: Priority;
+  dueDate: string;
+  managerId?: string;
+  employeeIds?: string[];
+  image?: File;
+  documents?: File[];
+}
+
+export interface ProjectResponse {
   data: Project[];
   page: number;
   limit: number;
@@ -46,22 +70,36 @@ export class ProjectService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Fetch all projects from the backend.
+   * Fetch all projects from the backend with pagination and optional filters.
    * @param page - Current page number.
    * @param limit - Number of projects per page.
+   * @param filters - Optional filters (name, status, priority).
    * @returns {Observable<ProjectResponse>} - Returns paginated projects.
    */
-  getAllProjects(page = 1, limit = 6): Observable<ProjectResponse> {
+  getAllProjects(
+    page = 1,
+    limit = 6,
+    filters: { name?: string; status?: Status; priority?: Priority } = {}
+  ): Observable<ProjectResponse> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
     });
 
+    let query = `?page=${page}&limit=${limit}`;
+    if (filters.name) {
+      query += `&name=${encodeURIComponent(filters.name)}`;
+    }
+    if (filters.status) {
+      query += `&status=${encodeURIComponent(filters.status)}`;
+    }
+    if (filters.priority) {
+      query += `&priority=${encodeURIComponent(filters.priority)}`;
+    }
+
     return this.http.get<ProjectResponse>(
-      `${this.projectServiceUrl}/projects?page=${page}&limit=${limit}`,
-      {
-        headers,
-      }
+      `${this.projectServiceUrl}/projects${query}`,
+      { headers }
     );
   }
 
@@ -78,10 +116,22 @@ export class ProjectService {
 
     return this.http.get<Project>(
       `${this.projectServiceUrl}/projects/${projectId}`,
-      {
-        headers,
-      }
+      { headers }
     );
+  }
+
+  /**
+   * Format date to ISO string with time set to midnight UTC
+   * @param dateString - Date string in any format
+   * @returns {string} - ISO formatted date string
+   */
+  private formatDateForAPI(dateString: string): string {
+    // Create a date object from the string
+    const date = new Date(dateString);
+    // Set the time to midnight UTC
+    date.setUTCHours(0, 0, 0, 0);
+    // Return the ISO string
+    return date.toISOString();
   }
 
   /**
@@ -89,20 +139,92 @@ export class ProjectService {
    * @param projectData - The project data to be created.
    * @returns {Observable<Project>} - Returns the created project.
    */
-  addProject(projectData: Partial<Project>): Observable<Project> {
+  addProject(
+    projectData: Partial<Project> | ProjectCreateUpdate
+  ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    });
 
-    return this.http.post<Project>(
-      `${this.projectServiceUrl}/projects`,
-      projectData,
-      {
-        headers,
+    // Check if we're dealing with a ProjectCreateUpdate with files
+    if (this.isProjectCreateUpdate(projectData)) {
+      // Format the date properly
+      const formattedData = {
+        ...projectData,
+        dueDate: this.formatDateForAPI(projectData.dueDate),
+      };
+
+      if (projectData.image instanceof File) {
+        const formData = new FormData();
+        const headers = new HttpHeaders({
+          Authorization: `Bearer ${accessToken}`,
+        });
+
+        // Add basic project data
+        formData.append('name', formattedData.name);
+        if (formattedData.description) {
+          formData.append('description', formattedData.description);
+        }
+        formData.append('status', formattedData.status);
+        formData.append('priority', formattedData.priority);
+        formData.append('dueDate', formattedData.dueDate);
+
+        // Add relations
+        if (formattedData.managerId) {
+          formData.append('managerId', formattedData.managerId);
+        }
+
+        if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
+          formattedData.employeeIds.forEach((id: string) => {
+            formData.append('employeeIds', id);
+          });
+        }
+
+        // Add files
+        formData.append('image', projectData.image);
+
+        if (projectData.documents && projectData.documents.length > 0) {
+          projectData.documents.forEach((doc: File) => {
+            formData.append('documents', doc);
+          });
+        }
+
+        return this.http.post<Project>(
+          `${this.projectServiceUrl}/projects`,
+          formData,
+          { headers }
+        );
+      } else {
+        // Use JSON for regular project data
+        const jsonHeaders = new HttpHeaders({
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        });
+
+        return this.http.post<Project>(
+          `${this.projectServiceUrl}/projects`,
+          formattedData,
+          { headers: jsonHeaders }
+        );
       }
-    );
+    } else {
+      // Handle Partial<Project> case
+      const jsonData = { ...projectData };
+
+      // Format the date if it exists
+      if (jsonData.dueDate) {
+        jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
+      }
+
+      const jsonHeaders = new HttpHeaders({
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      });
+
+      return this.http.post<Project>(
+        `${this.projectServiceUrl}/projects`,
+        jsonData,
+        { headers: jsonHeaders }
+      );
+    }
   }
 
   /**
@@ -113,21 +235,91 @@ export class ProjectService {
    */
   updateProject(
     projectId: string,
-    projectData: Partial<Project>
+    projectData: Partial<Project> | ProjectCreateUpdate
   ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    });
 
-    return this.http.put<Project>(
-      `${this.projectServiceUrl}/projects/${projectId}`,
-      projectData,
-      {
-        headers,
+    // Check if we're dealing with a ProjectCreateUpdate
+    if (this.isProjectCreateUpdate(projectData)) {
+      // Format the date properly
+      const formattedData = {
+        ...projectData,
+        dueDate: this.formatDateForAPI(projectData.dueDate),
+      };
+
+      if (projectData.image instanceof File) {
+        const formData = new FormData();
+        const headers = new HttpHeaders({
+          Authorization: `Bearer ${accessToken}`,
+        });
+
+        // Add basic project data
+        formData.append('name', formattedData.name);
+        if (formattedData.description) {
+          formData.append('description', formattedData.description);
+        }
+        formData.append('status', formattedData.status);
+        formData.append('priority', formattedData.priority);
+        formData.append('dueDate', formattedData.dueDate);
+
+        // Add relations
+        if (formattedData.managerId) {
+          formData.append('managerId', formattedData.managerId);
+        }
+
+        if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
+          formattedData.employeeIds.forEach((id: string) => {
+            formData.append('employeeIds', id);
+          });
+        }
+
+        // Add files
+        formData.append('image', projectData.image);
+
+        if (projectData.documents && projectData.documents.length > 0) {
+          projectData.documents.forEach((doc: File) => {
+            formData.append('documents', doc);
+          });
+        }
+
+        return this.http.put<Project>(
+          `${this.projectServiceUrl}/projects/${projectId}`,
+          formData,
+          { headers }
+        );
+      } else {
+        // Use JSON for regular project data
+        const jsonHeaders = new HttpHeaders({
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        });
+
+        return this.http.put<Project>(
+          `${this.projectServiceUrl}/projects/${projectId}`,
+          formattedData,
+          { headers: jsonHeaders }
+        );
       }
-    );
+    } else {
+      // Handle Partial<Project> case
+      const jsonData = { ...projectData };
+
+      // Format the date if it exists
+      if (jsonData.dueDate) {
+        jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
+      }
+
+      const jsonHeaders = new HttpHeaders({
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      });
+
+      return this.http.put<Project>(
+        `${this.projectServiceUrl}/projects/${projectId}`,
+        jsonData,
+        { headers: jsonHeaders }
+      );
+    }
   }
 
   /**
@@ -146,12 +338,16 @@ export class ProjectService {
       'Content-Type': 'application/json',
     });
 
+    // Format the date if it exists
+    const formattedData = { ...partialData };
+    if (formattedData.dueDate) {
+      formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
+    }
+
     return this.http.patch<Project>(
       `${this.projectServiceUrl}/projects/${projectId}`,
-      partialData,
-      {
-        headers,
-      }
+      formattedData,
+      { headers }
     );
   }
 
@@ -168,9 +364,21 @@ export class ProjectService {
 
     return this.http.delete<void>(
       `${this.projectServiceUrl}/projects/${projectId}`,
-      {
-        headers,
-      }
+      { headers }
+    );
+  }
+
+  /**
+   * Type guard to check if an object is a ProjectCreateUpdate
+   */
+  private isProjectCreateUpdate(obj: unknown): obj is ProjectCreateUpdate {
+    return (
+      obj !== null &&
+      typeof obj === 'object' &&
+      'name' in obj &&
+      'status' in obj &&
+      'priority' in obj &&
+      'dueDate' in obj
     );
   }
 }
