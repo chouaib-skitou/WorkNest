@@ -6,8 +6,12 @@ import helmet from "helmet";
 import { setupSwagger } from "./docs/swagger.js"; 
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import fs from "fs";
 
 dotenv.config();
+
+process.env.JWT_SECRET = fs.readFileSync("./config/jwt/JWT_SECRET", "utf8").trim();
+process.env.JWT_REFRESH_SECRET = fs.readFileSync("./config/jwt/JWT_REFRESH_SECRET", "utf8").trim();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
