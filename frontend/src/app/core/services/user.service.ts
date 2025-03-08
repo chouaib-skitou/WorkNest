@@ -12,6 +12,7 @@ export interface User {
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  fullName?: string; // Added for convenience
 }
 
 interface UserResponse {
@@ -64,5 +65,32 @@ export class UserService {
     }
 
     return this.http.get<UserResponse>(url, { headers });
+  }
+
+  /**
+   * Get all managers for project assignment
+   * @param limit - Number of managers to fetch (default: 100)
+   * @returns {Observable<UserResponse>} - Returns managers
+   */
+  getManagers(limit = 100): Observable<UserResponse> {
+    return this.getAllUsers(1, limit, undefined, 'ROLE_MANAGER');
+  }
+
+  /**
+   * Get all employees for project assignment
+   * @param limit - Number of employees to fetch (default: 100)
+   * @returns {Observable<UserResponse>} - Returns employees
+   */
+  getEmployees(limit = 100): Observable<UserResponse> {
+    return this.getAllUsers(1, limit, undefined, 'ROLE_EMPLOYEE');
+  }
+
+  /**
+   * Format user's full name
+   * @param user - User object
+   * @returns {string} - Formatted full name
+   */
+  formatFullName(user: User): string {
+    return `${user.firstName} ${user.lastName}`;
   }
 }
