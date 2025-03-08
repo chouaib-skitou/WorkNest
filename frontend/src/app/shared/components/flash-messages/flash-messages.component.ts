@@ -1,7 +1,10 @@
 // flash-messages.component.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FlashMessageService, FlashMessage } from '../../../core/services/flash-message.service';
+import {
+  FlashMessageService,
+  FlashMessage,
+} from '../../../core/services/flash-message.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -10,9 +13,9 @@ import { Subscription } from 'rxjs';
   imports: [CommonModule],
   template: `
     <div class="flash-messages-container">
-      <div 
-        *ngFor="let message of messages" 
-        class="flash-message" 
+      <div
+        *ngFor="let message of messages"
+        class="flash-message"
         [ngClass]="message.type"
         [@fadeInOut]
       >
@@ -26,100 +29,102 @@ import { Subscription } from 'rxjs';
       </div>
     </div>
   `,
-  styles: [`
-    .flash-messages-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-width: 400px;
-    }
-    
-    .flash-message {
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      animation: slideIn 0.3s ease-out;
-    }
-    
-    .flash-message-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .flash-icon {
-      font-size: 20px;
-    }
-    
-    .flash-text {
-      font-size: 14px;
-      font-weight: 500;
-    }
-    
-    .close-button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-    }
-    
-    .close-button:hover {
-      opacity: 1;
-    }
-    
-    /* Message types */
-    .success {
-      background-color: #e7f7ed;
-      border-left: 4px solid #4caf50;
-      color: #2e7d32;
-    }
-    
-    .error {
-      background-color: #fdeded;
-      border-left: 4px solid #d32f2f;
-      color: #c62828;
-    }
-    
-    .info {
-      background-color: #e8f4fd;
-      border-left: 4px solid #2196f3;
-      color: #0d47a1;
-    }
-    
-    .warning {
-      background-color: #fff8e6;
-      border-left: 4px solid #ffc107;
-      color: #ff8f00;
-    }
-    
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
+  styles: [
+    `
+      .flash-messages-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
       }
-      to {
-        transform: translateX(0);
+
+      .flash-message {
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .flash-message-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .flash-icon {
+        font-size: 20px;
+      }
+
+      .flash-text {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .close-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+      }
+
+      .close-button:hover {
         opacity: 1;
       }
-    }
-  `],
+
+      /* Message types */
+      .success {
+        background-color: #e7f7ed;
+        border-left: 4px solid #4caf50;
+        color: #2e7d32;
+      }
+
+      .error {
+        background-color: #fdeded;
+        border-left: 4px solid #d32f2f;
+        color: #c62828;
+      }
+
+      .info {
+        background-color: #e8f4fd;
+        border-left: 4px solid #2196f3;
+        color: #0d47a1;
+      }
+
+      .warning {
+        background-color: #fff8e6;
+        border-left: 4px solid #ffc107;
+        color: #ff8f00;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+    `,
+  ],
   animations: [
     // You can add Angular animations here if you're using @angular/animations
-  ]
+  ],
 })
 export class FlashMessagesComponent implements OnInit, OnDestroy {
   messages: FlashMessage[] = [];
@@ -128,9 +133,11 @@ export class FlashMessagesComponent implements OnInit, OnDestroy {
   constructor(private flashMessageService: FlashMessageService) {}
 
   ngOnInit(): void {
-    this.subscription = this.flashMessageService.messages$.subscribe(messages => {
-      this.messages = messages;
-    });
+    this.subscription = this.flashMessageService.messages$.subscribe(
+      (messages) => {
+        this.messages = messages;
+      }
+    );
   }
 
   ngOnDestroy(): void {

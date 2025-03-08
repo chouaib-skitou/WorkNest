@@ -49,7 +49,7 @@ $transition-speed: 0.3s;
     padding: 2rem;
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    
+
     .spinner {
       width: 50px;
       height: 50px;
@@ -59,7 +59,7 @@ $transition-speed: 0.3s;
       animation: spin 1s linear infinite;
       margin-bottom: 1rem;
     }
-    
+
     p {
       font-size: 1.1rem;
       font-weight: 500;
@@ -398,7 +398,8 @@ $transition-speed: 0.3s;
     border-top: 1px solid $border-color;
     gap: 0.75rem;
 
-    .edit-button, .delete-button {
+    .edit-button,
+    .delete-button {
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -427,7 +428,7 @@ $transition-speed: 0.3s;
     .delete-button {
       background-color: rgba($error-color, 0.1);
       color: $error-color;
-      
+
       &:hover {
         background-color: $error-color;
         color: white;
@@ -516,12 +517,12 @@ $transition-speed: 0.3s;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    
+
     .pagination-button {
       width: 100%;
       justify-content: center;
     }
-    
+
     .page-numbers {
       flex-wrap: wrap;
       justify-content: center;
@@ -612,19 +613,19 @@ $transition-speed: 0.3s;
 .delete-confirmation {
   text-align: center;
   padding: 1.5rem;
-  
+
   .warning-icon {
     font-size: 3rem;
     color: $warning-color;
     margin-bottom: 1.5rem;
   }
-  
+
   p {
     font-size: 1.1rem;
     margin-bottom: 0.5rem;
     color: $text-color;
   }
-  
+
   .delete-warning {
     color: $error-color;
     font-weight: 500;
@@ -673,8 +674,8 @@ $transition-speed: 0.3s;
     }
   }
 
-  input[type="text"],
-  input[type="date"],
+  input[type='text'],
+  input[type='date'],
   textarea,
   select {
     width: 100%;
@@ -692,7 +693,7 @@ $transition-speed: 0.3s;
 
     &.invalid {
       border-color: $error-color;
-      
+
       &:focus {
         box-shadow: 0 0 0 3px rgba($error-color, 0.1);
       }
@@ -741,7 +742,7 @@ $transition-speed: 0.3s;
     position: relative;
     margin-bottom: 1rem;
 
-    input[type="file"] {
+    input[type='file'] {
       position: absolute;
       top: 0;
       left: 0;
@@ -784,7 +785,7 @@ $transition-speed: 0.3s;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid $border-color;
-    
+
     img {
       max-width: 100%;
       max-height: 200px;
@@ -819,7 +820,7 @@ $transition-speed: 0.3s;
         border-radius: 4px;
         margin-bottom: 0.25rem;
         font-size: 0.9rem;
-        
+
         &:hover {
           background-color: rgba($primary-color, 0.05);
         }
@@ -906,7 +907,7 @@ $transition-speed: 0.3s;
 
   @media (max-width: 576px) {
     flex-direction: column;
-    
+
     .cancel-button,
     .submit-button,
     .delete-confirm-button {

@@ -122,7 +122,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             typeof t.id === 'number' ? t.id : parseInt(t.id, 10)
           )
         );
-        this.nextTaskId = allTaskIds.length > 0 ? Math.max(...allTaskIds) + 1 : 1;
+        this.nextTaskId =
+          allTaskIds.length > 0 ? Math.max(...allTaskIds) + 1 : 1;
       },
       (error) => {
         console.error('Error fetching project details:', error);
@@ -170,9 +171,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       movedTask.stageId = newStageId;
 
       // Now send a patch request to update the task's stageId on the backend
-      this.taskService.partialUpdateTask(movedTask.id, { stageId: newStageId })
+      this.taskService
+        .partialUpdateTask(movedTask.id, { stageId: newStageId })
         .subscribe(
-          () => console.log(`Task ${movedTask.id} updated to new stage ${newStageId}`),
+          () =>
+            console.log(
+              `Task ${movedTask.id} updated to new stage ${newStageId}`
+            ),
           (error) => console.error('Error updating task stage', error)
         );
     }

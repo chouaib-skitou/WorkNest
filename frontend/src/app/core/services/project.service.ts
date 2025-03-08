@@ -369,9 +369,9 @@ export class ProjectService {
   /**
    * Type guard to check if an object is a ProjectCreateUpdate
    */
-  private isProjectCreateUpdate(obj: any): obj is ProjectCreateUpdate {
+  private isProjectCreateUpdate(obj: unknown): obj is ProjectCreateUpdate {
     return (
-      obj &&
+      obj !== null &&
       typeof obj === 'object' &&
       'name' in obj &&
       'status' in obj &&

@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { ProjectService, Project, Status, Priority, ProjectCreateUpdate } from '../core/services/project.service';
 import { UserService, User } from '../core/services/user.service';
 import { finalize, forkJoin } from 'rxjs';
-import { FlashMessageService, MessageType } from '../core/services/flash-message.service';
+import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 
 @Component({
@@ -24,9 +24,9 @@ import { FlashMessagesComponent } from '../shared/components/flash-messages/flas
 export class ProjectsComponent implements OnInit {
   projects: Project[] = [];
   filteredProjects: Project[] = [];
-  statusFilter: string = 'All';
-  priorityFilter: string = 'All';
-  searchTerm: string = '';
+  statusFilter = 'All';
+  priorityFilter = 'All';
+  searchTerm = '';
 
   // Pagination properties
   currentPage = 1;
@@ -552,7 +552,7 @@ export class ProjectsComponent implements OnInit {
   /**
    * Compare function for select options
    */
-  compareById(item1: any, item2: any): boolean {
-    return item1 && item2 && item1 === item2;
+  compareById(item1: unknown, item2: unknown): boolean {
+    return !!item1 && !!item2 && item1 === item2;
   }
 }

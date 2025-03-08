@@ -33,7 +33,12 @@ export class UsersComponent implements OnInit {
   fetchUsers(): void {
     this.isLoading = true;
     this.userService
-      .getAllUsers(this.currentPage, this.pageSize, this.searchTerm, this.roleFilter)
+      .getAllUsers(
+        this.currentPage,
+        this.pageSize,
+        this.searchTerm,
+        this.roleFilter
+      )
       .subscribe(
         (response) => {
           this.users = response.data;
@@ -78,6 +83,8 @@ export class UsersComponent implements OnInit {
    */
   onRoleChange(user: User, newRole: string): void {
     user.role = newRole as 'ROLE_EMPLOYEE' | 'ROLE_MANAGER';
-    console.log(`Changed role for ${user.firstName} ${user.lastName} to ${user.role}`);
+    console.log(
+      `Changed role for ${user.firstName} ${user.lastName} to ${user.role}`
+    );
   }
 }
