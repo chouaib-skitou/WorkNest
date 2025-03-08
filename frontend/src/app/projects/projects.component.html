@@ -17,9 +17,9 @@
       class="filter-select"
     >
       <option value="All">All Statuses</option>
-      <option value="In Progress">In Progress</option>
-      <option value="Completed">Completed</option>
-      <option value="On Hold">On Hold</option>
+      <option *ngFor="let status of statusOptions" [value]="status">
+        {{ formatStatus(status) }}
+      </option>
     </select>
 
     <select
@@ -28,15 +28,30 @@
       class="filter-select"
     >
       <option value="All">All Priorities</option>
-      <option value="Low">Low</option>
-      <option value="Medium">Medium</option>
-      <option value="High">High</option>
+      <option *ngFor="let priority of priorityOptions" [value]="priority">
+        {{ formatPriority(priority) }}
+      </option>
     </select>
   </div>
 
-  <div class="projects-grid">
+  <!-- Loading indicator -->
+  <div *ngIf="loading" class="loading-indicator">
+    Loading projects...
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- No results message -->
+  <div *ngIf="!loading && !error && filteredProjects.length === 0" class="no-results">
+    No projects found matching your criteria.
+  </div>
+
+  <div class="projects-grid" *ngIf="!loading && filteredProjects.length > 0">
     <a
-      *ngFor="let project of getCurrentPageProjects()"
+      *ngFor="let project of filteredProjects"
       [routerLink]="['/projects', project.id]"
       class="project-card"
     >
@@ -45,18 +60,18 @@
       <div class="project-details">
         <span
           class="status"
-          [ngClass]="project.status.toLowerCase().replace(' ', '-')"
-          >{{ project.status }}</span
-        >
-        <span class="priority" [ngClass]="project.priority.toLowerCase()">{{
-          project.priority
-        }}</span>
+          [ngClass]="getStatusClass(project.status)"
+        >{{ formatStatus(project.status) }}</span>
+        <span 
+          class="priority" 
+          [ngClass]="getPriorityClass(project.priority)"
+        >{{ formatPriority(project.priority) }}</span>
       </div>
       <div class="project-meta">
         <span class="due-date"
           >Due: {{ project.dueDate | date: 'mediumDate' }}</span
         >
-        <span class="assignee">Assigned to: {{ project.assignee }}</span>
+        <span class="assignee">Assigned to: {{ getAssigneeName(project) }}</span>
       </div>
     </a>
   </div>
@@ -72,14 +87,17 @@
     </button>
 
     <div class="page-numbers">
-      <button
-        *ngFor="let page of getPages()"
-        class="page-number"
-        [class.active]="page === currentPage"
-        (click)="changePage(page)"
-      >
-        {{ page }}
-      </button>
+      <ng-container *ngFor="let page of getPages()">
+        <button
+          *ngIf="page !== '...'"
+          class="page-number"
+          [class.active]="page === currentPage"
+          (click)="changePage(page)"
+        >
+          {{ page }}
+        </button>
+        <span *ngIf="page === '...'" class="ellipsis">...</span>
+      </ng-container>
     </div>
 
     <button

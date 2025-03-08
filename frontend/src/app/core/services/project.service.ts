@@ -3,6 +3,26 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+// Updated Status and Priority enums to match the API
+export enum Status {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED'
+}
+
+export enum Priority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH'
+}
+
+// User interface for createdBy and manager
+export interface User {
+  id: string;
+  fullName: string;
+  role: string;
+}
+
 // Updated Project interface to match the backend response
 export interface Project {
   id: string;
@@ -11,31 +31,16 @@ export interface Project {
   image?: string | null;
   createdAt: string;
   updatedAt?: string;
-  createdBy?: {
-    id: string;
-    fullName: string;
-    role: string;
-  };
-  // New properties coming from the backend:
-  status: 'In Progress' | 'Completed' | 'On Hold';
-  priority: 'Low' | 'Medium' | 'High';
-  dueDate: string; // You can convert this to a Date if needed
-  assignee: string;
-  // Optionally, additional properties like manager, employees, stages, etc.
-  manager?: {
-    id: string;
-    fullName: string;
-    role: string;
-  };
-  employees?: {
-    id: string;
-    fullName: string;
-    role: string;
-  }[];
+  createdBy?: User;
+  status: Status;
+  priority: Priority;
+  dueDate: string;
+  manager?: User;
+  employees?: User[];
   stages?: Record<string, unknown>[];
 }
 
-interface ProjectResponse {
+export interface ProjectResponse {
   data: Project[];
   page: number;
   limit: number;
@@ -52,22 +57,36 @@ export class ProjectService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Fetch all projects from the backend.
+   * Fetch all projects from the backend with pagination and optional filters.
    * @param page - Current page number.
    * @param limit - Number of projects per page.
+   * @param filters - Optional filters (name, status, priority).
    * @returns {Observable<ProjectResponse>} - Returns paginated projects.
    */
-  getAllProjects(page = 1, limit = 6): Observable<ProjectResponse> {
+  getAllProjects(
+    page = 1,
+    limit = 6,
+    filters: { name?: string; status?: Status; priority?: Priority } = {}
+  ): Observable<ProjectResponse> {
     const accessToken = localStorage.getItem('accessToken');
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
     });
 
+    let query = `?page=${page}&limit=${limit}`;
+    if (filters.name) {
+      query += `&name=${encodeURIComponent(filters.name)}`;
+    }
+    if (filters.status) {
+      query += `&status=${encodeURIComponent(filters.status)}`;
+    }
+    if (filters.priority) {
+      query += `&priority=${encodeURIComponent(filters.priority)}`;
+    }
+
     return this.http.get<ProjectResponse>(
-      `${this.projectServiceUrl}/projects?page=${page}&limit=${limit}`,
-      {
-        headers,
-      }
+      `${this.projectServiceUrl}/projects${query}`,
+      { headers }
     );
   }
 
