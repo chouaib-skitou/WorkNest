@@ -16,8 +16,8 @@ export class UsersComponent implements OnInit {
   currentPage = 1;
   totalPages = 1;
   totalCount = 0;
-  searchTerm = '';
-  roleFilter = 'ALL';
+  searchTerm = ''; // bound to a search input in the template
+  roleFilter = 'ALL'; // bound to a dropdown or similar input
   isAdmin = false;
   isLoading = false;
 
@@ -28,26 +28,28 @@ export class UsersComponent implements OnInit {
   }
 
   /**
-   * Fetch users from the backend and update pagination
+   * Fetch users from the backend with pagination, search, and role filter.
    */
   fetchUsers(): void {
     this.isLoading = true;
-    this.userService.getAllUsers(this.currentPage, this.pageSize).subscribe(
-      (response) => {
-        this.users = response.data;
-        this.totalPages = response.totalPages;
-        this.totalCount = response.totalCount;
-        this.isLoading = false;
-      },
-      (error) => {
-        console.error('Error fetching users:', error);
-        this.isLoading = false;
-      }
-    );
+    this.userService
+      .getAllUsers(this.currentPage, this.pageSize, this.searchTerm, this.roleFilter)
+      .subscribe(
+        (response) => {
+          this.users = response.data;
+          this.totalPages = response.totalPages;
+          this.totalCount = response.totalCount;
+          this.isLoading = false;
+        },
+        (error) => {
+          console.error('Error fetching users:', error);
+          this.isLoading = false;
+        }
+      );
   }
 
   /**
-   * Handles search input and role filtering
+   * Handles search input and role filtering.
    */
   applyFilters(): void {
     this.currentPage = 1; // Reset to first page when filtering
@@ -55,7 +57,7 @@ export class UsersComponent implements OnInit {
   }
 
   /**
-   * Handles pagination and ensures correct page selection
+   * Handles pagination.
    */
   setPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
@@ -65,19 +67,17 @@ export class UsersComponent implements OnInit {
   }
 
   /**
-   * Checks if the role can be changed
+   * Checks if the role can be changed.
    */
   isRoleEditable(role: string): boolean {
     return role !== 'ROLE_ADMIN' && this.isAdmin;
   }
 
   /**
-   * Handles role change
+   * Handles role change.
    */
   onRoleChange(user: User, newRole: string): void {
     user.role = newRole as 'ROLE_EMPLOYEE' | 'ROLE_MANAGER';
-    console.log(
-      `Changed role for ${user.firstName} ${user.lastName} to ${user.role}`
-    );
+    console.log(`Changed role for ${user.firstName} ${user.lastName} to ${user.role}`);
   }
 }
