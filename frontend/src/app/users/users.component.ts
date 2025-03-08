@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../core/services/user.service';
 import { FlashMessageService } from '../core/services/flash-message.service';
+import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, FlashMessagesComponent],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
 })
