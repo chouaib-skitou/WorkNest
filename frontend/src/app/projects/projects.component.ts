@@ -19,6 +19,8 @@ import { UserService, User } from '../core/services/user.service';
 import { finalize, forkJoin } from 'rxjs';
 import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
+import { AuthService } from '../core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-projects',
@@ -80,11 +82,18 @@ export class ProjectsComponent implements OnInit {
   selectedDocuments: File[] = [];
   imagePreview: string | null = null;
 
+  // User permissions
+  isAdmin = false;
+  isManager = false;
+  currentUserId: string | null = null;
+
   constructor(
     private projectService: ProjectService,
     private userService: UserService,
     private flashMessageService: FlashMessageService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
   ) {
     // Initialize forms
     this.createProjectForm = this.createProjectFormGroup();
@@ -92,8 +101,34 @@ export class ProjectsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.fetchProjects();
-    this.loadUserData();
+    this.checkUserPermissions();
+  }
+
+  /**
+   * Check user permissions and fetch projects if authorized
+   */
+  checkUserPermissions(): void {
+    this.pageLoading = true;
+    
+    // Check if user is admin
+    this.authService.authorize().subscribe({
+      next: (user) => {
+        this.currentUserId = user.id;
+        this.isAdmin = user.role === 'ROLE_ADMIN';
+        this.isManager = user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
+        
+        this.fetchProjects();
+        // Only load user data if the user is an admin or manager
+        if (this.isAdmin || this.isManager) {
+          this.loadUserData();
+        }
+      },
+      error: (error) => {
+        console.error('Authorization error:', error);
+        this.flashMessageService.showError('Authentication failed. Please log in again.');
+        this.router.navigate(['/login']);
+      }
+    });
   }
 
   /**
@@ -339,9 +374,61 @@ export class ProjectsComponent implements OnInit {
   }
 
   /**
+   * Check if the current user can create projects
+   * Admins and managers can create projects
+   */
+  canCreateProject(): boolean {
+    return this.isAdmin || this.isManager;
+  }
+
+  /**
+   * Check if the current user can update a specific project
+   * Admins can update any project
+   * Managers can update projects they created or are assigned to as manager
+   */
+  canUpdateProject(project: Project): boolean {
+    if (this.isAdmin) {
+      return true;
+    }
+    
+    if (this.isManager) {
+      // Check if user is the creator or the project manager
+      return (
+        (project.createdBy?.id === this.currentUserId) ||
+        (project.manager?.id === this.currentUserId)
+      );
+    }
+    
+    return false;
+  }
+
+  /**
+   * Check if the current user can delete a specific project
+   * Admins can delete any project
+   * Managers can only delete projects they created
+   */
+  canDeleteProject(project: Project): boolean {
+    if (this.isAdmin) {
+      return true;
+    }
+    
+    if (this.isManager) {
+      // Check if user is the creator
+      return project.createdBy?.id === this.currentUserId;
+    }
+    
+    return false;
+  }
+
+  /**
    * Open create project modal
    */
   openCreateModal() {
+    if (!this.canCreateProject()) {
+      this.flashMessageService.showError('You do not have permission to create projects');
+      return;
+    }
+    
     this.createProjectForm.reset({
       status: Status.PENDING,
       priority: Priority.MEDIUM,
@@ -365,6 +452,11 @@ export class ProjectsComponent implements OnInit {
    * Open update project modal
    */
   openUpdateModal(project: Project) {
+    if (!this.canUpdateProject(project)) {
+      this.flashMessageService.showError('You do not have permission to update this project');
+      return;
+    }
+    
     this.selectedProject = project;
 
     // Reset form with project data
@@ -397,6 +489,11 @@ export class ProjectsComponent implements OnInit {
    * Open delete confirmation modal
    */
   confirmDeleteProject(project: Project) {
+    if (!this.canDeleteProject(project)) {
+      this.flashMessageService.showError('You do not have permission to delete this project');
+      return;
+    }
+    
     this.projectToDelete = project;
     this.showDeleteModal = true;
   }
@@ -414,6 +511,13 @@ export class ProjectsComponent implements OnInit {
    */
   deleteProject() {
     if (!this.projectToDelete) return;
+    
+    // Double-check permissions
+    if (!this.canDeleteProject(this.projectToDelete)) {
+      this.flashMessageService.showError('You do not have permission to delete this project');
+      this.closeDeleteModal();
+      return;
+    }
 
     this.deleteSubmitting = true;
 
@@ -473,6 +577,13 @@ export class ProjectsComponent implements OnInit {
    * Submit create project form
    */
   submitCreateForm() {
+    // Double-check permissions
+    if (!this.canCreateProject()) {
+      this.flashMessageService.showError('You do not have permission to create projects');
+      this.closeCreateModal();
+      return;
+    }
+    
     if (this.createProjectForm.invalid) {
       this.markFormGroupTouched(this.createProjectForm);
       return;
@@ -512,7 +623,16 @@ export class ProjectsComponent implements OnInit {
    * Submit update project form
    */
   submitUpdateForm() {
-    if (!this.selectedProject || this.updateProjectForm.invalid) {
+    if (!this.selectedProject) return;
+    
+    // Double-check permissions
+    if (!this.canUpdateProject(this.selectedProject)) {
+      this.flashMessageService.showError('You do not have permission to update this project');
+      this.closeUpdateModal();
+      return;
+    }
+    
+    if (this.updateProjectForm.invalid) {
       this.markFormGroupTouched(this.updateProjectForm);
       return;
     }
