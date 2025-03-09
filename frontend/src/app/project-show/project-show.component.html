@@ -1,4 +1,3 @@
-<!-- project-show.component.html -->
 <div class="project-board">
   <!-- Flash Messages -->
   <app-flash-messages></app-flash-messages>
@@ -16,7 +15,7 @@
       <h1>{{ projectName }}</h1>
       <p class="project-description">{{ projectDescription }}</p>
     </div>
-    <div class="project-actions">
+    <div class="project-actions" *ngIf="canManageStagesAndTasks()">
       <button class="btn-secondary" (click)="openCreateTaskModal()">
         <i class="fas fa-plus"></i> New Task
       </button>
@@ -53,7 +52,7 @@
   <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
     <i class="fas fa-columns"></i>
     <p>No stages found for this project. Create a new stage to get started.</p>
-    <button class="btn-primary" (click)="openCreateStageModal()">
+    <button *ngIf="canManageStagesAndTasks()" class="btn-primary" (click)="openCreateStageModal()">
       <i class="fas fa-plus"></i> Create First Stage
     </button>
   </div>
@@ -69,7 +68,7 @@
           {{ column.name }}
           <span class="count">{{ column.total }}</span>
         </div>
-        <div class="column-actions">
+        <div class="column-actions" *ngIf="canManageStagesAndTasks()">
           <button
             class="btn-icon"
             (click)="openEditStageModal(column.id)"
@@ -110,7 +109,7 @@
         >
           <div class="task-header">
             <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
-            <div class="task-actions">
+            <div class="task-actions" *ngIf="canManageStagesAndTasks()">
               <button
                 class="btn-icon-sm"
                 (click)="openEditTaskModal(task); $event.stopPropagation()"
@@ -155,7 +154,7 @@
           </div>
         </div>
 
-        <div class="add-item-container">
+        <div class="add-item-container" *ngIf="canManageStagesAndTasks()">
           <button
             class="add-item-button"
             (click)="openCreateTaskModal(column.id)"
