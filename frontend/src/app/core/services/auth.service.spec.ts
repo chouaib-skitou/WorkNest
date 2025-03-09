@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
@@ -43,7 +46,12 @@ describe('AuthService', () => {
   });
 
   it('should log in and store auth data', () => {
-    const mockResponse = { accessToken: '123', refreshToken: '456', expiresIn: '3600', user: mockUser };
+    const mockResponse = {
+      accessToken: '123',
+      refreshToken: '456',
+      expiresIn: '3600',
+      user: mockUser,
+    };
 
     service.login('test@example.com', 'password').subscribe((response) => {
       expect(response).toEqual(mockResponse);
@@ -51,7 +59,9 @@ describe('AuthService', () => {
       expect(localStorage.getItem('refreshToken')).toBe('456');
     });
 
-    const req = httpMock.expectOne(`${environment.identityServiceUrl}/auth/login`);
+    const req = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/login`
+    );
     expect(req.request.method).toBe('POST');
     req.flush(mockResponse);
   });
@@ -64,7 +74,9 @@ describe('AuthService', () => {
       },
     });
 
-    const req = httpMock.expectOne(`${environment.identityServiceUrl}/auth/refresh`);
+    const req = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/refresh`
+    );
     expect(req.request.method).toBe('POST');
     req.flush({}, { status: 401, statusText: 'Unauthorized' });
   });
@@ -81,7 +93,9 @@ describe('AuthService', () => {
       expect(user).toEqual(mockUser);
     });
 
-    const req = httpMock.expectOne(`${environment.identityServiceUrl}/auth/authorize`);
+    const req = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/authorize`
+    );
     expect(req.request.method).toBe('GET');
     req.flush({ user: mockUser });
   });
@@ -94,7 +108,9 @@ describe('AuthService', () => {
       },
     });
 
-    const req = httpMock.expectOne(`${environment.identityServiceUrl}/auth/authorize`);
+    const req = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/authorize`
+    );
     expect(req.request.method).toBe('GET');
     req.flush({}, { status: 401, statusText: 'Unauthorized' });
   });
