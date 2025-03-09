@@ -3,7 +3,6 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { AuthService } from './auth.service';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
 import { User } from '../../auth/interfaces/auth.interfaces';
 import { environment } from '../../../environments/environment';
 
