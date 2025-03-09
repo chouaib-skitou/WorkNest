@@ -161,7 +161,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   checkUserPermissions(): void {
     this.pageLoading = true;
-    
+
     // Get the project id from the route parameter
     this.projectId = this.route.snapshot.paramMap.get('id') || '';
 
@@ -176,11 +176,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       next: (user) => {
         this.currentUserId = user.id;
         this.isAdmin = user.role === 'ROLE_ADMIN';
-        this.isManager = user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
-        
+        this.isManager =
+          user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
+
         // Load project data
         this.loadProject();
-        
+
         // Only load users data if the user is an admin or manager
         if (this.isAdmin || this.isManager) {
           this.loadUsers();
@@ -188,9 +189,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       },
       error: (error) => {
         console.error('Authorization error:', error);
-        this.flashMessageService.showError('Authentication failed. Please log in again.');
+        this.flashMessageService.showError(
+          'Authentication failed. Please log in again.'
+        );
         this.router.navigate(['/login']);
-      }
+      },
     });
   }
 
@@ -249,11 +252,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.projectDescription = project.description || '';
 
         // Check if user can manage this project
-        this.canManageProject = this.isAdmin || 
-          (this.isManager && (
-            project.createdBy?.id === this.currentUserId || 
-            project.manager?.id === this.currentUserId
-          ));
+        this.canManageProject =
+          this.isAdmin ||
+          (this.isManager &&
+            (project.createdBy?.id === this.currentUserId ||
+              project.manager?.id === this.currentUserId));
 
         // Map the project's stages into our board columns
         if (project.stages && project.stages.length > 0) {
@@ -452,10 +455,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   addItem(columnId: string, event: KeyboardEvent): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       return;
     }
-    
+
     if (event.key === 'Enter' && this.newTaskTitle.trim()) {
       const column = this.columns.find((col) => col.id === columnId);
       if (column) {
@@ -523,10 +528,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openCreateStageModal(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create stages');
+      this.flashMessageService.showError(
+        'You do not have permission to create stages'
+      );
       return;
     }
-    
+
     // Calculate next position
     const nextPosition =
       this.columns.length > 0
@@ -555,11 +562,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   submitCreateStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create stages');
+      this.flashMessageService.showError(
+        'You do not have permission to create stages'
+      );
       this.closeCreateStageModal();
       return;
     }
-    
+
     if (this.createStageForm.invalid) {
       this.markFormGroupTouched(this.createStageForm);
       return;
@@ -599,10 +608,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openEditStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit stages');
+      this.flashMessageService.showError(
+        'You do not have permission to edit stages'
+      );
       return;
     }
-    
+
     const column = this.columns.find((col) => col.id === columnId);
     if (!column) return;
 
@@ -638,11 +649,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   submitEditStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit stages');
+      this.flashMessageService.showError(
+        'You do not have permission to edit stages'
+      );
       this.closeEditStageModal();
       return;
     }
-    
+
     if (!this.selectedStage || this.editStageForm.invalid) {
       this.markFormGroupTouched(this.editStageForm);
       return;
@@ -681,10 +694,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openDeleteStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete stages');
+      this.flashMessageService.showError(
+        'You do not have permission to delete stages'
+      );
       return;
     }
-    
+
     const column = this.columns.find((col) => col.id === columnId);
     if (!column) return;
 
@@ -713,11 +728,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   deleteStage(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete stages');
+      this.flashMessageService.showError(
+        'You do not have permission to delete stages'
+      );
       this.closeDeleteStageModal();
       return;
     }
-    
+
     if (!this.selectedStage) return;
 
     this.formSubmitting = true;
@@ -747,10 +764,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openCreateTaskModal(columnId?: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       return;
     }
-    
+
     this.createTaskForm.reset({
       title: '',
       description: '',
@@ -779,11 +798,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   submitCreateTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       this.closeCreateTaskModal();
       return;
     }
-    
+
     if (this.createTaskForm.invalid) {
       this.markFormGroupTouched(this.createTaskForm);
       return;
@@ -827,10 +848,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openEditTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to edit tasks'
+      );
       return;
     }
-    
+
     this.selectedTask = task;
 
     this.editTaskForm.reset({
@@ -872,11 +895,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   submitEditTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to edit tasks'
+      );
       this.closeEditTaskModal();
       return;
     }
-    
+
     if (!this.selectedTask || this.editTaskForm.invalid) {
       this.markFormGroupTouched(this.editTaskForm);
       return;
@@ -928,10 +953,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   openDeleteTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to delete tasks'
+      );
       return;
     }
-    
+
     this.selectedTask = task;
     this.showDeleteTaskModal = true;
   }
@@ -949,11 +976,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
    */
   deleteTask(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to delete tasks'
+      );
       this.closeDeleteTaskModal();
       return;
     }
-    
+
     if (!this.selectedTask) return;
 
     this.formSubmitting = true;

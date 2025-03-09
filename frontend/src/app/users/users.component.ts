@@ -1,7 +1,18 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { UserService, User, CreateUserRequest, UpdateUserRequest } from '../core/services/user.service';
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  FormBuilder,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
+import {
+  UserService,
+  User,
+  CreateUserRequest,
+  UpdateUserRequest,
+} from '../core/services/user.service';
 import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 import { AuthService } from '../core/services/auth.service';
@@ -16,7 +27,12 @@ interface UserDataWithPassword extends UpdateUserRequest {
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FlashMessagesComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    FlashMessagesComponent,
+  ],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
 })
@@ -31,18 +47,18 @@ export class UsersComponent implements OnInit {
   isAdmin = false;
   isManager = false;
   isLoading = true;
-  
+
   // Modal states
   showCreateModal = false;
   showEditModal = false;
   showDeleteModal = false;
-  
+
   // Form management
   userForm: FormGroup;
   selectedUser: User | null = null;
   formSubmitting = false;
   formError = '';
-  
+
   // Password visibility
   showPassword = false;
 
@@ -65,30 +81,32 @@ export class UsersComponent implements OnInit {
    */
   checkUserPermissions(): void {
     this.isLoading = true;
-    
+
     // Check if user is admin
     this.authService.isAdmin().subscribe({
       next: (isAdmin) => {
         this.isAdmin = isAdmin;
-        
+
         // If not admin, check if manager
         if (!isAdmin) {
           this.authService.isManager().subscribe({
             next: (isManager) => {
               this.isManager = isManager;
-              
+
               // If neither admin nor manager, redirect to home
               if (!isManager) {
-                this.flashMessageService.showError('You do not have permission to access this page');
+                this.flashMessageService.showError(
+                  'You do not have permission to access this page'
+                );
                 this.router.navigate(['/']);
                 return;
               }
-              
+
               this.fetchUsers();
             },
             error: () => {
               this.handleAuthError();
-            }
+            },
           });
         } else {
           // User is admin, set manager to true as well (admin has all manager permissions)
@@ -98,7 +116,7 @@ export class UsersComponent implements OnInit {
       },
       error: () => {
         this.handleAuthError();
-      }
+      },
     });
   }
 
@@ -106,7 +124,9 @@ export class UsersComponent implements OnInit {
    * Handle authentication errors
    */
   private handleAuthError(): void {
-    this.flashMessageService.showError('Authentication failed. Please log in again.');
+    this.flashMessageService.showError(
+      'Authentication failed. Please log in again.'
+    );
     this.router.navigate(['/login']);
   }
 
@@ -119,7 +139,7 @@ export class UsersComponent implements OnInit {
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      role: ['ROLE_EMPLOYEE', Validators.required]
+      role: ['ROLE_EMPLOYEE', Validators.required],
     });
   }
 
@@ -148,8 +168,10 @@ export class UsersComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error fetching users:', error);
-          this.flashMessageService.showError('Failed to load users. Please try again.');
-        }
+          this.flashMessageService.showError(
+            'Failed to load users. Please try again.'
+          );
+        },
       });
   }
 
@@ -184,12 +206,14 @@ export class UsersComponent implements OnInit {
   openCreateModal(): void {
     // Only admin can create users
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to create users');
+      this.flashMessageService.showError(
+        'You do not have permission to create users'
+      );
       return;
     }
-    
+
     this.userForm.reset({
-      role: 'ROLE_EMPLOYEE'
+      role: 'ROLE_EMPLOYEE',
     });
     this.formError = '';
     this.showCreateModal = true;
@@ -201,21 +225,23 @@ export class UsersComponent implements OnInit {
   openEditModal(user: User): void {
     // Only admin can edit users
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to edit users');
+      this.flashMessageService.showError(
+        'You do not have permission to edit users'
+      );
       return;
     }
-    
+
     this.selectedUser = user;
     this.userForm.patchValue({
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
     // Remove password validation for edit
     this.userForm.get('password')?.clearValidators();
     this.userForm.get('password')?.updateValueAndValidity();
-    
+
     this.formError = '';
     this.showEditModal = true;
   }
@@ -226,10 +252,12 @@ export class UsersComponent implements OnInit {
   openDeleteModal(user: User): void {
     // Only admin can delete users
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to delete users');
+      this.flashMessageService.showError(
+        'You do not have permission to delete users'
+      );
       return;
     }
-    
+
     this.selectedUser = user;
     this.showDeleteModal = true;
   }
@@ -243,10 +271,12 @@ export class UsersComponent implements OnInit {
     this.showDeleteModal = false;
     this.selectedUser = null;
     this.formSubmitting = false;
-    
+
     // Reset password validation for next time
     if (this.userForm.get('password')) {
-      this.userForm.get('password')?.setValidators([Validators.required, Validators.minLength(8)]);
+      this.userForm
+        .get('password')
+        ?.setValidators([Validators.required, Validators.minLength(8)]);
       this.userForm.get('password')?.updateValueAndValidity();
     }
   }
@@ -264,11 +294,13 @@ export class UsersComponent implements OnInit {
   createUser(): void {
     // Double-check admin permission
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to create users');
+      this.flashMessageService.showError(
+        'You do not have permission to create users'
+      );
       this.closeModals();
       return;
     }
-    
+
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
@@ -276,22 +308,24 @@ export class UsersComponent implements OnInit {
 
     this.formSubmitting = true;
     this.formError = '';
-    
+
     const userData: CreateUserRequest = this.userForm.value;
-    
-    this.userService.createUser(userData)
-      .subscribe({
-        next: (newUser) => {
-          this.flashMessageService.showSuccess(`User ${newUser.firstName} ${newUser.lastName} created successfully`);
-          this.closeModals();
-          this.fetchUsers();
-        },
-        error: (error) => {
-          console.error('Error creating user:', error);
-          this.formError = error.error?.message || 'Failed to create user. Please try again.';
-          this.formSubmitting = false;
-        }
-      });
+
+    this.userService.createUser(userData).subscribe({
+      next: (newUser) => {
+        this.flashMessageService.showSuccess(
+          `User ${newUser.firstName} ${newUser.lastName} created successfully`
+        );
+        this.closeModals();
+        this.fetchUsers();
+      },
+      error: (error) => {
+        console.error('Error creating user:', error);
+        this.formError =
+          error.error?.message || 'Failed to create user. Please try again.';
+        this.formSubmitting = false;
+      },
+    });
   }
 
   /**
@@ -300,11 +334,13 @@ export class UsersComponent implements OnInit {
   updateUser(): void {
     // Double-check admin permission
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to update users');
+      this.flashMessageService.showError(
+        'You do not have permission to update users'
+      );
       this.closeModals();
       return;
     }
-    
+
     if (!this.selectedUser || this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
@@ -312,32 +348,35 @@ export class UsersComponent implements OnInit {
 
     this.formSubmitting = true;
     this.formError = '';
-    
+
     const userData: UpdateUserRequest = {
       firstName: this.userForm.value.firstName,
       lastName: this.userForm.value.lastName,
       email: this.userForm.value.email,
-      role: this.userForm.value.role
+      role: this.userForm.value.role,
     };
-    
+
     // Only include password if it was provided
     if (this.userForm.value.password) {
-      (userData as UserDataWithPassword).password = this.userForm.value.password;
+      (userData as UserDataWithPassword).password =
+        this.userForm.value.password;
     }
-    
-    this.userService.updateUser(this.selectedUser.id, userData)
-      .subscribe({
-        next: (updatedUser) => {
-          this.flashMessageService.showSuccess(`User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`);
-          this.closeModals();
-          this.fetchUsers();
-        },
-        error: (error) => {
-          console.error('Error updating user:', error);
-          this.formError = error.error?.message || 'Failed to update user. Please try again.';
-          this.formSubmitting = false;
-        }
-      });
+
+    this.userService.updateUser(this.selectedUser.id, userData).subscribe({
+      next: (updatedUser) => {
+        this.flashMessageService.showSuccess(
+          `User ${updatedUser.firstName} ${updatedUser.lastName} updated successfully`
+        );
+        this.closeModals();
+        this.fetchUsers();
+      },
+      error: (error) => {
+        console.error('Error updating user:', error);
+        this.formError =
+          error.error?.message || 'Failed to update user. Please try again.';
+        this.formSubmitting = false;
+      },
+    });
   }
 
   /**
@@ -346,29 +385,32 @@ export class UsersComponent implements OnInit {
   deleteUser(): void {
     // Double-check admin permission
     if (!this.isAdmin) {
-      this.flashMessageService.showError('You do not have permission to delete users');
+      this.flashMessageService.showError(
+        'You do not have permission to delete users'
+      );
       this.closeModals();
       return;
     }
-    
+
     if (!this.selectedUser) return;
-    
+
     this.formSubmitting = true;
-    
-    this.userService.deleteUser(this.selectedUser.id)
-      .subscribe({
-        next: () => {
-          this.flashMessageService.showSuccess(`User deleted successfully`);
-          this.closeModals();
-          this.fetchUsers();
-        },
-        error: (error) => {
-          console.error('Error deleting user:', error);
-          this.flashMessageService.showError('Failed to delete user. Please try again.');
-          this.formSubmitting = false;
-          this.closeModals();
-        }
-      });
+
+    this.userService.deleteUser(this.selectedUser.id).subscribe({
+      next: () => {
+        this.flashMessageService.showSuccess(`User deleted successfully`);
+        this.closeModals();
+        this.fetchUsers();
+      },
+      error: (error) => {
+        console.error('Error deleting user:', error);
+        this.flashMessageService.showError(
+          'Failed to delete user. Please try again.'
+        );
+        this.formSubmitting = false;
+        this.closeModals();
+      },
+    });
   }
 
   /**
@@ -377,7 +419,7 @@ export class UsersComponent implements OnInit {
   get pageNumbers(): number[] {
     const pages: number[] = [];
     const maxPagesToShow = 5;
-    
+
     if (this.totalPages <= maxPagesToShow) {
       // Show all pages if there are few
       for (let i = 1; i <= this.totalPages; i++) {
@@ -385,19 +427,22 @@ export class UsersComponent implements OnInit {
       }
     } else {
       // Show a subset of pages with current page in the middle
-      let startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
+      let startPage = Math.max(
+        1,
+        this.currentPage - Math.floor(maxPagesToShow / 2)
+      );
       const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
-      
+
       // Adjust if we're near the end
       if (endPage - startPage + 1 < maxPagesToShow) {
         startPage = Math.max(1, endPage - maxPagesToShow + 1);
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
     }
-    
+
     return pages;
   }
 }

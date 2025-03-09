@@ -52,7 +52,11 @@
   <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
     <i class="fas fa-columns"></i>
     <p>No stages found for this project. Create a new stage to get started.</p>
-    <button *ngIf="canManageStagesAndTasks()" class="btn-primary" (click)="openCreateStageModal()">
+    <button
+      *ngIf="canManageStagesAndTasks()"
+      class="btn-primary"
+      (click)="openCreateStageModal()"
+    >
       <i class="fas fa-plus"></i> Create First Stage
     </button>
   </div>

@@ -46,7 +46,10 @@
 }
 
 .btn-icon-sm {
-  @include mixins.button-icon(vars.$spacing-xs vars.$spacing-xs, vars.$font-size-sm);
+  @include mixins.button-icon(
+    vars.$spacing-xs vars.$spacing-xs,
+    vars.$font-size-sm
+  );
 }
 
 // Common modal styles
@@ -202,7 +205,7 @@
 
   @include mixins.responsive(sm) {
     flex-direction: column;
-    
+
     button {
       width: 100%;
       justify-content: center;

@@ -122,7 +122,8 @@
 
   .filter-select {
     width: 100%;
-    padding: vars.$spacing-md vars.$spacing-xl vars.$spacing-md vars.$spacing-base;
+    padding: vars.$spacing-md vars.$spacing-xl vars.$spacing-md
+      vars.$spacing-base;
     border: 1px solid vars.$border-color;
     border-radius: vars.$border-radius-lg;
     font-size: vars.$font-size-base;
@@ -150,8 +151,9 @@
   @include mixins.responsive(md) {
     flex-direction: column;
     gap: vars.$spacing-sm;
-    
-    .search-container, .role-filter-container {
+
+    .search-container,
+    .role-filter-container {
       width: 100%;
     }
   }
@@ -190,7 +192,8 @@
     border-collapse: separate;
     border-spacing: 0;
 
-    th, td {
+    th,
+    td {
       padding: vars.$spacing-md vars.$spacing-base;
       text-align: left;
       border-bottom: 1px solid vars.$border-color;
@@ -506,7 +509,7 @@
       }
 
       .warning-icon {
-        color: #F6A609;
+        color: #f6a609;
         font-size: 2.5rem;
         margin-bottom: vars.$spacing-lg;
       }
@@ -536,26 +539,26 @@
 
         button {
           min-width: 120px;
-          
+
           &.cancel-button {
-            background-color: #F8F9FA;
-            border: 1px solid #DEE2E6;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
             color: vars.$text-color;
             padding: 0.5rem 1rem;
 
             &:hover {
-              background-color: #E9ECEF;
+              background-color: #e9ecef;
             }
           }
 
           &.delete-button {
-            background-color: #DC3545;
+            background-color: #dc3545;
             border: none;
             color: white;
             padding: 0.5rem 1rem;
 
             &:hover:not(:disabled) {
-              background-color: #C82333;
+              background-color: #c82333;
             }
           }
         }
@@ -692,12 +695,12 @@
       }
 
       &.submit-button {
-        background-color: #0D6EFD;
+        background-color: #0d6efd;
         border: none;
         color: white;
 
         &:hover:not(:disabled) {
-          background-color: #0B5ED7;
+          background-color: #0b5ed7;
         }
 
         &:disabled {
@@ -711,8 +714,12 @@
 
 // Animations
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {

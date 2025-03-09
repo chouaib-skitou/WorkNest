@@ -13,7 +13,11 @@
   <div class="header-section">
     <h1>Projects</h1>
     <!-- Only show Create Project button for admins and managers -->
-    <button *ngIf="canCreateProject()" class="create-button" (click)="openCreateModal()">
+    <button
+      *ngIf="canCreateProject()"
+      class="create-button"
+      (click)="openCreateModal()"
+    >
       <i class="fas fa-plus"></i> Create Project
     </button>
   </div>
@@ -99,7 +103,10 @@
         </div>
       </div>
       <!-- Only show action buttons if user has permission -->
-      <div class="project-actions" *ngIf="canUpdateProject(project) || canDeleteProject(project)">
+      <div
+        class="project-actions"
+        *ngIf="canUpdateProject(project) || canDeleteProject(project)"
+      >
         <button
           *ngIf="canUpdateProject(project)"
           class="edit-button"

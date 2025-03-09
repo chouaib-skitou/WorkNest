@@ -83,9 +83,9 @@ export class UserService {
       params = params.set('role', roleFilter);
     }
 
-    return this.http.get<UserResponse>(`${this.identityServiceUrl}/users`, { 
-      headers, 
-      params 
+    return this.http.get<UserResponse>(`${this.identityServiceUrl}/users`, {
+      headers,
+      params,
     });
   }
 
@@ -96,7 +96,9 @@ export class UserService {
    */
   getUserById(userId: string): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.get<User>(`${this.identityServiceUrl}/users/${userId}`, { headers });
+    return this.http.get<User>(`${this.identityServiceUrl}/users/${userId}`, {
+      headers,
+    });
   }
 
   /**
@@ -106,7 +108,9 @@ export class UserService {
    */
   createUser(userData: CreateUserRequest): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.post<User>(`${this.identityServiceUrl}/users`, userData, { headers });
+    return this.http.post<User>(`${this.identityServiceUrl}/users`, userData, {
+      headers,
+    });
   }
 
   /**
@@ -117,7 +121,11 @@ export class UserService {
    */
   updateUser(userId: string, userData: UpdateUserRequest): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.put<User>(`${this.identityServiceUrl}/users/${userId}`, userData, { headers });
+    return this.http.put<User>(
+      `${this.identityServiceUrl}/users/${userId}`,
+      userData,
+      { headers }
+    );
   }
 
   /**
@@ -126,9 +134,16 @@ export class UserService {
    * @param userData - Partial user data
    * @returns {Observable<User>} - Returns updated user
    */
-  patchUser(userId: string, userData: Partial<UpdateUserRequest>): Observable<User> {
+  patchUser(
+    userId: string,
+    userData: Partial<UpdateUserRequest>
+  ): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.patch<User>(`${this.identityServiceUrl}/users/${userId}`, userData, { headers });
+    return this.http.patch<User>(
+      `${this.identityServiceUrl}/users/${userId}`,
+      userData,
+      { headers }
+    );
   }
 
   /**
@@ -138,7 +153,9 @@ export class UserService {
    */
   deleteUser(userId: string): Observable<unknown> {
     const headers = this.getHeaders();
-    return this.http.delete(`${this.identityServiceUrl}/users/${userId}`, { headers });
+    return this.http.delete(`${this.identityServiceUrl}/users/${userId}`, {
+      headers,
+    });
   }
 
   /**

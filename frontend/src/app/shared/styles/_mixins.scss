@@ -29,11 +29,11 @@
   background-color: $bg-color;
   color: $text-color;
   border: 1px solid rgba(27, 31, 36, 0.15);
-  
+
   &:hover:not(:disabled) {
     background-color: color.adjust($bg-color, $lightness: $hover-lightness);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -46,14 +46,17 @@
   background-color: vars.$background-light;
   color: vars.$text-color;
   border: 1px solid rgba(27, 31, 36, 0.15);
-  
+
   &:hover {
     background-color: #f3f4f6;
   }
 }
 
 // Icon button mixin
-@mixin button-icon($padding: vars.$spacing-xs vars.$spacing-sm, $font-size: inherit) {
+@mixin button-icon(
+  $padding: vars.$spacing-xs vars.$spacing-sm,
+  $font-size: inherit
+) {
   padding: $padding;
   color: vars.$text-light;
   background: none;
@@ -61,7 +64,7 @@
   border-radius: vars.$border-radius-sm;
   cursor: pointer;
   font-size: $font-size;
-  
+
   &:hover {
     color: vars.$text-color;
     background: vars.$background-light;
@@ -92,7 +95,7 @@
       box-shadow: 0 0 0 3px rgba(vars.$error-color, 0.3);
     }
   }
-  
+
   &::placeholder {
     color: color.adjust(vars.$text-color, $lightness: 40%);
   }

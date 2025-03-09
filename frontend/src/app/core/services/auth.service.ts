@@ -35,7 +35,10 @@ export class AuthService {
   );
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {}
 
   /**
    * Checks if a valid access token exists in localStorage.
@@ -121,7 +124,7 @@ export class AuthService {
    */
   authorize(): Observable<User> {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     if (!accessToken) {
       this.clearAuthData();
       this.router.navigate(['/login']);
@@ -129,19 +132,22 @@ export class AuthService {
     }
 
     const headers = new HttpHeaders({
-      'Authorization': `Bearer ${accessToken}`
+      Authorization: `Bearer ${accessToken}`,
     });
 
-    return this.http.get<AuthorizeResponse>(`${this.identityServiceUrl}/auth/authorize`, { headers })
+    return this.http
+      .get<AuthorizeResponse>(`${this.identityServiceUrl}/auth/authorize`, {
+        headers,
+      })
       .pipe(
-        map(response => {
+        map((response) => {
           // Update the current user with the latest data
           this.currentUserSubject.next(response.user);
           return response.user;
         }),
-        catchError(error => {
+        catchError((error) => {
           console.error('Authorization error:', error);
-          
+
           // If token is expired or invalid, clear auth data and redirect to login
           if (error.status === 401 || error.status === 403) {
             this.clearAuthData();
@@ -149,30 +155,30 @@ export class AuthService {
             this.currentUserSubject.next(null);
             this.router.navigate(['/login']);
           }
-          
+
           return throwError(() => error);
         })
       );
   }
 
-  /** 
-   * Checks if the user has the Admin role 
+  /**
+   * Checks if the user has the Admin role
    * @returns {Observable<boolean>} Observable resolving to true if user is admin
    */
   isAdmin(): Observable<boolean> {
     return this.authorize().pipe(
-      map(user => user.role === 'ROLE_ADMIN'),
+      map((user) => user.role === 'ROLE_ADMIN'),
       catchError(() => of(false))
     );
   }
 
-  /** 
-   * Checks if the user has the Manager role 
+  /**
+   * Checks if the user has the Manager role
    * @returns {Observable<boolean>} Observable resolving to true if user is manager or admin
    */
   isManager(): Observable<boolean> {
     return this.authorize().pipe(
-      map(user => user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN'),
+      map((user) => user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN'),
       catchError(() => of(false))
     );
   }
