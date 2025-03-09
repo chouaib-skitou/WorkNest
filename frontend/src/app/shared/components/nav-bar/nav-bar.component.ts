@@ -35,14 +35,14 @@ export class NavBarComponent implements OnInit, OnDestroy {
   }
 
   checkUserRoles(): void {
-    const adminSub = this.authService.isAdmin().subscribe(isAdmin => {
+    const adminSub = this.authService.isAdmin().subscribe((isAdmin) => {
       this.isAdmin = isAdmin;
     });
-    
-    const managerSub = this.authService.isManager().subscribe(isManager => {
+
+    const managerSub = this.authService.isManager().subscribe((isManager) => {
       this.isManager = isManager;
     });
-    
+
     this.subscription.add(adminSub);
     this.subscription.add(managerSub);
   }
