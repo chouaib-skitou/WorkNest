@@ -381,7 +381,7 @@ export class UsersComponent implements OnInit {
     } else {
       // Show a subset of pages with current page in the middle
       let startPage = Math.max(1, this.currentPage - Math.floor(maxPagesToShow / 2));
-      let endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
+      const endPage = Math.min(this.totalPages, startPage + maxPagesToShow - 1);
       
       // Adjust if we're near the end
       if (endPage - startPage + 1 < maxPagesToShow) {
