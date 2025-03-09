@@ -136,7 +136,7 @@ export class UserService {
    * @param userId - User ID
    * @returns {Observable<any>} - Returns deletion confirmation
    */
-  deleteUser(userId: string): Observable<any> {
+  deleteUser(userId: string): Observable<unknown> {
     const headers = this.getHeaders();
     return this.http.delete(`${this.identityServiceUrl}/users/${userId}`, { headers });
   }
