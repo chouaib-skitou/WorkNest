@@ -32,18 +32,12 @@
         <a href="/">Home</a>
       </li>
       <li *ngIf="authService.isLoggedIn()">
-        <a href="/dashboard">Dashboard</a>
-      </li>
-      <li *ngIf="authService.isLoggedIn()">
         <a href="/profile">Profile</a>
       </li>
-      <!-- <li *ngIf="authService.isLoggedIn()">
-        <a href="/tasks">Tasks</a>
-      </li> -->
       <li *ngIf="authService.isLoggedIn()">
         <a href="/projects">Projects</a>
       </li>
-      <li *ngIf="authService.isLoggedIn() && authService.isManager()">
+      <li *ngIf="canAccessUsers()">
         <a href="/users">Users</a>
       </li>
 
