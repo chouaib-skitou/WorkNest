@@ -13,7 +13,10 @@ RUN npm run build
 # Stage 2: Serve the app with NGINX
 FROM nginx:alpine
 
-COPY --from=build /app/dist/frontend /usr/share/nginx/html
+# Copy the custom Nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 
 EXPOSE 80
 
