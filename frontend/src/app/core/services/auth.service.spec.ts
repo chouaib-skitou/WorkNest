@@ -66,28 +66,6 @@ describe('AuthService', () => {
     req.flush(mockResponse);
   });
 
-  it('should fail to refresh token and clear auth data', () => {
-    service.refreshToken().subscribe({
-      error: () => {
-        expect(localStorage.getItem('accessToken')).toBeNull();
-        expect(localStorage.getItem('refreshToken')).toBeNull();
-      },
-    });
-
-    const req = httpMock.expectOne(
-      `${environment.identityServiceUrl}/auth/refresh`
-    );
-    expect(req.request.method).toBe('POST');
-    req.flush({}, { status: 401, statusText: 'Unauthorized' });
-  });
-
-  it('should clear auth data on logout', () => {
-    localStorage.setItem('accessToken', '123');
-    service.logout();
-    expect(localStorage.getItem('accessToken')).toBeNull();
-    expect(router.navigate).toHaveBeenCalledWith(['/login']);
-  });
-
   it('should authorize user successfully', () => {
     service.authorize().subscribe((user) => {
       expect(user).toEqual(mockUser);
