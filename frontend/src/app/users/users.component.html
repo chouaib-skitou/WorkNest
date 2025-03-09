@@ -375,5 +375,5 @@
   </div>
 
   <!-- Modal backdrop -->
-  <div class="modal-backdrop" *ngIf="showCreateModal || showEditModal || showDeleteModal" (click)="closeModals()"></div>
+  <div class="modal-backdrop" *ngIf="showCreateModal || showEditModal || showDeleteModal" (click)="closeModals()" (keydown.escape)="closeModals()" tabindex="0" role="button" aria-label="Close modal"></div>
 </div>
