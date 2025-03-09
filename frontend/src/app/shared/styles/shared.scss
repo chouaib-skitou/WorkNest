@@ -1,0 +1,214 @@
+@use 'sass:color';
+@use 'variables' as vars;
+@use 'animations';
+@use 'mixins';
+
+// Common page overlay for loading
+.page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: vars.$z-index-modal;
+  @include mixins.flex(center, center);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease;
+
+  .spinner-container {
+    @include mixins.flex(center, center);
+    flex-direction: column;
+    gap: vars.$spacing-base;
+
+    .spinner {
+      @include mixins.spinner;
+    }
+
+    p {
+      font-size: vars.$font-size-base;
+      color: vars.$text-color;
+    }
+  }
+}
+
+// Common button styles
+.btn-primary {
+  @include mixins.button-primary(vars.$secondary-color);
+}
+
+.btn-secondary {
+  @include mixins.button-secondary;
+}
+
+.btn-icon {
+  @include mixins.button-icon;
+}
+
+.btn-icon-sm {
+  @include mixins.button-icon(
+    vars.$spacing-xs vars.$spacing-xs,
+    vars.$font-size-sm
+  );
+}
+
+// Common modal styles
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: vars.$z-index-modal;
+  @include mixins.flex(center, center);
+  animation: fadeIn 0.2s ease;
+
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+
+  .modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: vars.$border-radius-lg;
+    box-shadow: 0 8px 24px rgba(31, 35, 40, 0.15);
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: vars.$z-index-modal-content;
+    animation: slideUp 0.3s ease;
+
+    &.delete-modal {
+      max-width: 400px;
+    }
+  }
+}
+
+.modal-header {
+  padding: vars.$spacing-lg vars.$spacing-xl;
+  border-bottom: 1px solid vars.$border-color;
+  @include mixins.flex(space-between, center);
+
+  h2 {
+    font-size: vars.$font-size-lg;
+    font-weight: vars.$font-weight-semibold;
+    margin: 0;
+    color: vars.$text-color;
+    letter-spacing: -0.025em;
+  }
+
+  .close-button {
+    background: none;
+    border: none;
+    font-size: vars.$font-size-lg;
+    line-height: 1;
+    cursor: pointer;
+    color: vars.$text-light;
+    padding: vars.$spacing-xs;
+    border-radius: vars.$border-radius-sm;
+
+    &:hover {
+      color: vars.$text-color;
+      background: vars.$background-light;
+    }
+  }
+}
+
+.modal-body {
+  padding: vars.$spacing-xl;
+}
+
+// Common form styles
+.form-group {
+  margin-bottom: vars.$spacing-lg;
+
+  label {
+    display: block;
+    margin-bottom: vars.$spacing-sm;
+    font-size: vars.$font-size-md;
+    font-weight: vars.$font-weight-medium;
+    color: vars.$text-color;
+
+    .required {
+      color: vars.$error-color;
+      margin-left: vars.$spacing-xs;
+    }
+  }
+
+  input[type='text'],
+  input[type='number'],
+  input[type='date'],
+  textarea,
+  select {
+    @include mixins.form-control;
+  }
+
+  small {
+    display: block;
+    margin-top: vars.$spacing-xs;
+    font-size: vars.$font-size-sm;
+    color: vars.$text-light;
+  }
+
+  .error-message {
+    color: vars.$error-color;
+    font-size: vars.$font-size-sm;
+    margin-top: vars.$spacing-xs;
+  }
+}
+
+// Common error and no results messages
+.error-message,
+.no-results {
+  background-color: #ffebe9;
+  color: vars.$error-color;
+  padding: vars.$spacing-base;
+  border-radius: vars.$border-radius-md;
+  margin-bottom: vars.$spacing-base;
+  @include mixins.flex(center, center);
+  flex-direction: column;
+  gap: vars.$spacing-sm;
+  text-align: center;
+
+  i {
+    font-size: vars.$font-size-2xl;
+  }
+
+  p {
+    margin-bottom: vars.$spacing-sm;
+  }
+
+  button {
+    margin-top: vars.$spacing-sm;
+  }
+}
+
+.no-results {
+  background-color: vars.$background-light;
+  color: vars.$text-light;
+  padding: vars.$spacing-2xl;
+}
+
+// Form actions
+.form-actions {
+  @include mixins.flex(flex-end, center, vars.$spacing-md);
+  margin-top: vars.$spacing-xl;
+  padding-top: vars.$spacing-base;
+  border-top: 1px solid vars.$border-color;
+
+  @include mixins.responsive(sm) {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
