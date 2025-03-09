@@ -1,4 +1,3 @@
-<!-- projects.component.html -->
 <div class="projects-container">
   <!-- Flash Messages -->
   <app-flash-messages></app-flash-messages>
@@ -13,7 +12,12 @@
 
   <div class="header-section">
     <h1>Projects</h1>
-    <button class="create-button" (click)="openCreateModal()">
+    <!-- Only show Create Project button for admins and managers -->
+    <button
+      *ngIf="canCreateProject()"
+      class="create-button"
+      (click)="openCreateModal()"
+    >
       <i class="fas fa-plus"></i> Create Project
     </button>
   </div>
@@ -98,14 +102,20 @@
           >
         </div>
       </div>
-      <div class="project-actions">
+      <!-- Only show action buttons if user has permission -->
+      <div
+        class="project-actions"
+        *ngIf="canUpdateProject(project) || canDeleteProject(project)"
+      >
         <button
+          *ngIf="canUpdateProject(project)"
           class="edit-button"
           (click)="openUpdateModal(project); $event.stopPropagation()"
         >
           <i class="fas fa-edit"></i> Edit
         </button>
         <button
+          *ngIf="canDeleteProject(project)"
           class="delete-button"
           (click)="confirmDeleteProject(project); $event.stopPropagation()"
         >

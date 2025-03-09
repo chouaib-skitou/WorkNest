@@ -1,28 +1,46 @@
 <div class="users-container">
-  <h1>Users</h1>
+  <app-flash-messages></app-flash-messages>
 
-  <div class="filters-container">
-    <input
-      type="text"
-      [(ngModel)]="searchTerm"
-      (ngModelChange)="applyFilters()"
-      placeholder="Search users..."
-      class="search-input"
-    />
-    <select
-      [(ngModel)]="roleFilter"
-      (change)="applyFilters()"
-      class="role-select"
-    >
-      <option value="ALL">All Roles</option>
-      <option value="ROLE_EMPLOYEE">Employee</option>
-      <option value="ROLE_MANAGER">Manager</option>
-      <option value="ROLE_ADMIN">Admin</option>
-    </select>
+  <div class="header-section">
+    <h1>Users Management</h1>
+    <!-- Only show Add User button for admins -->
+    <button *ngIf="isAdmin" class="create-button" (click)="openCreateModal()">
+      <i class="fas fa-plus"></i> Add New User
+    </button>
   </div>
 
-  <div *ngIf="isLoading">Loading users...</div>
+  <div class="filters-container">
+    <div class="search-container">
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="applyFilters()"
+        placeholder="Search by email..."
+        class="search-input"
+      />
+      <i class="fas fa-search search-icon"></i>
+    </div>
+    <div class="role-filter-container">
+      <select
+        [(ngModel)]="roleFilter"
+        (change)="applyFilters()"
+        class="filter-select"
+      >
+        <option value="ALL">All Roles</option>
+        <option value="ROLE_EMPLOYEE">Employee</option>
+        <option value="ROLE_MANAGER">Manager</option>
+        <option value="ROLE_ADMIN">Admin</option>
+      </select>
+    </div>
+  </div>
 
+  <!-- Loading state -->
+  <div class="loading-indicator" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading users...</p>
+  </div>
+
+  <!-- Users table -->
   <div class="table-container" *ngIf="!isLoading && users.length > 0">
     <table>
       <thead>
@@ -31,59 +49,81 @@
           <th>Email</th>
           <th>Role</th>
           <th>Verified</th>
+          <!-- Only show Actions column for admins -->
+          <th *ngIf="isAdmin">Actions</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let user of users">
-          <td>{{ user.firstName }} {{ user.lastName }}</td>
-          <td>{{ user.email }}</td>
+          <td class="user-name">{{ user.firstName }} {{ user.lastName }}</td>
+          <td class="user-email">{{ user.email }}</td>
           <td>
-            <ng-container *ngIf="isRoleEditable(user.role); else staticRole">
-              <select
-                [ngModel]="user.role"
-                (ngModelChange)="onRoleChange(user, $event)"
-                class="role-select-inline"
-              >
-                <option value="ROLE_EMPLOYEE">Employee</option>
-                <option value="ROLE_MANAGER">Manager</option>
-              </select>
-            </ng-container>
-            <ng-template #staticRole>
+            <span class="role-badge" [ngClass]="user.role.toLowerCase()">
               {{ user.role.replace('ROLE_', '') | titlecase }}
-            </ng-template>
+            </span>
           </td>
           <td>
             <span
+              class="status-badge"
               [class.verified]="user.isVerified"
               [class.not-verified]="!user.isVerified"
             >
-              {{ user.isVerified ? 'Yes' : 'No' }}
+              {{ user.isVerified ? 'Verified' : 'Not Verified' }}
             </span>
+          </td>
+          <!-- Only show action buttons for admins -->
+          <td class="actions-cell" *ngIf="isAdmin">
+            <button
+              class="action-button edit"
+              (click)="openEditModal(user)"
+              title="Edit User"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+            <button
+              class="action-button delete"
+              (click)="openDeleteModal(user)"
+              title="Delete User"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div *ngIf="!isLoading && users.length === 0">No users found.</div>
+  <!-- No results state -->
+  <div class="no-results" *ngIf="!isLoading && users.length === 0">
+    <i class="fas fa-search"></i>
+    <h3>No users found</h3>
+    <p>Try adjusting your search or filter criteria</p>
+    <button
+      class="reset-button"
+      (click)="searchTerm = ''; roleFilter = 'ALL'; applyFilters()"
+    >
+      Reset Filters
+    </button>
+  </div>
 
-  <div class="pagination" *ngIf="totalPages > 1">
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1 && !isLoading">
     <button
       [disabled]="currentPage === 1"
       (click)="setPage(currentPage - 1)"
       class="pagination-button"
     >
-      Previous
+      <i class="fas fa-chevron-left"></i> Previous
     </button>
 
     <div class="page-numbers">
       <button
-        *ngFor="let page of [].constructor(totalPages); let i = index"
-        (click)="setPage(i + 1)"
+        *ngFor="let page of pageNumbers"
+        (click)="setPage(page)"
         class="page-number"
-        [class.active]="currentPage === i + 1"
+        [class.active]="currentPage === page"
       >
-        {{ i + 1 }}
+        {{ page }}
       </button>
     </div>
 
@@ -92,7 +132,398 @@
       (click)="setPage(currentPage + 1)"
       class="pagination-button"
     >
-      Next
+      Next <i class="fas fa-chevron-right"></i>
     </button>
   </div>
+
+  <!-- Create User Modal (only for admins) -->
+  <div class="modal" [class.show]="showCreateModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Create New User</h2>
+        <button class="close-button" (click)="closeModals()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-error" *ngIf="formError">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ formError }}
+        </div>
+
+        <form [formGroup]="userForm" (ngSubmit)="createUser()">
+          <div class="form-group">
+            <label for="firstName"
+              >First Name <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="firstName"
+              formControlName="firstName"
+              [class.invalid]="
+                userForm.get('firstName')?.invalid &&
+                userForm.get('firstName')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('firstName')?.invalid &&
+                userForm.get('firstName')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('firstName')?.errors?.['required']"
+                >First name is required</span
+              >
+              <span *ngIf="userForm.get('firstName')?.errors?.['minlength']"
+                >First name must be at least 2 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName"
+              >Last Name <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="lastName"
+              formControlName="lastName"
+              [class.invalid]="
+                userForm.get('lastName')?.invalid &&
+                userForm.get('lastName')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('lastName')?.invalid &&
+                userForm.get('lastName')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('lastName')?.errors?.['required']"
+                >Last name is required</span
+              >
+              <span *ngIf="userForm.get('lastName')?.errors?.['minlength']"
+                >Last name must be at least 2 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email <span class="required">*</span></label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              [class.invalid]="
+                userForm.get('email')?.invalid && userForm.get('email')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('email')?.invalid && userForm.get('email')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('email')?.errors?.['required']"
+                >Email is required</span
+              >
+              <span *ngIf="userForm.get('email')?.errors?.['email']"
+                >Please enter a valid email address</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password"
+              >Password <span class="required">*</span></label
+            >
+            <div class="password-input-container">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="password"
+                formControlName="password"
+                [class.invalid]="
+                  userForm.get('password')?.invalid &&
+                  userForm.get('password')?.touched
+                "
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+              >
+                <i
+                  class="fas"
+                  [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"
+                ></i>
+              </button>
+            </div>
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('password')?.invalid &&
+                userForm.get('password')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('password')?.errors?.['required']"
+                >Password is required</span
+              >
+              <span *ngIf="userForm.get('password')?.errors?.['minlength']"
+                >Password must be at least 8 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="role">Role <span class="required">*</span></label>
+            <select id="role" formControlName="role">
+              <option value="ROLE_EMPLOYEE">Employee</option>
+              <option value="ROLE_MANAGER">Manager</option>
+              <option value="ROLE_ADMIN">Admin</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="cancel-button" (click)="closeModals()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button
+              type="submit"
+              class="submit-button"
+              [disabled]="userForm.invalid || formSubmitting"
+            >
+              <i class="fas fa-spinner fa-spin" *ngIf="formSubmitting"></i>
+              <i class="fas fa-plus" *ngIf="!formSubmitting"></i>
+              <span *ngIf="!formSubmitting">Create User</span>
+              <span *ngIf="formSubmitting">Creating...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal (only for admins) -->
+  <div class="modal" [class.show]="showEditModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit User</h2>
+        <button class="close-button" (click)="closeModals()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-error" *ngIf="formError">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ formError }}
+        </div>
+
+        <form [formGroup]="userForm" (ngSubmit)="updateUser()">
+          <div class="form-group">
+            <label for="edit-firstName"
+              >First Name <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="edit-firstName"
+              formControlName="firstName"
+              [class.invalid]="
+                userForm.get('firstName')?.invalid &&
+                userForm.get('firstName')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('firstName')?.invalid &&
+                userForm.get('firstName')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('firstName')?.errors?.['required']"
+                >First name is required</span
+              >
+              <span *ngIf="userForm.get('firstName')?.errors?.['minlength']"
+                >First name must be at least 2 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-lastName"
+              >Last Name <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              id="edit-lastName"
+              formControlName="lastName"
+              [class.invalid]="
+                userForm.get('lastName')?.invalid &&
+                userForm.get('lastName')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('lastName')?.invalid &&
+                userForm.get('lastName')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('lastName')?.errors?.['required']"
+                >Last name is required</span
+              >
+              <span *ngIf="userForm.get('lastName')?.errors?.['minlength']"
+                >Last name must be at least 2 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-email"
+              >Email <span class="required">*</span></label
+            >
+            <input
+              type="email"
+              id="edit-email"
+              formControlName="email"
+              [class.invalid]="
+                userForm.get('email')?.invalid && userForm.get('email')?.touched
+              "
+            />
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('email')?.invalid && userForm.get('email')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('email')?.errors?.['required']"
+                >Email is required</span
+              >
+              <span *ngIf="userForm.get('email')?.errors?.['email']"
+                >Please enter a valid email address</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-password"
+              >Password
+              <small>(Leave blank to keep current password)</small></label
+            >
+            <div class="password-input-container">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="edit-password"
+                formControlName="password"
+                [class.invalid]="
+                  userForm.get('password')?.invalid &&
+                  userForm.get('password')?.touched
+                "
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+              >
+                <i
+                  class="fas"
+                  [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"
+                ></i>
+              </button>
+            </div>
+            <div
+              class="error-message"
+              *ngIf="
+                userForm.get('password')?.invalid &&
+                userForm.get('password')?.touched
+              "
+            >
+              <span *ngIf="userForm.get('password')?.errors?.['minlength']"
+                >Password must be at least 8 characters</span
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-role">Role <span class="required">*</span></label>
+            <select id="edit-role" formControlName="role">
+              <option value="ROLE_EMPLOYEE">Employee</option>
+              <option value="ROLE_MANAGER">Manager</option>
+              <option value="ROLE_ADMIN">Admin</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="cancel-button" (click)="closeModals()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button
+              type="submit"
+              class="submit-button"
+              [disabled]="userForm.invalid || formSubmitting"
+            >
+              <i class="fas fa-spinner fa-spin" *ngIf="formSubmitting"></i>
+              <i class="fas fa-save" *ngIf="!formSubmitting"></i>
+              <span *ngIf="!formSubmitting">Update User</span>
+              <span *ngIf="formSubmitting">Updating...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal (only for admins) -->
+  <div class="modal" [class.show]="showDeleteModal">
+    <div class="modal-content delete-modal">
+      <div class="modal-header">
+        <h2>Delete User</h2>
+        <button class="close-button" (click)="closeModals()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="delete-confirmation">
+          <i class="fas fa-exclamation-triangle warning-icon"></i>
+          <p>
+            Are you sure you want to delete the user<br />
+            <strong
+              >"{{ selectedUser?.firstName }}
+              {{ selectedUser?.lastName }}"</strong
+            >?
+          </p>
+          <p class="delete-warning">This action cannot be undone.</p>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="cancel-button" (click)="closeModals()">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button
+            type="button"
+            class="delete-button"
+            [disabled]="formSubmitting"
+            (click)="deleteUser()"
+          >
+            <i class="fas fa-spinner fa-spin" *ngIf="formSubmitting"></i>
+            <i class="fas fa-trash-alt" *ngIf="!formSubmitting"></i>
+            <span *ngIf="!formSubmitting">Delete User</span>
+            <span *ngIf="formSubmitting">Deleting...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal backdrop -->
+  <div
+    class="modal-backdrop"
+    *ngIf="showCreateModal || showEditModal || showDeleteModal"
+    (click)="closeModals()"
+    (keydown.escape)="closeModals()"
+    tabindex="0"
+    role="button"
+    aria-label="Close modal"
+  ></div>
 </div>
