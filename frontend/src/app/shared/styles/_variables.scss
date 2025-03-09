@@ -1,0 +1,74 @@
+// Colors
+$primary-color: #0969da;
+$secondary-color: #2da44e;
+$text-color: #24292f;
+$text-light: #57606a;
+$border-color: #d0d7de;
+$background-light: #f6f8fa;
+$background-white: #ffffff;
+$error-color: #cf222e;
+$warning-color: #9a6700;
+$success-color: #1a7f37;
+$shadow-color: rgba(31, 35, 40, 0.075);
+
+// Projects component specific colors
+$projects-primary-color: #4a90e2;
+$projects-secondary-color: #4caf50;
+$projects-background-color: #f8f9fa;
+$projects-card-background: #ffffff;
+$projects-text-color: #333333;
+$projects-text-light: #666666;
+$projects-border-color: #e0e0e0;
+$projects-error-color: #d32f2f;
+$projects-warning-color: #ffc107;
+$projects-success-color: #4caf50;
+$projects-shadow-color: rgba(0, 0, 0, 0.1);
+
+// Spacing
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 0.75rem;
+$spacing-base: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+$spacing-2xl: 3rem;
+$spacing-3xl: 4rem;
+
+// Font sizes
+$font-size-xs: 0.7rem;
+$font-size-sm: 0.75rem;
+$font-size-md: 0.875rem;
+$font-size-base: 1rem;
+$font-size-lg: 1.25rem;
+$font-size-xl: 1.5rem;
+$font-size-2xl: 2rem;
+$font-size-3xl: 2.5rem;
+
+// Font weights
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Border radius
+$border-radius-sm: 4px;
+$border-radius-md: 6px;
+$border-radius-lg: 8px;
+$border-radius-xl: 12px;
+$border-radius-full: 100px;
+
+// Transitions
+$transition-fast: all 0.2s ease;
+$transition-normal: all 0.3s ease;
+
+// Z-index
+$z-index-modal: 1000;
+$z-index-modal-content: 1001;
+$z-index-dropdown: 100;
+$z-index-header: 50;
+
+// Breakpoints
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;

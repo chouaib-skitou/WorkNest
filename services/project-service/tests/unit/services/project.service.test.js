@@ -95,6 +95,39 @@ describe("🛠 Project Service Tests", () => {
       });
     });
 
+    test("✅ applies priority filter correctly", async () => {
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
+    
+      const customQuery = { priority: "MEDIUM" };
+      await getProjectsService(adminUser, customQuery, "testtoken");
+    
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            priority: "MEDIUM",
+          }),
+        })
+      );
+    });
+    
+    test("✅ applies status filter correctly", async () => {
+      ProjectRepository.findMany.mockResolvedValue([mockProject]);
+      ProjectRepository.count.mockResolvedValue(1);
+    
+      const customQuery = { status: "IN_PROGRESS" };
+      await getProjectsService(adminUser, customQuery, "testtoken");
+    
+      expect(ProjectRepository.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: "IN_PROGRESS",
+          }),
+        })
+      );
+    });
+    
+
     test("✅ returns empty result when no projects found", async () => {
       ProjectRepository.findMany.mockResolvedValue([]);
       ProjectRepository.count.mockResolvedValue(0);

@@ -49,6 +49,12 @@ const getDynamicFilters = (query) => {
       };
     }
   }
+  if (query.priority) {
+    filters.priority = query.priority;
+  }
+  if (query.status) {
+    filters.status = query.status;
+  }
   return filters;
 };
 
