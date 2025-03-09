@@ -8,6 +8,11 @@ import { AuthService } from '../core/services/auth.service';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
+// Add this interface to extend UpdateUserRequest with the password property
+interface UserDataWithPassword extends UpdateUserRequest {
+  password: string;
+}
+
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -317,7 +322,7 @@ export class UsersComponent implements OnInit {
     
     // Only include password if it was provided
     if (this.userForm.value.password) {
-      (userData as any).password = this.userForm.value.password;
+      (userData as UserDataWithPassword).password = this.userForm.value.password;
     }
     
     this.userService.updateUser(this.selectedUser.id, userData)
