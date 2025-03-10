@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../app/core/services/auth.service';
 import { User } from '../../app/auth/interfaces/auth.interfaces';
+import { UserService } from '../../app/core/services/user.service';
 
 @Component({
   selector: 'app-profile',
@@ -27,7 +28,8 @@ export class ProfileComponent implements OnInit {
   editingField: string | null = null; // Stocke le champ actuellement édité
   showSaveButton = false;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private userService: UserService) {}
+
 
   ngOnInit(): void {
     this.loadProfileFromStorage();
@@ -51,18 +53,37 @@ export class ProfileComponent implements OnInit {
   }
 
   onSubmit(): void {
-    console.log('Profile updated:', this.profile);
+    if (this.profile.firstName || this.profile.lastName) {
+      const updatedUserData = {
+        firstName: this.profile.firstName,
+        lastName: this.profile.lastName,
+      };
+  
+      // Appelez la méthode patchUser pour mettre à jour le profil partiellement
+      this.userService.patchUser(this.profile.id, updatedUserData).subscribe({
+        next: (updatedUser) => {
+          // Mise à jour du profil avec les données retournées
+          this.profile = updatedUser;
+          localStorage.setItem('user', JSON.stringify(updatedUser)); // Sauvegarder dans localStorage
+          console.log('Profile updated:', updatedUser);
+          this.showFlashMessage();
+        },
+        error: (err) => {
+          console.error('Error updating profile:', err);
+        },
+      });
+    }
     this.editingField = null;
     this.showSaveButton = false;
-    this.showFlashMessage();
   }
+  
 
   showFlashMessage(): void {
     const flashMessage = document.createElement('div');
-    flashMessage.textContent = 'Profile edited successfully...';
+    flashMessage.textContent = 'Profile edited successfully!';
     flashMessage.className = 'flash-message';
     document.body.appendChild(flashMessage);
-
+  
     setTimeout(() => {
       document.body.removeChild(flashMessage);
     }, 3000);
