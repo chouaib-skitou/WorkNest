@@ -21,6 +21,8 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: BASE_URL
+              value: "http://identity-service:5000"
             - name: DATABASE_URL
               value: "postgresql://root:root@postgres-db:5432/identity_service?schema=public"
             - name: SMTP_HOST
@@ -43,6 +45,10 @@ spec:
                 secretKeyRef:
                   name: jwt-refresh-secret
                   key: JWT_REFRESH_SECRET
+            - name: PROJECT_SERVICE_URL
+              value: "http://project-service:5001"
+            - name: FRONTEND_URL
+              value: "http://frontend:80"
 ---
 apiVersion: v1
 kind: Service
@@ -80,8 +86,14 @@ spec:
           env:
             - name: NODE_ENV
               value: "production"
+            - name: BASE_URL
+              value: "http://project-service:5001"
             - name: DATABASE_URL
               value: "postgresql://root:root@postgres-db:5432/project_service?schema=public"
+            - name: IDENTITY_SERVICE_URL
+              value: "http://identity-service:5000"
+            - name: FRONTEND_URL
+              value: "http://frontend:80"
 ---
 apiVersion: v1
 kind: Service
@@ -116,6 +128,13 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+          env:
+            - name: BASE_URL
+              value: "http://frontend:80"
+            - name: IDENTITY_SERVICE_URL
+              value: "http://identity-service:5000"
+            - name: PROJECT_SERVICE_URL
+              value: "http://project-service:5001"
 ---
 apiVersion: v1
 kind: Service
