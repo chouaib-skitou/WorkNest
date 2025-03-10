@@ -5,11 +5,13 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../app/core/services/auth.service';
 import { User } from '../../app/auth/interfaces/auth.interfaces';
 import { UserService } from '../../app/core/services/user.service';
+import { FlashMessageService } from '../core/services/flash-message.service';
+import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule,FlashMessagesComponent],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
@@ -83,9 +85,11 @@ export class ProfileComponent implements OnInit {
     flashMessage.textContent = 'Profile edited successfully!';
     flashMessage.className = 'flash-message';
     document.body.appendChild(flashMessage);
+    console.log('Flash message added to DOM:', flashMessage);    
+
   
     setTimeout(() => {
       document.body.removeChild(flashMessage);
-    }, 3000);
+    }, 5000); // 5 secondes pour tester    
   }
 }
