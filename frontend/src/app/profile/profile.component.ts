@@ -24,7 +24,7 @@ export class ProfileComponent implements OnInit {
     updatedAt: '',
   }; // Prevents "null" errors
 
-  isEditing = false;
+  editingField: string | null = null; // Stocke le champ actuellement édité
   showSaveButton = false;
 
   constructor(private authService: AuthService) {}
@@ -45,14 +45,14 @@ export class ProfileComponent implements OnInit {
     }
   }
 
-  toggleEdit(): void {
-    this.isEditing = !this.isEditing;
-    this.showSaveButton = this.isEditing;
+  toggleEdit(field: string): void {
+    this.editingField = this.editingField === field ? null : field;
+    this.showSaveButton = this.editingField !== null;
   }
 
   onSubmit(): void {
     console.log('Profile updated:', this.profile);
-    this.isEditing = false;
+    this.editingField = null;
     this.showSaveButton = false;
     this.showFlashMessage();
   }

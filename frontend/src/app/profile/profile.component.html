@@ -34,9 +34,9 @@
             id="firstName"
             name="firstName"
             [(ngModel)]="profile.firstName"
-            [readonly]="!isEditing"
+            [readonly]="editingField !== 'firstName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit()">
+          <button type="button" class="edit-button" (click)="toggleEdit('firstName')">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -64,9 +64,9 @@
             id="lastName"
             name="lastName"
             [(ngModel)]="profile.lastName"
-            [readonly]="!isEditing"
+            [readonly]="editingField !== 'lastName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit()">
+          <button type="button" class="edit-button" (click)="toggleEdit('lastName')">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
