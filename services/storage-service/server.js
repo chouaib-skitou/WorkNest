@@ -1,6 +1,8 @@
 import express from "express";
 import storageRoutes from "./routes/storage.routes.js";
 import { setupSwagger } from "./docs/swagger.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
