@@ -20,7 +20,6 @@ const BUCKET = process.env.MINIO_BUCKET; // e.g., "worknest-bucket"
  * @returns {Promise<Object>} - Returns an object with a success message and file metadata.
  */
 export const uploadDocument = async (file) => {
-  console.log("MINIO_ENDPOINT:", process.env.MINIO_ENDPOINT);
   const fileStream = fs.createReadStream(file.path);
   const params = {
     Bucket: BUCKET,
@@ -29,11 +28,22 @@ export const uploadDocument = async (file) => {
     ContentType: file.mimetype,
   };
   const data = await s3.upload(params).promise();
+
+  // Delete the temporary file from /uploads folder
+  fs.unlink(file.path, (err) => {
+    if (err) {
+      console.error("Error deleting local file:", err);
+    } else {
+      console.log("Temporary file deleted successfully.");
+    }
+  });
+
   return { 
     message: "Document created successfully",
     data: { id: data.Key, name: data.Key, location: data.Location } 
   };
 };
+
 
 /**
  * Updates a document on MinIO.
