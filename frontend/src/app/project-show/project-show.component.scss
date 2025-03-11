@@ -1,6 +1,5 @@
 @use 'sass:color';
 
-// Variables
 $primary-color: #4a90e2;
 $secondary-color: #4caf50;
 $background-color: #f8f9fa;
@@ -12,11 +11,6 @@ $warning-color: #ffc107;
 $success-color: #4caf50;
 $shadow-color: rgba(0, 0, 0, 0.1);
 $transition-speed: 0.3s;
-
-$border-color: #d0d7de;
-$text-color: #24292f;
-$primary-color: #0969da;
-$transition-speed: 0.2s;
 
 .project-board {
   background-color: #f6f8fa;
@@ -564,8 +558,8 @@ $transition-speed: 0.2s;
       align-items: center;
       gap: 1rem;
       margin-top: 2rem;
-  
-      .pagination-btn {
+    
+      .pagination-button {
         display: flex;
         align-items: center;
         gap: 0.5rem;
@@ -577,29 +571,29 @@ $transition-speed: 0.2s;
         font-weight: 500;
         cursor: pointer;
         transition: all $transition-speed ease;
-  
+    
         &:hover:not(:disabled) {
           border-color: $primary-color;
           color: $primary-color;
           background-color: rgba($primary-color, 0.05);
         }
-  
+    
         &:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
-  
+    
         i {
           font-size: 0.8rem;
         }
       }
-  
-      .pagination-numbers {
+    
+      .page-numbers {
         display: flex;
         gap: 0.5rem;
       }
-  
-      .pagination-number {
+    
+      .page-number {
         width: 36px;
         height: 36px;
         display: flex;
@@ -612,34 +606,45 @@ $transition-speed: 0.2s;
         font-weight: 500;
         cursor: pointer;
         transition: all $transition-speed ease;
-  
+    
         &:hover:not(.active) {
           border-color: $primary-color;
           color: $primary-color;
           background-color: rgba($primary-color, 0.05);
         }
-  
+    
         &.active {
           background-color: $primary-color;
           color: white;
           border-color: $primary-color;
         }
       }
-  
+    
+      .ellipsis {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        color: rgba($text-color, 0.4);
+      }
+    
       @media (max-width: 768px) {
         flex-direction: column;
-  
-        .pagination-btn {
+    
+        .pagination-button {
           width: 100%;
           justify-content: center;
         }
-  
-        .pagination-numbers {
+    
+        .page-numbers {
           flex-wrap: wrap;
           justify-content: center;
         }
       }
     }
+    
+    
   }
 }
 
