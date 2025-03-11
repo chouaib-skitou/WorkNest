@@ -127,7 +127,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   filteredEmployees: ProjectUser[] = [];
   paginatedEmployees: ProjectUser[] = [];
   currentPage: number = 1;
-  pageSize: number = 10;
+  pageSize: number = 6;
   totalPages: number = 1;
 
   placeholderSvg = `
@@ -922,6 +922,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   setActiveTab(tab: 'board' | 'employees' | 'documents'): void {
     this.activeTab = tab;
+    if (tab === 'employees') {
+      // Reset pagination when switching to employees tab
+      this.currentPage = 1;
+      this.filteredEmployees = this.projectEmployees; // reapply any filters if needed
+      this.updatePaginatedEmployees();
+    }
   }
 
   formatDate(date: string | null): string {
