@@ -1,7 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpParams,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from "rxjs/operators"
+import { catchError } from 'rxjs/operators';
 
 // Interfaces for responses
 export interface DocumentData {
@@ -33,14 +37,14 @@ export class DocumentService {
   constructor(private http: HttpClient) {}
 
   private handleError(error: HttpErrorResponse) {
-    let errorMessage = "An unknown error occurred"
+    let errorMessage = 'An unknown error occurred';
     if (error.error instanceof ErrorEvent) {
-      errorMessage = `Error: ${error.error.message}`
+      errorMessage = `Error: ${error.error.message}`;
     } else {
-      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`
+      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
     }
-    console.error(errorMessage)
-    return throwError(() => new Error(errorMessage))
+    console.error(errorMessage);
+    return throwError(() => new Error(errorMessage));
   }
 
   /**
@@ -49,10 +53,12 @@ export class DocumentService {
    * Returns an Observable with the document response.
    */
   createDocument(file: File): Observable<DocumentResponse> {
-    const formData = new FormData()
-    formData.append("file", file)
+    const formData = new FormData();
+    formData.append('file', file);
 
-    return this.http.post<DocumentResponse>(this.baseUrl, formData).pipe(catchError(this.handleError))
+    return this.http
+      .post<DocumentResponse>(this.baseUrl, formData)
+      .pipe(catchError(this.handleError));
   }
 
   /**
