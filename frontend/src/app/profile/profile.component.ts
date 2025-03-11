@@ -30,8 +30,11 @@ export class ProfileComponent implements OnInit {
   editingField: string | null = null; // Stocke le champ actuellement édité
   showSaveButton = false;
 
-  constructor(private authService: AuthService, private userService: UserService, private flashMessageService: FlashMessageService) {}
-
+  constructor(
+    private authService: AuthService,
+    private userService: UserService,
+    private flashMessageService: FlashMessageService
+  ) {}
 
   ngOnInit(): void {
     this.loadProfileFromStorage();
@@ -60,7 +63,7 @@ export class ProfileComponent implements OnInit {
         firstName: this.profile.firstName,
         lastName: this.profile.lastName,
       };
-  
+
       // Appelez la méthode patchUser pour mettre à jour le profil partiellement
       this.userService.patchUser(this.profile.id, updatedUserData).subscribe({
         next: (updatedUser) => {
@@ -69,7 +72,9 @@ export class ProfileComponent implements OnInit {
           localStorage.setItem('user', JSON.stringify(updatedUser)); // Sauvegarder dans localStorage
           console.log('Profile updated:', updatedUser);
           this.flashMessageService.showSuccess(
-           'Profile edited successfully!',5000);
+            'Profile edited successfully!',
+            5000
+          );
         },
         error: (error) => {
           console.error('Error loading user data:', error);
@@ -80,18 +85,16 @@ export class ProfileComponent implements OnInit {
     this.editingField = null;
     this.showSaveButton = false;
   }
-  
 
   showFlashMessage(): void {
     const flashMessage = document.createElement('div');
     flashMessage.textContent = 'Profile edited successfully!';
     flashMessage.className = 'flash-message';
     document.body.appendChild(flashMessage);
-    console.log('Flash message added to DOM:', flashMessage);    
+    console.log('Flash message added to DOM:', flashMessage);
 
-  
     setTimeout(() => {
       document.body.removeChild(flashMessage);
-    }, 5000); // 5 secondes pour tester    
+    }, 5000); // 5 secondes pour tester
   }
 }

@@ -38,7 +38,11 @@
             [(ngModel)]="profile.firstName"
             [readonly]="editingField !== 'firstName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit('firstName')">
+          <button
+            type="button"
+            class="edit-button"
+            (click)="toggleEdit('firstName')"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -68,7 +72,11 @@
             [(ngModel)]="profile.lastName"
             [readonly]="editingField !== 'lastName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit('lastName')">
+          <button
+            type="button"
+            class="edit-button"
+            (click)="toggleEdit('lastName')"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
