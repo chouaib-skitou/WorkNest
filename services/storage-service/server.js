@@ -3,13 +3,17 @@ import storageRoutes from "./routes/storage.routes.js";
 import { setupSwagger } from "./docs/swagger.js";
 import dotenv from "dotenv";
 import morgan from 'morgan';
+import helmet from 'helmet';
+import cors from 'cors';
 dotenv.config();
 
 const app = express();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan("dev"));
+app.use(helmet());
 
 // Setup Swagger documentation
 setupSwagger(app);
