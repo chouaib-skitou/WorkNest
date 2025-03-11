@@ -31,6 +31,7 @@ export interface Project {
   image?: string | null;
   createdAt: string;
   updatedAt?: string;
+  documents?: string[];
   createdBy?: User;
   status: Status;
   priority: Priority;
