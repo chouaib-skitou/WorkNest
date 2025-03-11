@@ -252,10 +252,39 @@
       </div>
 
       <div class="pagination">
-        <button (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
-        <span>Page {{ currentPage }} of {{ totalPages }}</span>
-        <button (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
-      </div>
+        <button 
+          class="pagination-button" 
+          (click)="previousPage()" 
+          [disabled]="currentPage === 1">
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+        
+        <div class="page-numbers">
+          <ng-container *ngFor="let page of getPageNumbers()">
+            <ng-container *ngIf="page === '...'">
+              <div class="ellipsis">...</div>
+            </ng-container>
+            
+            <ng-container *ngIf="page !== '...'">
+              <button 
+                class="page-number" 
+                [class.active]="page === currentPage"
+                (click)="goToPage(page)">
+                {{ page }}
+              </button>
+            </ng-container>
+          </ng-container>
+        </div>
+        
+        <button 
+          class="pagination-button" 
+          (click)="nextPage()" 
+          [disabled]="currentPage === totalPages">
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>    
     </div>
 
     <div *ngSwitchCase="'documents'">
