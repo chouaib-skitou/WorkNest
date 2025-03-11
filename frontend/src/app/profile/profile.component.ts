@@ -11,7 +11,7 @@ import { FlashMessagesComponent } from '../shared/components/flash-messages/flas
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule,FlashMessagesComponent],
+  imports: [CommonModule, FormsModule, RouterModule, FlashMessagesComponent], // Supprime FlashMessageService ici
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss'],
 })
@@ -30,7 +30,7 @@ export class ProfileComponent implements OnInit {
   editingField: string | null = null; // Stocke le champ actuellement édité
   showSaveButton = false;
 
-  constructor(private authService: AuthService, private userService: UserService) {}
+  constructor(private authService: AuthService, private userService: UserService, private flashMessageService: FlashMessageService) {}
 
 
   ngOnInit(): void {
@@ -68,10 +68,12 @@ export class ProfileComponent implements OnInit {
           this.profile = updatedUser;
           localStorage.setItem('user', JSON.stringify(updatedUser)); // Sauvegarder dans localStorage
           console.log('Profile updated:', updatedUser);
-          this.showFlashMessage();
+          this.flashMessageService.showSuccess(
+           'Profile edited successfully!',5000);
         },
-        error: (err) => {
-          console.error('Error updating profile:', err);
+        error: (error) => {
+          console.error('Error loading user data:', error);
+          this.flashMessageService.showError('Failed to update user data');
         },
       });
     }
