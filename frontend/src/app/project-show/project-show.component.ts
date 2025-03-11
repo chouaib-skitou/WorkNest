@@ -136,6 +136,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   showAddDocumentModal = false;
   addDocumentForm: FormGroup;
   selectedFile: File | null = null;
+  showDeleteDocumentModal = false;
+  selectedDocument: string | null = null;
 
   employeeSearchQuery = '';
   filteredEmployees: ProjectUser[] = [];
@@ -143,6 +145,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   currentPage = 1;
   pageSize = 3;
   totalPages = 1;
+
+  filteredDocuments: string[] = [];
+  paginatedDocuments: string[] = [];
+  documentCurrentPage = 1;
+  documentPageSize = 3;
+  documentTotalPages = 1;
+
 
   placeholderSvg = `
   <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -275,6 +284,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.projectManager = project.manager || null;
         this.projectCreatedBy = project.createdBy || null;
         this.projectEmployees = project.employees || [];
+
+         // Initialiser les documents filtrés
+        this.filteredDocuments = project.documents || [];
+        this.updatePaginatedDocuments();
 
         this.canManageProject =
           this.isAdmin ||
@@ -999,6 +1012,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       this.currentPage = 1;
       this.filteredEmployees = this.projectEmployees; // reapply any filters if needed
       this.updatePaginatedEmployees();
+    } else if (tab === 'documents') {
+      // Reset pagination when switching to documents tab
+      this.documentCurrentPage = 1;
+      this.filteredDocuments = this.project?.documents || [];
+      this.searchDocuments(); // Apply any existing filter
     }
   }
 
@@ -1055,6 +1073,91 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.currentPage = 1;
     this.updatePaginatedEmployees();
   }
+
+  searchDocuments(): void {
+    if (!this.project?.documents) {
+      this.filteredDocuments = [];
+      this.updatePaginatedDocuments();
+      return;
+    }
+    
+    if (!this.documentSearchQuery) {
+      this.filteredDocuments = this.project.documents;
+    } else {
+      const query = this.documentSearchQuery.toLowerCase();
+      this.filteredDocuments = this.project.documents.filter(document => 
+        this.getDocumentName(document).toLowerCase().includes(query) ||
+        document.toLowerCase().includes(query)
+      );
+    }
+    
+    this.documentCurrentPage = 1;
+    this.updatePaginatedDocuments();
+  }
+
+  // Ajoutez cette méthode pour mettre à jour la liste paginée des documents
+updatePaginatedDocuments(): void {
+  const startIndex = (this.documentCurrentPage - 1) * this.documentPageSize;
+  const endIndex = startIndex + this.documentPageSize;
+  this.paginatedDocuments = this.filteredDocuments.slice(startIndex, endIndex);
+  this.documentTotalPages = Math.ceil(this.filteredDocuments.length / this.documentPageSize);
+}
+
+// Ajoutez ces méthodes pour la navigation entre les pages de documents
+previousDocumentPage(): void {
+  if (this.documentCurrentPage > 1) {
+    this.documentCurrentPage--;
+    this.updatePaginatedDocuments();
+  }
+}
+
+nextDocumentPage(): void {
+  if (this.documentCurrentPage < this.documentTotalPages) {
+    this.documentCurrentPage++;
+    this.updatePaginatedDocuments();
+  }
+}
+
+getDocumentPageNumbers(): (number | string)[] {
+  const visiblePageCount = 5;
+  const pageNumbers: (number | string)[] = [];
+
+  if (this.documentTotalPages <= visiblePageCount) {
+    for (let i = 1; i <= this.documentTotalPages; i++) {
+      pageNumbers.push(i);
+    }
+  } else {
+    pageNumbers.push(1);
+
+    if (this.documentCurrentPage > 3) {
+      pageNumbers.push('...');
+    }
+
+    const start = Math.max(2, this.documentCurrentPage - 1);
+    const end = Math.min(this.documentTotalPages - 1, this.documentCurrentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pageNumbers.push(i);
+    }
+
+    if (this.documentCurrentPage < this.documentTotalPages - 2) {
+      pageNumbers.push('...');
+    }
+
+    pageNumbers.push(this.documentTotalPages);
+  }
+
+  return pageNumbers;
+}
+
+goToDocumentPage(page: number | string): void {
+  if (typeof page === 'number') {
+    if (page !== this.documentCurrentPage && page >= 1 && page <= this.documentTotalPages) {
+      this.documentCurrentPage = page;
+      this.updatePaginatedDocuments();
+    }
+  }
+}
 
   updatePaginatedEmployees(): void {
     const startIndex = (this.currentPage - 1) * this.pageSize;
@@ -1141,20 +1244,102 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
 
-  viewDocument(document: string): void {
-    console.log('Viewing document:', document);
+  viewDocument(documentUrl: string): void {
+    window.open(documentUrl, '_blank');
+  }
+  getDocumentIdFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      // Le dernier segment du chemin est généralement le nom du fichier
+      return pathParts[pathParts.length - 1];
+    } catch (error) {
+      console.error('Error extracting document ID:', error);
+      // Si l'analyse échoue, renvoyer l'URL complète comme fallback
+      return url;
+    }
   }
 
-  downloadDocument(document: string): void {
-    console.log('Downloading document:', document);
+  // Méthode pour ouvrir le modal de confirmation de suppression
+  openDeleteDocumentModal(documentUrl: string): void {
+    this.selectedDocument = documentUrl;
+    this.showDeleteDocumentModal = true;
   }
 
-  editDocument(document: string): void {
-    console.log('Editing document:', document);
+  // Méthode pour fermer le modal de confirmation de suppression
+  closeDeleteDocumentModal(): void {
+    this.showDeleteDocumentModal = false;
+    this.selectedDocument = null;
   }
 
-  deleteDocument(document: string): void {
-    console.log('Deleting document:', document);
+  // Méthode pour télécharger un document
+  downloadDocument(documentUrl: string): void {
+    // Créer un élément <a> pour initier le téléchargement
+    const link = document.createElement('a');
+    link.href = documentUrl;
+    link.target = '_blank';
+    link.download = this.getDocumentName(documentUrl);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  editDocument(documentUrl: string): void {
+    console.log('Edit document not implemented yet:', documentUrl);
+    this.flashMessageService.showInfo('Document editing functionality is coming soon');
+  }
+
+  deleteDocument(): void {
+    if (!this.selectedDocument || !this.project) {
+      return;
+    }
+    
+    this.formSubmitting = true;
+    
+    // Extraire l'ID du document (nom du fichier) de l'URL
+    const documentId = this.getDocumentIdFromUrl(this.selectedDocument);
+    
+    // 1. Supprimer le document du storage via le service document
+    this.documentService.deleteDocument(documentId).subscribe({
+      next: () => {
+        // 2. Supprimer l'URL du document de la liste des documents du projet
+        if (this.project && this.project.documents) {
+          const updatedDocuments = this.project.documents.filter(
+            doc => doc !== this.selectedDocument
+          );
+          
+          // 3. Mettre à jour le projet avec la nouvelle liste de documents
+          this.projectService.partialUpdateProject(this.projectId, {
+            documents: updatedDocuments
+          }).subscribe({
+            next: (updatedProject) => {
+              this.closeDeleteDocumentModal();
+              this.flashMessageService.showSuccess('Document deleted successfully');
+              this.project = updatedProject;
+              this.formSubmitting = false;
+            },
+            error: (updateError) => {
+              console.error('Error updating project after document deletion:', updateError);
+              this.flashMessageService.showError(
+                'Document was deleted from storage but could not be removed from project'
+              );
+              this.formSubmitting = false;
+              this.closeDeleteDocumentModal();
+            }
+          });
+        } else {
+          this.closeDeleteDocumentModal();
+          this.flashMessageService.showSuccess('Document deleted successfully');
+          this.formSubmitting = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error deleting document:', error);
+        this.flashMessageService.showError('Failed to delete document');
+        this.formSubmitting = false;
+        this.closeDeleteDocumentModal();
+      }
+    });
   }
 
   openAddDocumentModal(): void {

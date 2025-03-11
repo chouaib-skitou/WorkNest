@@ -324,10 +324,20 @@
               <td>
                 <span class="status-badge status-active">Active</span>
               </td>
+              <!-- Remplacez la section des actions de document dans votre tableau par ceci -->
               <td>
                 <div class="document-actions">
-                  <button class="btn-icon" title="View Profile">
-                    <i class="fas fa-user"></i>
+                  <button
+                    class="btn-icon"
+                    title="View Document"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button
+                    class="btn-icon"
+                    title="Download"
+                  >
+                    <i class="fas fa-download"></i>
                   </button>
                   <button
                     class="btn-icon"
@@ -338,10 +348,10 @@
                   </button>
                   <button
                     class="btn-icon delete"
-                    title="Remove"
+                    title="Delete"
                     *ngIf="canManageProject"
                   >
-                    <i class="fas fa-user-minus"></i>
+                    <i class="fas fa-trash-alt"></i>
                   </button>
                 </div>
               </td>
@@ -417,6 +427,7 @@
             class="search-input"
             placeholder="Search documents..."
             [(ngModel)]="documentSearchQuery"
+            (ngModelChange)="searchDocuments()"
           />
         </div>
         <div class="filter-actions">
@@ -442,7 +453,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let document of project?.documents">
+            <tr *ngFor="let document of paginatedDocuments">
               <td class="document-name-cell">
                 <div class="document-icon">
                   <i class="fas fa-file-pdf"></i>
@@ -479,27 +490,22 @@
                     <i class="fas fa-download"></i>
                   </button>
                   <button
-                    class="btn-icon"
-                    title="Edit"
-                    (click)="editDocument(document)"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
                     class="btn-icon delete"
                     title="Delete"
-                    (click)="deleteDocument(document)"
+                    *ngIf="canManageProject"
+                    (click)="openDeleteDocumentModal(document)"
                   >
                     <i class="fas fa-trash-alt"></i>
                   </button>
                 </div>
               </td>
             </tr>
+            
           </tbody>
         </table>
       </div>
 
-      <div *ngIf="!project?.documents?.length" class="no-documents">
+      <div *ngIf="!filteredDocuments?.length" class="no-documents">
         <div class="empty-state">
           <i class="fas fa-file-alt"></i>
           <h3>No documents yet</h3>
@@ -511,18 +517,37 @@
       </div>
 
       <div class="pagination">
-        <button class="pagination-button" [disabled]="currentPage === 1">
+        <button
+          class="pagination-button"
+          (click)="previousDocumentPage()"
+          [disabled]="documentCurrentPage === 1"
+        >
           <i class="fas fa-chevron-left"></i>
           Previous
         </button>
-
+      
         <div class="page-numbers">
-          <button class="page-number active">1</button>
-          <button class="page-number">2</button>
-          <button class="page-number">3</button>
+          <ng-container *ngFor="let page of getDocumentPageNumbers()">
+            <ng-container *ngIf="page === '...'">
+              <div class="ellipsis">...</div>
+            </ng-container>
+            <ng-container *ngIf="page !== '...'">
+              <button
+                class="page-number"
+                [class.active]="page === documentCurrentPage"
+                (click)="goToDocumentPage(page)"
+              >
+                {{ page }}
+              </button>
+            </ng-container>
+          </ng-container>
         </div>
-
-        <button class="pagination-button">
+      
+        <button
+          class="pagination-button"
+          (click)="nextDocumentPage()"
+          [disabled]="documentCurrentPage === documentTotalPages"
+        >
           Next
           <i class="fas fa-chevron-right"></i>
         </button>
@@ -1289,6 +1314,65 @@
             <span *ngIf="!formSubmitting">Delete Task</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Document Modal -->
+<div class="modal" *ngIf="showDeleteDocumentModal">
+  <div
+    class="modal-overlay"
+    (click)="closeDeleteDocumentModal()"
+    (keydown.escape)="closeDeleteDocumentModal()"
+    tabindex="0"
+    role="button"
+    aria-label="Close modal"
+  ></div>
+  <div class="modal-content delete-modal">
+    <div class="modal-header">
+      <h2>Delete Document</h2>
+      <button class="close-button" (click)="closeDeleteDocumentModal()">
+        &times;
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="delete-confirmation">
+        <i class="fas fa-exclamation-triangle warning-icon"></i>
+        <p>
+          Are you sure you want to delete the document "<strong>{{
+            selectedDocument ? getDocumentName(selectedDocument) : ''
+          }}</strong>"?
+        </p>
+        <p class="delete-warning">
+          This action cannot be undone and will permanently delete the document from storage.
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="cancel-button"
+          (click)="closeDeleteDocumentModal()"
+        >
+          <i class="fas fa-times"></i> Cancel
+        </button>
+        <button
+          type="button"
+          class="delete-confirm-button"
+          [disabled]="formSubmitting"
+          (click)="deleteDocument()"
+        >
+          <i
+            class="fas"
+            [ngClass]="{
+              'fa-spinner fa-spin': formSubmitting,
+              'fa-trash-alt': !formSubmitting
+            }"
+          ></i>
+          <span *ngIf="formSubmitting">Deleting...</span>
+          <span *ngIf="!formSubmitting">Delete Document</span>
+        </button>
       </div>
     </div>
   </div>
