@@ -9,157 +9,258 @@
   </div>
 
   <div class="project-header">
+    <div class="project-image-container">
+      <div class="project-image">
+        <img *ngIf="projectImage" [src]="projectImage" alt="Project Image">
+        <div *ngIf="!projectImage" class="placeholder" [innerHTML]="placeholderSvg"></div>
+      </div>
+    </div>
+    
     <div class="project-info">
-      <h1>{{ projectName }}</h1>
+      <div class="project-title-section">
+        <h1>{{ projectName }}</h1>
+        <div class="project-actions" *ngIf="canManageStagesAndTasks()">
+          <button class="btn-primary" (click)="openCreateStageModal()">
+            <i class="fas fa-columns"></i> New Stage
+          </button>
+        </div>
+      </div>
+
       <p class="project-description">{{ projectDescription }}</p>
-    </div>
-    <div class="project-actions" *ngIf="canManageStagesAndTasks()">
-      <button class="btn-secondary" (click)="openCreateTaskModal()">
-        <i class="fas fa-plus"></i> New Task
-      </button>
-      <button class="btn-primary" (click)="openCreateStageModal()">
-        <i class="fas fa-columns"></i> New Stage
-      </button>
-    </div>
-  </div>
-
-  <div class="search-section">
-    <div class="search-container">
-      <input
-        type="text"
-        class="search-input"
-        placeholder="Filter tasks by title or description"
-        [(ngModel)]="searchQuery"
-      />
-    </div>
-    <div class="filter-actions">
-      <button class="btn-secondary"><i class="fas fa-sort"></i> Sort</button>
-      <button class="btn-secondary">
-        <i class="fas fa-filter"></i> Filter
-      </button>
-    </div>
-  </div>
-
-  <div *ngIf="error" class="error-message">
-    <i class="fas fa-exclamation-circle"></i>
-    {{ error }}
-  </div>
-
-  <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
-    <i class="fas fa-columns"></i>
-    <p>No stages found for this project. Create a new stage to get started.</p>
-    <button *ngIf="canManageStagesAndTasks()" class="btn-primary" (click)="openCreateStageModal()">
-      <i class="fas fa-plus"></i> Create First Stage
-    </button>
-  </div>
-
-  <div class="board-content">
-    <div class="column" *ngFor="let column of columns">
-      <div class="column-header">
-        <div class="column-title">
-          <span
-            class="status-dot"
-            [style.backgroundColor]="column.color"
-          ></span>
-          {{ column.name }}
-          <span class="count">{{ column.total }}</span>
+      
+      <div class="project-meta">
+        <div class="meta-item">
+          <i class="fas fa-clock"></i>
+          <span class="project-status" [ngClass]="getStatusClass(projectStatus)">{{ projectStatus }}</span>
         </div>
-        <div class="column-actions" *ngIf="canManageStagesAndTasks()">
-          <button
-            class="btn-icon"
-            (click)="openEditStageModal(column.id)"
-            title="Edit Stage"
-          >
-            <i class="fas fa-edit"></i>
-          </button>
-          <button
-            class="btn-icon"
-            (click)="openDeleteStageModal(column.id)"
-            title="Delete Stage"
-          >
-            <i class="fas fa-trash-alt"></i>
+        <div class="meta-item">
+          <i class="fas fa-flag"></i>
+          <span class="project-priority" [ngClass]="getProjectPriorityClass(projectPriority)">{{ projectPriority }}</span>
+        </div>
+        <div class="meta-item">
+          <i class="fas fa-calendar"></i>
+          <span class="project-due-date">Due: {{ formatDate(projectDueDate) }}</span>
+        </div>
+      </div>
+
+      <div class="project-people">
+        <div class="people-item" *ngIf="projectManager">
+          <div class="people-label">
+            <i class="fas fa-user-tie"></i>
+            <span>Manager</span>
+          </div>
+          <div class="people-info">
+            <div class="avatar">{{ projectManager.fullName.charAt(0) }}</div>
+            <span>{{ projectManager.fullName }}</span>
+          </div>
+        </div>
+        <div class="people-item" *ngIf="projectCreatedBy">
+          <div class="people-label">
+            <i class="fas fa-user-edit"></i>
+            <span>Created by</span>
+          </div>
+          <div class="people-info">
+            <div class="avatar">{{ projectCreatedBy.fullName.charAt(0) }}</div>
+            <span>{{ projectCreatedBy.fullName }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="project-tabs">
+    <button [ngClass]="{'active': activeTab === 'board'}" (click)="setActiveTab('board')">Board</button>
+    <button [ngClass]="{'active': activeTab === 'employees'}" (click)="setActiveTab('employees')">Employees</button>
+    <button [ngClass]="{'active': activeTab === 'documents'}" (click)="setActiveTab('documents')">Documents</button>
+  </div>
+
+  <div [ngSwitch]="activeTab">
+    <div *ngSwitchCase="'board'">
+      <div class="search-section">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Filter tasks by title or description"
+            [(ngModel)]="searchQuery"
+          />
+        </div>
+        <div class="filter-actions">
+          <button class="btn-secondary"><i class="fas fa-sort"></i> Sort</button>
+          <button class="btn-secondary">
+            <i class="fas fa-filter"></i> Filter
           </button>
         </div>
       </div>
 
-      <div class="column-description">
-        {{ column.description }}
+      <div *ngIf="error" class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
       </div>
 
-      <div
-        class="task-list"
-        cdkDropList
-        [id]="column.id"
-        [cdkDropListData]="column.tasks"
-        (cdkDropListDropped)="drop($event)"
-        [cdkDropListConnectedTo]="columnIds"
-      >
-        <div
-          class="task-card"
-          *ngFor="let task of column.tasks | filter: searchQuery"
-          cdkDrag
-          tabindex="0"
-          (click)="openEditTaskModal(task)"
-          (keydown.enter)="openEditTaskModal(task)"
-        >
-          <div class="task-header">
-            <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
-            <div class="task-actions" *ngIf="canManageStagesAndTasks()">
+      <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
+        <i class="fas fa-columns"></i>
+        <p>No stages found for this project. Create a new stage to get started.</p>
+        <button *ngIf="canManageStagesAndTasks()" class="btn-primary" (click)="openCreateStageModal()">
+          <i class="fas fa-plus"></i> Create First Stage
+        </button>
+      </div>
+
+      <div class="board-content">
+        <div class="column" *ngFor="let column of columns">
+          <div class="column-header">
+            <div class="column-title">
+              <span
+                class="status-dot"
+                [style.backgroundColor]="column.color"
+              ></span>
+              {{ column.name }}
+              <span class="count">{{ column.total }}</span>
+            </div>
+            <div class="column-actions" *ngIf="canManageStagesAndTasks()">
               <button
-                class="btn-icon-sm"
-                (click)="openEditTaskModal(task); $event.stopPropagation()"
-                (keydown.enter)="
-                  openEditTaskModal(task); $event.stopPropagation()
-                "
-                title="Edit Task"
-                tabindex="0"
+                class="btn-icon"
+                (click)="openEditStageModal(column.id)"
+                title="Edit Stage"
               >
                 <i class="fas fa-edit"></i>
               </button>
               <button
-                class="btn-icon-sm"
-                (click)="openDeleteTaskModal(task); $event.stopPropagation()"
-                (keydown.enter)="
-                  openDeleteTaskModal(task); $event.stopPropagation()
-                "
-                title="Delete Task"
-                tabindex="0"
+                class="btn-icon"
+                (click)="openDeleteStageModal(column.id)"
+                title="Delete Stage"
               >
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
           </div>
-          <div class="task-title">{{ task.title }}</div>
-          <div class="task-description" *ngIf="task.description">
-            {{ task.description | slice: 0 : 50
-            }}{{ task.description.length > 50 ? '...' : '' }}
+
+          <div class="column-description">
+            {{ column.description }}
           </div>
-          <div class="task-footer">
-            <div class="task-meta">
-              <span class="task-assignee">
-                <i class="fas fa-user"></i> {{ getAssignedUserName(task.assignedTo) }}
-              </span>
-              <span
-                class="task-priority"
-                [ngClass]="getPriorityClass(task.priority)"
+
+          <div
+            class="task-list"
+            cdkDropList
+            [id]="column.id"
+            [cdkDropListData]="column.tasks"
+            (cdkDropListDropped)="drop($event)"
+            [cdkDropListConnectedTo]="columnIds"
+          >
+            <div
+              class="task-card"
+              *ngFor="let task of column.tasks | filter: searchQuery"
+              cdkDrag
+              tabindex="0"
+              (click)="openEditTaskModal(task)"
+              (keydown.enter)="openEditTaskModal(task)"
+            >
+              <div class="task-header">
+                <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
+                <div class="task-actions" *ngIf="canManageStagesAndTasks()">
+                  <button
+                    class="btn-icon-sm"
+                    (click)="openEditTaskModal(task); $event.stopPropagation()"
+                    (keydown.enter)="
+                      openEditTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Edit Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon-sm"
+                    (click)="openDeleteTaskModal(task); $event.stopPropagation()"
+                    (keydown.enter)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Delete Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="task-title">{{ task.title }}</div>
+              <div class="task-description" *ngIf="task.description">
+                {{ task.description | slice: 0 : 50
+                }}{{ task.description.length > 50 ? '...' : '' }}
+              </div>
+              <div class="task-footer">
+                <div class="task-meta">
+                  <span class="task-assignee">
+                    <i class="fas fa-user"></i> {{ getAssignedUserName(task.assignedTo) }}
+                  </span>
+                  <span
+                    class="task-priority"
+                    [ngClass]="getPriorityClass(task.priority)"
+                  >
+                    {{ formatPriority(task.priority) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="add-item-container" *ngIf="canManageStagesAndTasks()">
+              <button
+                class="add-item-button"
+                (click)="openCreateTaskModal(column.id)"
+                (keydown.enter)="openCreateTaskModal(column.id)"
+                tabindex="0"
               >
-                {{ formatPriority(task.priority) }}
-              </span>
+                <i class="fas fa-plus"></i> Add task
+              </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="add-item-container" *ngIf="canManageStagesAndTasks()">
-          <button
-            class="add-item-button"
-            (click)="openCreateTaskModal(column.id)"
-            (keydown.enter)="openCreateTaskModal(column.id)"
-            tabindex="0"
-          >
-            <i class="fas fa-plus"></i> Add task
-          </button>
+    <div *ngSwitchCase="'employees'" class="employees-tab">
+      <div class="section-header">
+        <h2>Project Team</h2>
+      </div>
+
+      <div class="search-section">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search employees by name"
+            [(ngModel)]="employeeSearchQuery"
+            (ngModelChange)="searchEmployees()"
+          />
         </div>
       </div>
+
+      <div class="employee-list">
+        <div *ngFor="let employee of paginatedEmployees" class="employee-card">
+          <div class="employee-info">
+            <div class="avatar">{{ employee.fullName.charAt(0) }}</div>
+            <div class="details">
+              <h3>{{ employee.fullName }}</h3>
+              <span class="email">contactworknest.fr</span>
+            </div>
+          </div>
+          <div class="employee-meta">
+            <span class="role-badge" [ngClass]="getRoleClass(employee.role)">
+              {{ formatRole(employee.role) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button (click)="previousPage()" [disabled]="currentPage === 1">Previous</button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button (click)="nextPage()" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </div>
+
+    <div *ngSwitchCase="'documents'">
+      <h2>Project Documents</h2>
+      <p>No documents available for this project.</p>
     </div>
   </div>
 
