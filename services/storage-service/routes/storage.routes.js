@@ -9,8 +9,8 @@ const upload = multer({ dest: "uploads/" });
 /**
  * @swagger
  * tags:
- *   name: Document Storage
- *   description: API for document storage operations
+ *   name: Storage
+ *   description: API for document storage operations using MinIO.
  */
 
 /**
@@ -93,7 +93,7 @@ router.get("/documents/:fileId", StorageController.get);
  * /api/documents/{fileId}:
  *   put:
  *     summary: Update a document
- *     description: Updates the document content and/or metadata. Provide a new file to update content or a newName to update metadata.
+ *     description: Updates the document content and/or metadata. Provide a new file for content or a newName for metadata update.
  *     tags: [Storage]
  *     parameters:
  *       - in: path
@@ -127,7 +127,7 @@ router.put("/documents/:fileId", upload.single("file"), StorageController.update
  * /api/documents/{fileId}:
  *   patch:
  *     summary: Partially update a document
- *     description: Updates parts of a document (e.g. metadata) without replacing the entire file.
+ *     description: Updates parts of a document (e.g., metadata) without replacing the entire file.
  *     tags: [Storage]
  *     parameters:
  *       - in: path
