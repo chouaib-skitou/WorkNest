@@ -182,8 +182,12 @@ export const getProjectsService = async (user, query, token) => {
     }
 
     // Get both managerIds and createdBy IDs
-    const managerIds = projects.filter((p) => p.managerId).map((p) => p.managerId);
-    const createdByIds = projects.filter((p) => p.createdBy).map((p) => p.createdBy);
+    const managerIds = projects
+      .filter((p) => p.managerId)
+      .map((p) => p.managerId);
+    const createdByIds = projects
+      .filter((p) => p.createdBy)
+      .map((p) => p.createdBy);
     const uniqueUserIds = [...new Set([...managerIds, ...createdByIds])];
 
     // Fetch user details for enrichment
@@ -217,6 +221,8 @@ export const getProjectsService = async (user, query, token) => {
 
 /**
  * Retrieve a single project by its ID with associated stages, tasks, and enriched user details.
+ * Enriches the manager, createdBy, employeeIds, and also each task's assignedTo field.
+ *
  * @param {Object} user - The user making the request.
  * @param {string} id - The project ID.
  * @param {string} token - JWT token to authorize the request.
@@ -242,7 +248,8 @@ export const getProjectByIdService = async (user, id, token) => {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message: "Access denied: You do not have permission to view this project",
+          message:
+            "Access denied: You do not have permission to view this project",
         });
       } else {
         console.warn("Project not found in database");
@@ -250,17 +257,31 @@ export const getProjectByIdService = async (user, id, token) => {
       }
     }
 
-    // Collect user IDs for enrichment: managerId, createdBy, and employeeIds
+    // Collect user IDs for enrichment: managerId, createdBy, employeeIds, and each task's assignedTo.
     const userIds = [];
     if (project.managerId) userIds.push(project.managerId);
     if (project.createdBy) userIds.push(project.createdBy);
     if (project.employeeIds && project.employeeIds.length > 0) {
       userIds.push(...project.employeeIds);
     }
+    // Add assignedTo IDs from each task in every stage.
+    if (project.stages && project.stages.length > 0) {
+      project.stages.forEach((stage) => {
+        if (stage.tasks && stage.tasks.length > 0) {
+          stage.tasks.forEach((task) => {
+            if (task.assignedTo) {
+              userIds.push(task.assignedTo);
+            }
+          });
+        }
+      });
+    }
+
     const uniqueUserIds = [...new Set(userIds)];
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     console.log("🔍 Debug: Users map", usersMap);
 
+    // Enrich project-level fields.
     const enrichedProject = {
       ...project,
       manager: project.managerId ? usersMap[project.managerId] : null,
@@ -269,6 +290,23 @@ export const getProjectByIdService = async (user, id, token) => {
         ? project.employeeIds.map((id) => usersMap[id] || { id })
         : [],
     };
+
+    // Enrich each task's assignedTo field.
+    if (enrichedProject.stages && enrichedProject.stages.length > 0) {
+      enrichedProject.stages = enrichedProject.stages.map((stage) => {
+        if (stage.tasks && stage.tasks.length > 0) {
+          stage.tasks = stage.tasks.map((task) => {
+            return {
+              ...task,
+              assignedTo: task.assignedTo
+                ? usersMap[task.assignedTo] || { id: task.assignedTo }
+                : null,
+            };
+          });
+        }
+        return stage;
+      });
+    }
 
     return new ProjectDTO(enrichedProject);
   } catch (error) {
@@ -346,8 +384,10 @@ export const updateProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this project",
+      unauthorizedLog:
+        "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
@@ -365,8 +405,12 @@ export const updateProjectService = async (user, id, data, token) => {
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
-      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      manager: updatedProject.managerId
+        ? usersMap[updatedProject.managerId]
+        : null,
+      createdBy: updatedProject.createdBy
+        ? usersMap[updatedProject.createdBy]
+        : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
@@ -377,7 +421,10 @@ export const updateProjectService = async (user, id, data, token) => {
     console.error("Error updating project:", error);
     if (error && error.status) return Promise.reject(error);
     if (error.code === "P2002")
-      return Promise.reject({ status: 409, message: "A project with this name already exists" });
+      return Promise.reject({
+        status: 409,
+        message: "A project with this name already exists",
+      });
     if (error.code === "P2025")
       return Promise.reject({ status: 404, message: "Project not found" });
     return Promise.reject({ status: 500, message: "Internal server error" });
@@ -397,8 +444,10 @@ export const patchProjectService = async (user, id, data, token) => {
     const logConfig = {
       adminLog: "Admin updating project: {id}",
       managerLog: "Manager updating project they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update project {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this project",
+      unauthorizedLog:
+        "Access denied: User not authorized to update project {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this project",
     };
 
     await authorizeProjectModification(user, id, logConfig);
@@ -427,8 +476,12 @@ export const patchProjectService = async (user, id, data, token) => {
     const usersMap = await fetchUsersByIds(uniqueUserIds, token);
     const enrichedProject = {
       ...updatedProject,
-      manager: updatedProject.managerId ? usersMap[updatedProject.managerId] : null,
-      createdBy: updatedProject.createdBy ? usersMap[updatedProject.createdBy] : null,
+      manager: updatedProject.managerId
+        ? usersMap[updatedProject.managerId]
+        : null,
+      createdBy: updatedProject.createdBy
+        ? usersMap[updatedProject.createdBy]
+        : null,
       employees: updatedProject.employeeIds
         ? updatedProject.employeeIds.map((id) => usersMap[id] || { id })
         : [],
@@ -439,7 +492,10 @@ export const patchProjectService = async (user, id, data, token) => {
     console.error("Error updating project:", error);
     if (error && error.status) return Promise.reject(error);
     if (error.code === "P2002")
-      return Promise.reject({ status: 409, message: "A project with this name already exists" });
+      return Promise.reject({
+        status: 409,
+        message: "A project with this name already exists",
+      });
     if (error.code === "P2025")
       return Promise.reject({ status: 404, message: "Project not found" });
     return Promise.reject({ status: 500, message: "Internal server error" });

@@ -85,7 +85,9 @@ const authorizeTaskCreation = async (user, projectId) => {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(`Manager authorized to create task for project: ${projectId}`);
+      console.log(
+        `Manager authorized to create task for project: ${projectId}`
+      );
       return;
     }
     return Promise.reject({
