@@ -471,11 +471,12 @@ export class ProjectsComponent implements OnInit {
       name: project.name,
       description: project.description || '',
       managerId: project.manager?.id || '',
-      employeeIds: project.employees?.map((emp) => emp.id) || [],
+      // Use employeeIds directly instead of mapping project.employees (if available)
+      employeeIds: (project as any).employeeIds || [],
       dueDate: this.formatDateForInput(new Date(project.dueDate)),
       status: project.status,
       priority: project.priority,
-    });
+    });    
 
     this.selectedImage = null;
     this.selectedDocuments = [];
@@ -506,6 +507,7 @@ export class ProjectsComponent implements OnInit {
     this.projectToDelete = project;
     this.showDeleteModal = true;
   }
+  
 
   /**
    * Close delete confirmation modal
