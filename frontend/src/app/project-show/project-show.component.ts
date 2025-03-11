@@ -1179,26 +1179,83 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     if (this.addDocumentForm.invalid || !this.selectedFile) {
       return;
     }
-
+    
     this.formSubmitting = true;
     this.formError = null;
-
+    
     this.documentService.createDocument(this.selectedFile).subscribe({
       next: (response: DocumentResponse) => {
         console.log('Document created successfully:', response);
-        this.closeAddDocumentModal();
-        this.flashMessageService.showSuccess(response.message);
-        this.formSubmitting = false;
-        this.loadProject();
+        
+        // Récupérer l'URL du document téléchargé depuis la réponse
+        let documentUrl = response.data?.location;
+        
+        if (documentUrl && this.project) {
+          // Corriger l'encodage de l'URL si nécessaire
+          try {
+            // Décoder puis réencoder correctement l'URL pour s'assurer qu'elle est valide
+            const parsedUrl = new URL(documentUrl);
+            
+            // Réencodage propre du pathname
+            const pathSegments = parsedUrl.pathname.split('/').map(segment => 
+              segment !== '' ? encodeURIComponent(decodeURIComponent(segment)) : ''
+            );
+            
+            // Reconstruction de l'URL proprement encodée
+            parsedUrl.pathname = pathSegments.join('/');
+            documentUrl = parsedUrl.toString();
+            
+            // Créer une copie du tableau des documents actuels
+            const currentDocuments = this.project.documents || [];
+            
+            // Ajouter le nouveau document à la liste
+            const updatedDocuments = [...currentDocuments, documentUrl];
+            
+            // Mettre à jour le projet avec la nouvelle liste de documents
+            this.projectService.partialUpdateProject(this.projectId, {
+              documents: updatedDocuments
+            }).subscribe({
+              next: (updatedProject) => {
+                this.closeAddDocumentModal();
+                this.flashMessageService.showSuccess('Document added to project successfully');
+                this.project = updatedProject;
+                
+                // Recharger le projet pour afficher le nouveau document
+                this.loadProject();
+                this.formSubmitting = false;
+              },
+              error: (updateError) => {
+                console.error('Error updating project with new document:', updateError);
+                this.flashMessageService.showError('Document uploaded but could not be linked to project: ' + updateError.error?.message || updateError.message);
+                this.formSubmitting = false;
+              }
+            });
+          } catch (error) {
+            console.error('Error processing document URL:', error);
+            this.closeAddDocumentModal();
+            this.flashMessageService.showError(`Invalid document URL format: ${documentUrl}`);
+            this.formSubmitting = false;
+          }
+        } else {
+          // Si nous n'avons pas d'URL de document dans la réponse
+          this.closeAddDocumentModal();
+          this.flashMessageService.showSuccess(
+            response?.message || 'Document uploaded successfully, but location was not provided'
+          );
+          this.formSubmitting = false;
+          
+          // Recharger le projet au cas où
+          setTimeout(() => this.loadProject(), 500);
+        }
       },
-      error: (error: HttpErrorResponse) => {
+      error: (error) => {
         console.error('Error creating document:', error);
+        this.formError = 'Failed to create document. Please try again.';
         this.flashMessageService.showError(
           'Failed to create document. Please try again.'
         );
-        this.formError = 'Failed to create document. Please try again.';
         this.formSubmitting = false;
-      },
+      }
     });
   }
 }
