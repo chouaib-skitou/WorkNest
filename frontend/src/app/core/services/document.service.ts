@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from "rxjs/operators"
 
 // Interfaces for responses
 export interface DocumentData {
@@ -31,15 +32,27 @@ export class DocumentService {
 
   constructor(private http: HttpClient) {}
 
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = "An unknown error occurred"
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = `Error: ${error.error.message}`
+    } else {
+      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`
+    }
+    console.error(errorMessage)
+    return throwError(() => new Error(errorMessage))
+  }
+
   /**
    * Uploads a new document.
    * Expects a File object from a file input.
    * Returns an Observable with the document response.
    */
   createDocument(file: File): Observable<DocumentResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.http.post<DocumentResponse>(this.baseUrl, formData);
+    const formData = new FormData()
+    formData.append("file", file)
+
+    return this.http.post<DocumentResponse>(this.baseUrl, formData).pipe(catchError(this.handleError))
   }
 
   /**

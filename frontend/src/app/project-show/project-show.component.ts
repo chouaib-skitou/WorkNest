@@ -20,6 +20,7 @@ import {
   transferArrayItem,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
+import type { HttpErrorResponse } from "@angular/common/http"
 import {
   ProjectService,
   Project,
@@ -42,7 +43,7 @@ import { UserService, User } from '../core/services/user.service';
 import { TaskFilterPipe } from '../core/pipes/task-filter.pipe';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
-import { DocumentService } from '../core/services/document.service';
+import { DocumentService, DocumentResponse } from "../core/services/document.service"
 
 interface Column {
   id: string;
@@ -1117,62 +1118,82 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
   getDocumentName(url: string): string {
-    console.log('Getting document name for:', url);
-    const parts = url.split('/');
-    return parts[parts.length - 1] || url;
+    try {
+      const urlObj = new URL(url)
+      const pathParts = urlObj.pathname.split("/")
+      const lastPart = pathParts[pathParts.length - 1]
+
+      if (lastPart.endsWith(".pdf")) {
+        return decodeURIComponent(lastPart)
+      }
+
+      if (url.includes("gallica.bnf.fr")) {
+        return `Gallica Document ${lastPart}`
+      }
+
+      return `${urlObj.hostname} Document`
+    } catch (e) {
+      console.error("Error parsing URL:", e)
+      return url
+    }
   }
 
   viewDocument(document: string): void {
-    console.log('Viewing document:', document);
+    console.log("Viewing document:", document)
   }
 
   downloadDocument(document: string): void {
-    console.log('Downloading document:', document);
+    console.log("Downloading document:", document)
   }
 
   editDocument(document: string): void {
-    console.log('Editing document:', document);
+    console.log("Editing document:", document)
   }
 
   deleteDocument(document: string): void {
-    console.log('Deleting document:', document);
+    console.log("Deleting document:", document)
   }
 
   openAddDocumentModal(): void {
-    this.showAddDocumentModal = true;
-    this.addDocumentForm.reset();
-    this.selectedFile = null;
+    this.showAddDocumentModal = true
+    this.addDocumentForm.reset()
+    this.selectedFile = null
   }
 
   closeAddDocumentModal(): void {
-    this.showAddDocumentModal = false;
+    this.showAddDocumentModal = false
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
+    const input = event.target as HTMLInputElement
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0];
-      this.addDocumentForm.patchValue({ file: this.selectedFile.name });
+      this.selectedFile = input.files[0]
+      this.addDocumentForm.patchValue({ file: this.selectedFile.name })
     }
   }
 
   submitAddDocumentForm(): void {
     if (this.addDocumentForm.invalid || !this.selectedFile) {
-      return;
+      return
     }
 
+    this.formSubmitting = true
+    this.formError = null
+
     this.documentService.createDocument(this.selectedFile).subscribe({
-      next: () => {
-        this.closeAddDocumentModal();
-        this.flashMessageService.showSuccess('Document created successfully');
-        this.closeAddDocumentModal();
+      next: (response: DocumentResponse) => {
+        console.log("Document created successfully:", response)
+        this.closeAddDocumentModal()
+        this.flashMessageService.showSuccess(response.message)
+        this.formSubmitting = false
+        this.loadProject()
       },
-      error: (error) => {
-        console.error('Error creating document:', error);
-        this.flashMessageService.showError(
-          'Failed to create document. Please try again.'
-        );
+      error: (error: HttpErrorResponse) => {
+        console.error("Error creating document:", error)
+        this.flashMessageService.showError("Failed to create document. Please try again.")
+        this.formError = "Failed to create document. Please try again."
+        this.formSubmitting = false
       },
-    });
+    })
   }
 }
