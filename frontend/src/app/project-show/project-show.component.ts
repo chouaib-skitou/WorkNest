@@ -1033,10 +1033,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     return pageNumbers;
   }
 
-  goToPage(page: number): void {
-    if (page !== this.currentPage && page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.updatePaginatedEmployees();
+  goToPage(page: number | string): void {
+    if (typeof page === 'number') {
+      if (page !== this.currentPage && page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+        this.updatePaginatedEmployees();
+      }
     }
-  }
+  }  
 }
