@@ -1,5 +1,7 @@
 <!-- profile.component.html -->
 <div class="profile-container">
+  <app-flash-messages></app-flash-messages>
+
   <div class="profile-picture">
     <svg
       width="120"
@@ -34,9 +36,13 @@
             id="firstName"
             name="firstName"
             [(ngModel)]="profile.firstName"
-            [readonly]="!isEditing"
+            [readonly]="editingField !== 'firstName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit()">
+          <button
+            type="button"
+            class="edit-button"
+            (click)="toggleEdit('firstName')"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -64,9 +70,13 @@
             id="lastName"
             name="lastName"
             [(ngModel)]="profile.lastName"
-            [readonly]="!isEditing"
+            [readonly]="editingField !== 'lastName'"
           />
-          <button type="button" class="edit-button" (click)="toggleEdit()">
+          <button
+            type="button"
+            class="edit-button"
+            (click)="toggleEdit('lastName')"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -94,25 +104,8 @@
             id="email"
             name="email"
             [(ngModel)]="profile.email"
-            [readonly]="!isEditing"
+            readonly
           />
-          <button type="button" class="edit-button" (click)="toggleEdit()">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"
-              />
-            </svg>
-          </button>
         </div>
       </div>
 
