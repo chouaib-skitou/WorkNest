@@ -114,15 +114,17 @@
 .flash-message {
   position: fixed;
   top: 20px;
-  right: 20px;
-  background-color: #10b981;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 128, 0, 0.8); /* Fond vert */
   color: white;
-  padding: 12px 20px;
-  border-radius: 6px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
   z-index: 1000;
-  animation: fadeInOut 3s ease-in-out;
-  font-size: 14px;
+  opacity: 1 !important; /* Assurer que l'élément est visible */
+  transition: opacity 0.5s ease;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes fadeInOut {
