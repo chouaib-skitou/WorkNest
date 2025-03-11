@@ -117,18 +117,18 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   activeTab: 'board' | 'employees' | 'documents' = 'board';
   projectImage: string | null = null;
-  projectStatus: string = 'PENDING';
-  projectPriority: string = 'MEDIUM';
+  projectStatus = 'PENDING';
+  projectPriority = 'MEDIUM';
   projectDueDate: string | null = null;
   projectManager: ProjectUser | null = null;
   projectCreatedBy: ProjectUser | null = null;
 
-  employeeSearchQuery: string = '';
+  employeeSearchQuery = '';
   filteredEmployees: ProjectUser[] = [];
   paginatedEmployees: ProjectUser[] = [];
-  currentPage: number = 1;
-  pageSize: number = 6;
-  totalPages: number = 1;
+  currentPage = 1;
+  pageSize = 6;
+  totalPages = 1;
 
   placeholderSvg = `
   <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -940,7 +940,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   }
 
   getStatusClass(status: string): string {
-    const statusMap: { [key: string]: string } = {
+    const statusMap: Record<string, string> = {
       'PENDING': 'status-pending',
       'IN_PROGRESS': 'status-in-progress',
       'COMPLETED': 'status-completed',
@@ -950,7 +950,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   }
 
   getProjectPriorityClass(priority: string): string {
-    const priorityMap: { [key: string]: string } = {
+    const priorityMap: Record<string, string> = {
       'LOW': 'priority-low',
       'MEDIUM': 'priority-medium',
       'HIGH': 'priority-high'
@@ -959,7 +959,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   }
 
   getRoleClass(role: string): string {
-    const roleMap: { [key: string]: string } = {
+    const roleMap: Record<string, string> = {
       'ROLE_ADMIN': 'role-admin',
       'ROLE_MANAGER': 'role-manager',
       'ROLE_EMPLOYEE': 'role-employee'
