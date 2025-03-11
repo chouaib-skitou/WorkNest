@@ -1,8 +1,6 @@
 <div class="project-board">
-  <!-- Flash Messages -->
   <app-flash-messages></app-flash-messages>
 
-  <!-- Page Overlay for Loading -->
   <div class="page-overlay" *ngIf="pageLoading">
     <div class="spinner-container">
       <div class="spinner"></div>
@@ -11,164 +9,332 @@
   </div>
 
   <div class="project-header">
+    <div class="project-image-container">
+      <div class="project-image">
+        <img *ngIf="projectImage" [src]="projectImage" alt="Project Image" />
+        <div
+          *ngIf="!projectImage"
+          class="placeholder"
+          [innerHTML]="placeholderSvg"
+        ></div>
+      </div>
+    </div>
+
     <div class="project-info">
-      <h1>{{ projectName }}</h1>
+      <div class="project-title-section">
+        <h1>{{ projectName }}</h1>
+        <div class="project-actions" *ngIf="canManageStagesAndTasks()">
+          <button class="btn-primary" (click)="openCreateStageModal()">
+            <i class="fas fa-columns"></i> New Stage
+          </button>
+        </div>
+      </div>
+
       <p class="project-description">{{ projectDescription }}</p>
-    </div>
-    <div class="project-actions" *ngIf="canManageStagesAndTasks()">
-      <button class="btn-secondary" (click)="openCreateTaskModal()">
-        <i class="fas fa-plus"></i> New Task
-      </button>
-      <button class="btn-primary" (click)="openCreateStageModal()">
-        <i class="fas fa-columns"></i> New Stage
-      </button>
+
+      <div class="project-meta">
+        <div class="meta-item">
+          <i class="fas fa-clock"></i>
+          <span
+            class="project-status"
+            [ngClass]="getStatusClass(projectStatus)"
+            >{{ projectStatus }}</span
+          >
+        </div>
+        <div class="meta-item">
+          <i class="fas fa-flag"></i>
+          <span
+            class="project-priority"
+            [ngClass]="getProjectPriorityClass(projectPriority)"
+            >{{ projectPriority }}</span
+          >
+        </div>
+        <div class="meta-item">
+          <i class="fas fa-calendar"></i>
+          <span class="project-due-date"
+            >Due: {{ formatDate(projectDueDate) }}</span
+          >
+        </div>
+      </div>
+
+      <div class="project-people">
+        <div class="people-item" *ngIf="projectManager">
+          <div class="people-label">
+            <i class="fas fa-user-tie"></i>
+            <span>Manager</span>
+          </div>
+          <div class="people-info">
+            <div class="avatar">{{ projectManager.fullName.charAt(0) }}</div>
+            <span>{{ projectManager.fullName }}</span>
+          </div>
+        </div>
+        <div class="people-item" *ngIf="projectCreatedBy">
+          <div class="people-label">
+            <i class="fas fa-user-edit"></i>
+            <span>Created by</span>
+          </div>
+          <div class="people-info">
+            <div class="avatar">{{ projectCreatedBy.fullName.charAt(0) }}</div>
+            <span>{{ projectCreatedBy.fullName }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="search-section">
-    <div class="search-container">
-      <input
-        type="text"
-        class="search-input"
-        placeholder="Filter tasks by title or description"
-        [(ngModel)]="searchQuery"
-      />
-    </div>
-    <div class="filter-actions">
-      <button class="btn-secondary"><i class="fas fa-sort"></i> Sort</button>
-      <button class="btn-secondary">
-        <i class="fas fa-filter"></i> Filter
-      </button>
-    </div>
-  </div>
-
-  <!-- Error message -->
-  <div *ngIf="error" class="error-message">
-    <i class="fas fa-exclamation-circle"></i>
-    {{ error }}
-  </div>
-
-  <!-- No stages message -->
-  <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
-    <i class="fas fa-columns"></i>
-    <p>No stages found for this project. Create a new stage to get started.</p>
+  <div class="project-tabs">
     <button
-      *ngIf="canManageStagesAndTasks()"
-      class="btn-primary"
-      (click)="openCreateStageModal()"
+      [ngClass]="{ active: activeTab === 'board' }"
+      (click)="setActiveTab('board')"
     >
-      <i class="fas fa-plus"></i> Create First Stage
+      Board
+    </button>
+    <button
+      [ngClass]="{ active: activeTab === 'employees' }"
+      (click)="setActiveTab('employees')"
+    >
+      Employees
+    </button>
+    <button
+      [ngClass]="{ active: activeTab === 'documents' }"
+      (click)="setActiveTab('documents')"
+    >
+      Documents
     </button>
   </div>
 
-  <div class="board-content">
-    <div class="column" *ngFor="let column of columns">
-      <div class="column-header">
-        <div class="column-title">
-          <span
-            class="status-dot"
-            [style.backgroundColor]="column.color"
-          ></span>
-          {{ column.name }}
-          <span class="count">{{ column.total }}</span>
+  <div [ngSwitch]="activeTab">
+    <div *ngSwitchCase="'board'">
+      <div class="search-section">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Filter tasks by title or description"
+            [(ngModel)]="searchQuery"
+          />
         </div>
-        <div class="column-actions" *ngIf="canManageStagesAndTasks()">
-          <button
-            class="btn-icon"
-            (click)="openEditStageModal(column.id)"
-            title="Edit Stage"
-          >
-            <i class="fas fa-edit"></i>
+        <div class="filter-actions">
+          <button class="btn-secondary">
+            <i class="fas fa-sort"></i> Sort
           </button>
-          <button
-            class="btn-icon"
-            (click)="openDeleteStageModal(column.id)"
-            title="Delete Stage"
-          >
-            <i class="fas fa-trash-alt"></i>
+          <button class="btn-secondary">
+            <i class="fas fa-filter"></i> Filter
           </button>
         </div>
       </div>
 
-      <div class="column-description">
-        {{ column.description }}
+      <div *ngIf="error" class="error-message">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ error }}
       </div>
 
       <div
-        class="task-list"
-        cdkDropList
-        [id]="column.id"
-        [cdkDropListData]="column.tasks"
-        (cdkDropListDropped)="drop($event)"
-        [cdkDropListConnectedTo]="columnIds"
+        *ngIf="!loading && !error && columns.length === 0"
+        class="no-results"
       >
-        <!-- Filter tasks based on search query -->
-        <div
-          class="task-card"
-          *ngFor="let task of column.tasks | filter: searchQuery"
-          cdkDrag
-          tabindex="0"
-          (click)="openEditTaskModal(task)"
-          (keydown.enter)="openEditTaskModal(task)"
+        <i class="fas fa-columns"></i>
+        <p>
+          No stages found for this project. Create a new stage to get started.
+        </p>
+        <button
+          *ngIf="canManageStagesAndTasks()"
+          class="btn-primary"
+          (click)="openCreateStageModal()"
         >
-          <div class="task-header">
-            <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
-            <div class="task-actions" *ngIf="canManageStagesAndTasks()">
+          <i class="fas fa-plus"></i> Create First Stage
+        </button>
+      </div>
+
+      <div class="board-content">
+        <div class="column" *ngFor="let column of columns">
+          <div class="column-header">
+            <div class="column-title">
+              <span
+                class="status-dot"
+                [style.backgroundColor]="column.color"
+              ></span>
+              {{ column.name }}
+              <span class="count">{{ column.total }}</span>
+            </div>
+            <div class="column-actions" *ngIf="canManageStagesAndTasks()">
               <button
-                class="btn-icon-sm"
-                (click)="openEditTaskModal(task); $event.stopPropagation()"
-                (keydown.enter)="
-                  openEditTaskModal(task); $event.stopPropagation()
-                "
-                title="Edit Task"
-                tabindex="0"
+                class="btn-icon"
+                (click)="openEditStageModal(column.id)"
+                title="Edit Stage"
               >
                 <i class="fas fa-edit"></i>
               </button>
               <button
-                class="btn-icon-sm"
-                (click)="openDeleteTaskModal(task); $event.stopPropagation()"
-                (keydown.enter)="
-                  openDeleteTaskModal(task); $event.stopPropagation()
-                "
-                title="Delete Task"
-                tabindex="0"
+                class="btn-icon"
+                (click)="openDeleteStageModal(column.id)"
+                title="Delete Stage"
               >
                 <i class="fas fa-trash-alt"></i>
               </button>
             </div>
           </div>
-          <div class="task-title">{{ task.title }}</div>
-          <div class="task-description" *ngIf="task.description">
-            {{ task.description | slice: 0 : 50
-            }}{{ task.description.length > 50 ? '...' : '' }}
+
+          <div class="column-description">
+            {{ column.description }}
           </div>
-          <div class="task-footer">
-            <div class="task-meta">
-              <span class="task-assignee" *ngIf="task.assignedTo">
-                <i class="fas fa-user"></i> {{ getUserName(task.assignedTo) }}
-              </span>
-              <span
-                class="task-priority"
-                [ngClass]="getPriorityClass(task.priority)"
+
+          <div
+            class="task-list"
+            cdkDropList
+            [id]="column.id"
+            [cdkDropListData]="column.tasks"
+            (cdkDropListDropped)="drop($event)"
+            [cdkDropListConnectedTo]="columnIds"
+          >
+            <div
+              class="task-card"
+              *ngFor="let task of column.tasks | filter: searchQuery"
+              cdkDrag
+              tabindex="0"
+              (click)="openEditTaskModal(task)"
+              (keydown.enter)="openEditTaskModal(task)"
+            >
+              <div class="task-header">
+                <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
+                <div class="task-actions" *ngIf="canManageStagesAndTasks()">
+                  <button
+                    class="btn-icon-sm"
+                    (click)="openEditTaskModal(task); $event.stopPropagation()"
+                    (keydown.enter)="
+                      openEditTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Edit Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon-sm"
+                    (click)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
+                    (keydown.enter)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Delete Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="task-title">{{ task.title }}</div>
+              <div class="task-description" *ngIf="task.description">
+                {{ task.description | slice: 0 : 50
+                }}{{ task.description.length > 50 ? '...' : '' }}
+              </div>
+              <div class="task-footer">
+                <div class="task-meta">
+                  <span class="task-assignee">
+                    <i class="fas fa-user"></i>
+                    {{ getAssignedUserName(task.assignedTo) }}
+                  </span>
+                  <span
+                    class="task-priority"
+                    [ngClass]="getPriorityClass(task.priority)"
+                  >
+                    {{ formatPriority(task.priority) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="add-item-container" *ngIf="canManageStagesAndTasks()">
+              <button
+                class="add-item-button"
+                (click)="openCreateTaskModal(column.id)"
+                (keydown.enter)="openCreateTaskModal(column.id)"
+                tabindex="0"
               >
-                {{ formatPriority(task.priority) }}
-              </span>
+                <i class="fas fa-plus"></i> Add task
+              </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <div class="add-item-container" *ngIf="canManageStagesAndTasks()">
-          <button
-            class="add-item-button"
-            (click)="openCreateTaskModal(column.id)"
-            (keydown.enter)="openCreateTaskModal(column.id)"
-            tabindex="0"
-          >
-            <i class="fas fa-plus"></i> Add task
-          </button>
+    <div *ngSwitchCase="'employees'" class="employees-tab">
+      <div class="section-header">
+        <h2>Project Team</h2>
+      </div>
+
+      <div class="search-section">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search employees by name"
+            [(ngModel)]="employeeSearchQuery"
+            (ngModelChange)="searchEmployees()"
+          />
         </div>
       </div>
+
+      <div class="employee-list">
+        <div *ngFor="let employee of paginatedEmployees" class="employee-card">
+          <div class="employee-info">
+            <div class="avatar">{{ employee.fullName.charAt(0) }}</div>
+            <div class="details">
+              <h3>{{ employee.fullName }}</h3>
+              <span class="email">contactworknest.fr</span>
+            </div>
+          </div>
+          <div class="employee-meta">
+            <span class="role-badge" [ngClass]="getRoleClass(employee.role)">
+              {{ formatRole(employee.role) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pagination">
+        <button
+          class="pagination-button"
+          (click)="previousPage()"
+          [disabled]="currentPage === 1"
+        >
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+
+        <div class="page-numbers">
+          <ng-container *ngFor="let page of getPageNumbers()">
+            <ng-container *ngIf="page === '...'">
+              <div class="ellipsis">...</div>
+            </ng-container>
+            <ng-container *ngIf="page !== '...'">
+              <button
+                class="page-number"
+                [class.active]="page === currentPage"
+                (click)="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            </ng-container>
+          </ng-container>
+        </div>
+
+        <button
+          class="pagination-button"
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+        >
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <div *ngSwitchCase="'documents'">
+      <h2>Project Documents</h2>
+      <p>No documents available for this project.</p>
     </div>
   </div>
 
@@ -194,7 +360,6 @@
           [formGroup]="createStageForm"
           (ngSubmit)="submitCreateStageForm()"
         >
-          <!-- Stage Name -->
           <div class="form-group">
             <label for="name">Stage Name <span class="required">*</span></label>
             <input
@@ -212,7 +377,6 @@
             </div>
           </div>
 
-          <!-- Color -->
           <div class="form-group">
             <label for="color">Color <span class="required">*</span></label>
             <input
@@ -229,16 +393,13 @@
             </div>
           </div>
 
-          <!-- Position (hidden) -->
           <input type="hidden" formControlName="position" />
 
-          <!-- Form Error -->
           <div class="form-error" *ngIf="formError">
             <i class="fas fa-exclamation-triangle"></i>
             {{ formError }}
           </div>
 
-          <!-- Submit Button -->
           <div class="form-actions">
             <button
               type="button"
@@ -281,7 +442,6 @@
       </div>
       <div class="modal-body">
         <form [formGroup]="editStageForm" (ngSubmit)="submitEditStageForm()">
-          <!-- Stage Name -->
           <div class="form-group">
             <label for="edit-name"
               >Stage Name <span class="required">*</span></label
@@ -301,7 +461,6 @@
             </div>
           </div>
 
-          <!-- Color -->
           <div class="form-group">
             <label for="edit-color"
               >Color <span class="required">*</span></label
@@ -320,7 +479,6 @@
             </div>
           </div>
 
-          <!-- Position -->
           <div class="form-group">
             <label for="edit-position">Position</label>
             <input
@@ -332,13 +490,11 @@
             <small>Lower numbers appear first</small>
           </div>
 
-          <!-- Form Error -->
           <div class="form-error" *ngIf="formError">
             <i class="fas fa-exclamation-triangle"></i>
             {{ formError }}
           </div>
 
-          <!-- Submit Button -->
           <div class="form-actions">
             <button
               type="button"
@@ -439,7 +595,6 @@
       </div>
       <div class="modal-body">
         <form [formGroup]="createTaskForm" (ngSubmit)="submitCreateTaskForm()">
-          <!-- Task Title -->
           <div class="form-group">
             <label for="title"
               >Task Title <span class="required">*</span></label
@@ -459,7 +614,6 @@
             </div>
           </div>
 
-          <!-- Description -->
           <div class="form-group">
             <label for="description">Description</label>
             <textarea
@@ -470,7 +624,6 @@
             ></textarea>
           </div>
 
-          <!-- Stage -->
           <div class="form-group">
             <label for="stageId">Stage <span class="required">*</span></label>
             <select
@@ -490,7 +643,6 @@
             </div>
           </div>
 
-          <!-- Priority -->
           <div class="form-group">
             <label for="priority">Priority</label>
             <select id="priority" formControlName="priority">
@@ -503,18 +655,19 @@
             </select>
           </div>
 
-          <!-- Assigned To -->
           <div class="form-group">
             <label for="assignedTo">Assigned To</label>
             <select id="assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
-              <option *ngFor="let user of users" [value]="user.id">
-                {{ user.fullName || user.firstName + ' ' + user.lastName }}
+              <option
+                *ngFor="let employee of projectEmployees"
+                [value]="employee.id"
+              >
+                {{ employee.fullName }}
               </option>
             </select>
           </div>
 
-          <!-- Type -->
           <div class="form-group">
             <label for="type">Type</label>
             <select id="type" formControlName="type">
@@ -525,7 +678,6 @@
             </select>
           </div>
 
-          <!-- Estimate -->
           <div class="form-group">
             <label for="estimate">Estimate (hours)</label>
             <input
@@ -537,7 +689,6 @@
             />
           </div>
 
-          <!-- Task Images -->
           <div class="form-group">
             <label for="images">Task Images</label>
             <div
@@ -580,13 +731,11 @@
             </div>
           </div>
 
-          <!-- Form Error -->
           <div class="form-error" *ngIf="formError">
             <i class="fas fa-exclamation-triangle"></i>
             {{ formError }}
           </div>
 
-          <!-- Submit Button -->
           <div class="form-actions">
             <button
               type="button"
@@ -629,7 +778,6 @@
       </div>
       <div class="modal-body">
         <form [formGroup]="editTaskForm" (ngSubmit)="submitEditTaskForm()">
-          <!-- Task Title -->
           <div class="form-group">
             <label for="edit-title"
               >Task Title <span class="required">*</span></label
@@ -649,7 +797,6 @@
             </div>
           </div>
 
-          <!-- Description -->
           <div class="form-group">
             <label for="edit-description">Description</label>
             <textarea
@@ -660,7 +807,6 @@
             ></textarea>
           </div>
 
-          <!-- Stage -->
           <div class="form-group">
             <label for="edit-stageId"
               >Stage <span class="required">*</span></label
@@ -682,7 +828,6 @@
             </div>
           </div>
 
-          <!-- Priority -->
           <div class="form-group">
             <label for="edit-priority">Priority</label>
             <select id="edit-priority" formControlName="priority">
@@ -695,18 +840,19 @@
             </select>
           </div>
 
-          <!-- Assigned To -->
           <div class="form-group">
             <label for="edit-assignedTo">Assigned To</label>
             <select id="edit-assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
-              <option *ngFor="let user of users" [value]="user.id">
-                {{ user.fullName || user.firstName + ' ' + user.lastName }}
+              <option
+                *ngFor="let employee of projectEmployees"
+                [value]="employee.id"
+              >
+                {{ employee.fullName }}
               </option>
             </select>
           </div>
 
-          <!-- Type -->
           <div class="form-group">
             <label for="edit-type">Type</label>
             <select id="edit-type" formControlName="type">
@@ -717,7 +863,6 @@
             </select>
           </div>
 
-          <!-- Estimate -->
           <div class="form-group">
             <label for="edit-estimate">Estimate (hours)</label>
             <input
@@ -729,7 +874,6 @@
             />
           </div>
 
-          <!-- Task Images -->
           <div class="form-group">
             <label for="edit-images">Task Images</label>
             <div
@@ -753,7 +897,6 @@
               <p class="upload-text">Click to upload new images</p>
             </div>
 
-            <!-- New image previews -->
             <div class="image-previews" *ngIf="taskImagePreviews.length > 0">
               <div
                 class="image-preview"
@@ -772,7 +915,6 @@
               </div>
             </div>
 
-            <!-- Existing image previews -->
             <div
               class="image-previews"
               *ngIf="editTaskImagePreviews.length > 0"
@@ -786,13 +928,11 @@
             </div>
           </div>
 
-          <!-- Form Error -->
           <div class="form-error" *ngIf="formError">
             <i class="fas fa-exclamation-triangle"></i>
             {{ formError }}
           </div>
 
-          <!-- Submit Button -->
           <div class="form-actions">
             <button
               type="button"

@@ -21,9 +21,13 @@ import {
  * @route GET /api/tasks
  * @access Protected
  */
-export const getTasks = async (req, res,) => {
+export const getTasks = async (req, res) => {
   try {
-    const tasks = await getTasksService(req.user, req.query, req.headers.authorization.split(" ")[1]);
+    const tasks = await getTasksService(
+      req.user,
+      req.query,
+      req.headers.authorization.split(" ")[1]
+    );
     res.status(200).json(tasks);
   } catch (error) {
     console.error("Error fetching tasks:", error);
@@ -43,7 +47,11 @@ export const getTaskById = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const task = await getTaskByIdService(req.user, id, req.headers.authorization.split(" ")[1]);
+      const task = await getTaskByIdService(
+        req.user,
+        id,
+        req.headers.authorization.split(" ")[1]
+      );
       if (!task) return res.status(404).json({ error: "Task not found" });
       res.status(200).json(task);
     } catch (error) {
@@ -64,7 +72,11 @@ export const createTask = [
   validateRequest,
   async (req, res) => {
     try {
-      const task = await createTaskService(req.user, req.body, req.headers.authorization.split(" ")[1]);
+      const task = await createTaskService(
+        req.user,
+        req.body,
+        req.headers.authorization.split(" ")[1]
+      );
       res.status(201).json({
         message: "Task created successfully",
         task,
@@ -88,7 +100,12 @@ export const updateTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const task = await updateTaskService(req.user, id, req.body, req.headers.authorization.split(" ")[1]);
+      const task = await updateTaskService(
+        req.user,
+        id,
+        req.body,
+        req.headers.authorization.split(" ")[1]
+      );
       res.status(200).json({
         message: "Task updated successfully",
         task,
@@ -112,7 +129,12 @@ export const patchTask = [
   async (req, res) => {
     try {
       const { id } = req.params;
-      const task = await patchTaskService(req.user, id, req.body, req.headers.authorization.split(" ")[1]);
+      const task = await patchTaskService(
+        req.user,
+        id,
+        req.body,
+        req.headers.authorization.split(" ")[1]
+      );
       res.status(200).json({
         message: "Task updated successfully",
         task,
