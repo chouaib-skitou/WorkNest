@@ -11,11 +11,15 @@
   <div class="project-header">
     <div class="project-image-container">
       <div class="project-image">
-        <img *ngIf="projectImage" [src]="projectImage" alt="Project Image">
-        <div *ngIf="!projectImage" class="placeholder" [innerHTML]="placeholderSvg"></div>
+        <img *ngIf="projectImage" [src]="projectImage" alt="Project Image" />
+        <div
+          *ngIf="!projectImage"
+          class="placeholder"
+          [innerHTML]="placeholderSvg"
+        ></div>
       </div>
     </div>
-    
+
     <div class="project-info">
       <div class="project-title-section">
         <h1>{{ projectName }}</h1>
@@ -27,19 +31,29 @@
       </div>
 
       <p class="project-description">{{ projectDescription }}</p>
-      
+
       <div class="project-meta">
         <div class="meta-item">
           <i class="fas fa-clock"></i>
-          <span class="project-status" [ngClass]="getStatusClass(projectStatus)">{{ projectStatus }}</span>
+          <span
+            class="project-status"
+            [ngClass]="getStatusClass(projectStatus)"
+            >{{ projectStatus }}</span
+          >
         </div>
         <div class="meta-item">
           <i class="fas fa-flag"></i>
-          <span class="project-priority" [ngClass]="getProjectPriorityClass(projectPriority)">{{ projectPriority }}</span>
+          <span
+            class="project-priority"
+            [ngClass]="getProjectPriorityClass(projectPriority)"
+            >{{ projectPriority }}</span
+          >
         </div>
         <div class="meta-item">
           <i class="fas fa-calendar"></i>
-          <span class="project-due-date">Due: {{ formatDate(projectDueDate) }}</span>
+          <span class="project-due-date"
+            >Due: {{ formatDate(projectDueDate) }}</span
+          >
         </div>
       </div>
 
@@ -69,9 +83,24 @@
   </div>
 
   <div class="project-tabs">
-    <button [ngClass]="{'active': activeTab === 'board'}" (click)="setActiveTab('board')">Board</button>
-    <button [ngClass]="{'active': activeTab === 'employees'}" (click)="setActiveTab('employees')">Employees</button>
-    <button [ngClass]="{'active': activeTab === 'documents'}" (click)="setActiveTab('documents')">Documents</button>
+    <button
+      [ngClass]="{ active: activeTab === 'board' }"
+      (click)="setActiveTab('board')"
+    >
+      Board
+    </button>
+    <button
+      [ngClass]="{ active: activeTab === 'employees' }"
+      (click)="setActiveTab('employees')"
+    >
+      Employees
+    </button>
+    <button
+      [ngClass]="{ active: activeTab === 'documents' }"
+      (click)="setActiveTab('documents')"
+    >
+      Documents
+    </button>
   </div>
 
   <div [ngSwitch]="activeTab">
@@ -86,7 +115,9 @@
           />
         </div>
         <div class="filter-actions">
-          <button class="btn-secondary"><i class="fas fa-sort"></i> Sort</button>
+          <button class="btn-secondary">
+            <i class="fas fa-sort"></i> Sort
+          </button>
           <button class="btn-secondary">
             <i class="fas fa-filter"></i> Filter
           </button>
@@ -98,10 +129,19 @@
         {{ error }}
       </div>
 
-      <div *ngIf="!loading && !error && columns.length === 0" class="no-results">
+      <div
+        *ngIf="!loading && !error && columns.length === 0"
+        class="no-results"
+      >
         <i class="fas fa-columns"></i>
-        <p>No stages found for this project. Create a new stage to get started.</p>
-        <button *ngIf="canManageStagesAndTasks()" class="btn-primary" (click)="openCreateStageModal()">
+        <p>
+          No stages found for this project. Create a new stage to get started.
+        </p>
+        <button
+          *ngIf="canManageStagesAndTasks()"
+          class="btn-primary"
+          (click)="openCreateStageModal()"
+        >
           <i class="fas fa-plus"></i> Create First Stage
         </button>
       </div>
@@ -171,7 +211,9 @@
                   </button>
                   <button
                     class="btn-icon-sm"
-                    (click)="openDeleteTaskModal(task); $event.stopPropagation()"
+                    (click)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
                     (keydown.enter)="
                       openDeleteTaskModal(task); $event.stopPropagation()
                     "
@@ -190,7 +232,8 @@
               <div class="task-footer">
                 <div class="task-meta">
                   <span class="task-assignee">
-                    <i class="fas fa-user"></i> {{ getAssignedUserName(task.assignedTo) }}
+                    <i class="fas fa-user"></i>
+                    {{ getAssignedUserName(task.assignedTo) }}
                   </span>
                   <span
                     class="task-priority"
@@ -252,39 +295,41 @@
       </div>
 
       <div class="pagination">
-        <button 
-          class="pagination-button" 
-          (click)="previousPage()" 
-          [disabled]="currentPage === 1">
+        <button
+          class="pagination-button"
+          (click)="previousPage()"
+          [disabled]="currentPage === 1"
+        >
           <i class="fas fa-chevron-left"></i>
           Previous
         </button>
-        
+
         <div class="page-numbers">
           <ng-container *ngFor="let page of getPageNumbers()">
             <ng-container *ngIf="page === '...'">
               <div class="ellipsis">...</div>
             </ng-container>
             <ng-container *ngIf="page !== '...'">
-              <button 
-                class="page-number" 
+              <button
+                class="page-number"
                 [class.active]="page === currentPage"
-                (click)="goToPage(page)">
+                (click)="goToPage(page)"
+              >
                 {{ page }}
               </button>
             </ng-container>
           </ng-container>
-          
         </div>
-        
-        <button 
-          class="pagination-button" 
-          (click)="nextPage()" 
-          [disabled]="currentPage === totalPages">
+
+        <button
+          class="pagination-button"
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+        >
           Next
           <i class="fas fa-chevron-right"></i>
         </button>
-      </div>    
+      </div>
     </div>
 
     <div *ngSwitchCase="'documents'">
@@ -520,7 +565,7 @@
               class="fas"
               [ngClass]="{
                 'fa-spinner fa-spin': formSubmitting,
-                'fa-trash-alt': !formSubmitting
+                'fa-trash-alt': !formSubmitting,
               }"
             ></i>
             <span *ngIf="formSubmitting">Deleting...</span>
@@ -614,7 +659,10 @@
             <label for="assignedTo">Assigned To</label>
             <select id="assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
-              <option *ngFor="let employee of projectEmployees" [value]="employee.id">
+              <option
+                *ngFor="let employee of projectEmployees"
+                [value]="employee.id"
+              >
                 {{ employee.fullName }}
               </option>
             </select>
@@ -796,7 +844,10 @@
             <label for="edit-assignedTo">Assigned To</label>
             <select id="edit-assignedTo" formControlName="assignedTo">
               <option value="">Unassigned</option>
-              <option *ngFor="let employee of projectEmployees" [value]="employee.id">
+              <option
+                *ngFor="let employee of projectEmployees"
+                [value]="employee.id"
+              >
                 {{ employee.fullName }}
               </option>
             </select>
@@ -952,7 +1003,7 @@
               class="fas"
               [ngClass]="{
                 'fa-spinner fa-spin': formSubmitting,
-                'fa-trash-alt': !formSubmitting
+                'fa-trash-alt': !formSubmitting,
               }"
             ></i>
             <span *ngIf="formSubmitting">Deleting...</span>

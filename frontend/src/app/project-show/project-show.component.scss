@@ -149,7 +149,9 @@ $transition-speed: 0.3s;
     background-color: #ffffff;
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.24);
 
     button {
       flex: 1;
@@ -558,7 +560,7 @@ $transition-speed: 0.3s;
       align-items: center;
       gap: 1rem;
       margin-top: 2rem;
-    
+
       .pagination-button {
         display: flex;
         align-items: center;
@@ -571,28 +573,28 @@ $transition-speed: 0.3s;
         font-weight: 500;
         cursor: pointer;
         transition: all $transition-speed ease;
-    
+
         &:hover:not(:disabled) {
           border-color: $primary-color;
           color: $primary-color;
           background-color: rgba($primary-color, 0.05);
         }
-    
+
         &:disabled {
           opacity: 0.5;
           cursor: not-allowed;
         }
-    
+
         i {
           font-size: 0.8rem;
         }
       }
-    
+
       .page-numbers {
         display: flex;
         gap: 0.5rem;
       }
-    
+
       .page-number {
         width: 36px;
         height: 36px;
@@ -606,20 +608,20 @@ $transition-speed: 0.3s;
         font-weight: 500;
         cursor: pointer;
         transition: all $transition-speed ease;
-    
+
         &:hover:not(.active) {
           border-color: $primary-color;
           color: $primary-color;
           background-color: rgba($primary-color, 0.05);
         }
-    
+
         &.active {
           background-color: $primary-color;
           color: white;
           border-color: $primary-color;
         }
       }
-    
+
       .ellipsis {
         display: flex;
         align-items: center;
@@ -628,23 +630,21 @@ $transition-speed: 0.3s;
         height: 36px;
         color: rgba($text-color, 0.4);
       }
-    
+
       @media (max-width: 768px) {
         flex-direction: column;
-    
+
         .pagination-button {
           width: 100%;
           justify-content: center;
         }
-    
+
         .page-numbers {
           flex-wrap: wrap;
           justify-content: center;
         }
       }
     }
-    
-    
   }
 }
 

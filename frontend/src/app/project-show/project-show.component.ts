@@ -20,7 +20,11 @@ import {
   transferArrayItem,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
-import { ProjectService, Project, User as ProjectUser } from '../core/services/project.service';
+import {
+  ProjectService,
+  Project,
+  User as ProjectUser,
+} from '../core/services/project.service';
 import {
   TaskService,
   Task,
@@ -175,7 +179,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   checkUserPermissions(): void {
     this.pageLoading = true;
-    
+
     this.projectId = this.route.snapshot.paramMap.get('id') || '';
 
     if (!this.projectId) {
@@ -188,25 +192,35 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       next: (user) => {
         this.currentUserId = user.id;
         this.isAdmin = user.role === 'ROLE_ADMIN';
-        this.isManager = user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
-        
+        this.isManager =
+          user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
+
         this.loadProject();
-        
+
         if (this.isAdmin || this.isManager) {
           this.loadUsers();
         }
       },
       error: (error) => {
         console.error('Authorization error:', error);
-        this.flashMessageService.showError('Authentication failed. Please log in again.');
+        this.flashMessageService.showError(
+          'Authentication failed. Please log in again.'
+        );
         this.router.navigate(['/login']);
-      }
+      },
     });
   }
 
   createStageFormGroup(): FormGroup {
     return this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.maxLength(50),
+        ],
+      ],
       color: ['#0969da', Validators.required],
       position: [0],
     });
@@ -214,7 +228,14 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   createTaskFormGroup(): FormGroup {
     return this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      title: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(3),
+          Validators.maxLength(100),
+        ],
+      ],
       description: [''],
       priority: [TaskPriority.MEDIUM],
       stageId: ['', Validators.required],
@@ -241,11 +262,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.projectCreatedBy = project.createdBy || null;
         this.projectEmployees = project.employees || [];
 
-        this.canManageProject = this.isAdmin || 
-          (this.isManager && (
-            project.createdBy?.id === this.currentUserId || 
-            project.manager?.id === this.currentUserId
-          ));
+        this.canManageProject =
+          this.isAdmin ||
+          (this.isManager &&
+            (project.createdBy?.id === this.currentUserId ||
+              project.manager?.id === this.currentUserId));
 
         if (project.stages && project.stages.length > 0) {
           const stages = project.stages as unknown as Stage[];
@@ -355,12 +376,16 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     return this.canManageProject;
   }
 
-  getAssignedUserName(assignedTo: string | ProjectUser | null | undefined): string {
+  getAssignedUserName(
+    assignedTo: string | ProjectUser | null | undefined
+  ): string {
     if (!assignedTo) {
       return 'Unassigned';
     }
     if (typeof assignedTo === 'string') {
-      const employee = this.projectEmployees.find(emp => emp.id === assignedTo);
+      const employee = this.projectEmployees.find(
+        (emp) => emp.id === assignedTo
+      );
       return employee ? employee.fullName : 'Unassigned';
     }
     return assignedTo.fullName;
@@ -386,25 +411,23 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
       movedTask.stageId = newStageId;
 
-      this.taskService
-        .moveTaskToStage(movedTask.id, newStageId)
-        .subscribe({
-          next: () => {
-            console.log(
-              `Task ${movedTask.id} updated to new stage ${newStageId}`
-            );
-            this.flashMessageService.showSuccess('Task moved successfully');
+      this.taskService.moveTaskToStage(movedTask.id, newStageId).subscribe({
+        next: () => {
+          console.log(
+            `Task ${movedTask.id} updated to new stage ${newStageId}`
+          );
+          this.flashMessageService.showSuccess('Task moved successfully');
 
-            this.reloadStageTasks(event.previousContainer.id);
-            this.reloadStageTasks(newStageId);
-          },
-          error: (error) => {
-            console.error('Error updating task stage', error);
-            this.flashMessageService.showError('Failed to update task stage');
+          this.reloadStageTasks(event.previousContainer.id);
+          this.reloadStageTasks(newStageId);
+        },
+        error: (error) => {
+          console.error('Error updating task stage', error);
+          this.flashMessageService.showError('Failed to update task stage');
 
-            this.loadProject();
-          },
-        });
+          this.loadProject();
+        },
+      });
     }
     this.updateColumnTotals();
   }
@@ -420,10 +443,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   addItem(columnId: string, event: KeyboardEvent): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       return;
     }
-    
+
     if (event.key === 'Enter' && this.newTaskTitle.trim()) {
       const column = this.columns.find((col) => col.id === columnId);
       if (column) {
@@ -479,10 +504,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openCreateStageModal(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create stages');
+      this.flashMessageService.showError(
+        'You do not have permission to create stages'
+      );
       return;
     }
-    
+
     const nextPosition =
       this.columns.length > 0
         ? Math.max(...this.columns.map((col) => col.position)) + 1
@@ -504,11 +531,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   submitCreateStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create stages');
+      this.flashMessageService.showError(
+        'You do not have permission to create stages'
+      );
       this.closeCreateStageModal();
       return;
     }
-    
+
     if (this.createStageForm.invalid) {
       this.markFormGroupTouched(this.createStageForm);
       return;
@@ -544,10 +573,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openEditStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit stages');
+      this.flashMessageService.showError(
+        'You do not have permission to edit stages'
+      );
       return;
     }
-    
+
     const column = this.columns.find((col) => col.id === columnId);
     if (!column) return;
 
@@ -577,11 +608,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   submitEditStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit stages');
+      this.flashMessageService.showError(
+        'You do not have permission to edit stages'
+      );
       this.closeEditStageModal();
       return;
     }
-    
+
     if (!this.selectedStage || this.editStageForm.invalid) {
       this.markFormGroupTouched(this.editStageForm);
       return;
@@ -616,10 +649,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openDeleteStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete stages');
+      this.flashMessageService.showError(
+        'You do not have permission to delete stages'
+      );
       return;
     }
-    
+
     const column = this.columns.find((col) => col.id === columnId);
     if (!column) return;
 
@@ -642,11 +677,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   deleteStage(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete stages');
+      this.flashMessageService.showError(
+        'You do not have permission to delete stages'
+      );
       this.closeDeleteStageModal();
       return;
     }
-    
+
     if (!this.selectedStage) return;
 
     this.formSubmitting = true;
@@ -672,10 +709,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openCreateTaskModal(columnId?: string): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       return;
     }
-    
+
     this.createTaskForm.reset({
       title: '',
       description: '',
@@ -698,11 +737,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   submitCreateTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to create tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to create tasks'
+      );
       this.closeCreateTaskModal();
       return;
     }
-    
+
     if (this.createTaskForm.invalid) {
       this.markFormGroupTouched(this.createTaskForm);
       return;
@@ -714,7 +755,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     const taskData: TaskCreateUpdate = {
       ...this.createTaskForm.value,
       projectId: this.projectId,
-      images: this.selectedTaskImages.length > 0 ? this.selectedTaskImages : undefined,
+      images:
+        this.selectedTaskImages.length > 0
+          ? this.selectedTaskImages
+          : undefined,
     };
 
     const stageId = taskData.stageId;
@@ -738,17 +782,22 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openEditTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to edit tasks'
+      );
       return;
     }
-    
+
     this.selectedTask = task;
-  
+
     let assignedToId = '';
     if (task.assignedTo) {
-      assignedToId = typeof task.assignedTo === 'string' ? task.assignedTo : task.assignedTo.id;
+      assignedToId =
+        typeof task.assignedTo === 'string'
+          ? task.assignedTo
+          : task.assignedTo.id;
     }
-  
+
     this.editTaskForm.reset({
       title: task.title,
       description: task.description || '',
@@ -758,16 +807,16 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       type: task.type || 'Task',
       estimate: task.estimate || 0,
     });
-  
+
     this.selectedTaskImages = [];
     this.taskImagePreviews = [];
-  
+
     if (task.images && task.images.length > 0) {
       this.editTaskImagePreviews = task.images;
     } else {
       this.editTaskImagePreviews = [];
     }
-  
+
     this.formError = null;
     this.showEditTaskModal = true;
   }
@@ -780,11 +829,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   submitEditTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to edit tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to edit tasks'
+      );
       this.closeEditTaskModal();
       return;
     }
-    
+
     if (!this.selectedTask || this.editTaskForm.invalid) {
       this.markFormGroupTouched(this.editTaskForm);
       return;
@@ -799,7 +850,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     const taskData: TaskCreateUpdate = {
       ...this.editTaskForm.value,
       projectId: this.projectId,
-      images: this.selectedTaskImages.length > 0 ? this.selectedTaskImages : undefined,
+      images:
+        this.selectedTaskImages.length > 0
+          ? this.selectedTaskImages
+          : undefined,
     };
 
     this.taskService
@@ -827,10 +881,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   openDeleteTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to delete tasks'
+      );
       return;
     }
-    
+
     this.selectedTask = task;
     this.showDeleteTaskModal = true;
   }
@@ -842,11 +898,13 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   deleteTask(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError('You do not have permission to delete tasks');
+      this.flashMessageService.showError(
+        'You do not have permission to delete tasks'
+      );
       this.closeDeleteTaskModal();
       return;
     }
-    
+
     if (!this.selectedTask) return;
 
     this.formSubmitting = true;
@@ -935,46 +993,50 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
   getStatusClass(status: string): string {
     const statusMap: Record<string, string> = {
-      'PENDING': 'status-pending',
-      'IN_PROGRESS': 'status-in-progress',
-      'COMPLETED': 'status-completed',
-      'ON_HOLD': 'status-on-hold'
+      PENDING: 'status-pending',
+      IN_PROGRESS: 'status-in-progress',
+      COMPLETED: 'status-completed',
+      ON_HOLD: 'status-on-hold',
     };
     return statusMap[status] || 'status-pending';
   }
 
   getProjectPriorityClass(priority: string): string {
     const priorityMap: Record<string, string> = {
-      'LOW': 'priority-low',
-      'MEDIUM': 'priority-medium',
-      'HIGH': 'priority-high'
+      LOW: 'priority-low',
+      MEDIUM: 'priority-medium',
+      HIGH: 'priority-high',
     };
     return priorityMap[priority] || 'priority-medium';
   }
 
   getRoleClass(role: string): string {
     const roleMap: Record<string, string> = {
-      'ROLE_ADMIN': 'role-admin',
-      'ROLE_MANAGER': 'role-manager',
-      'ROLE_EMPLOYEE': 'role-employee'
+      ROLE_ADMIN: 'role-admin',
+      ROLE_MANAGER: 'role-manager',
+      ROLE_EMPLOYEE: 'role-employee',
     };
     return roleMap[role] || 'role-employee';
   }
 
   formatRole(role: string): string {
-    return role.replace('ROLE_', '').charAt(0) + 
-           role.replace('ROLE_', '').slice(1).toLowerCase();
+    return (
+      role.replace('ROLE_', '').charAt(0) +
+      role.replace('ROLE_', '').slice(1).toLowerCase()
+    );
   }
 
   searchEmployees(): void {
-    this.filteredEmployees = this.projectEmployees.filter(employee =>
-      employee.fullName.toLowerCase().includes(this.employeeSearchQuery.toLowerCase())
+    this.filteredEmployees = this.projectEmployees.filter((employee) =>
+      employee.fullName
+        .toLowerCase()
+        .includes(this.employeeSearchQuery.toLowerCase())
     );
     this.currentPage = 1;
     this.updatePaginatedEmployees();
@@ -983,7 +1045,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   updatePaginatedEmployees(): void {
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
-    this.paginatedEmployees = this.filteredEmployees.slice(startIndex, endIndex);
+    this.paginatedEmployees = this.filteredEmployees.slice(
+      startIndex,
+      endIndex
+    );
     this.totalPages = Math.ceil(this.filteredEmployees.length / this.pageSize);
   }
 
@@ -1004,32 +1069,32 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   getPageNumbers(): (number | string)[] {
     const visiblePageCount = 5;
     const pageNumbers: (number | string)[] = [];
-    
+
     if (this.totalPages <= visiblePageCount) {
       for (let i = 1; i <= this.totalPages; i++) {
         pageNumbers.push(i);
       }
     } else {
       pageNumbers.push(1);
-      
+
       if (this.currentPage > 3) {
         pageNumbers.push('...');
       }
-      
+
       const start = Math.max(2, this.currentPage - 1);
       const end = Math.min(this.totalPages - 1, this.currentPage + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pageNumbers.push(i);
       }
-      
+
       if (this.currentPage < this.totalPages - 2) {
         pageNumbers.push('...');
       }
-      
+
       pageNumbers.push(this.totalPages);
     }
-    
+
     return pageNumbers;
   }
 
@@ -1040,5 +1105,5 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.updatePaginatedEmployees();
       }
     }
-  }  
+  }
 }

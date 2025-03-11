@@ -479,7 +479,7 @@ export class ProjectsComponent implements OnInit {
       dueDate: this.formatDateForInput(new Date(project.dueDate)),
       status: project.status,
       priority: project.priority,
-    });    
+    });
 
     this.selectedImage = null;
     this.selectedDocuments = [];
@@ -510,7 +510,6 @@ export class ProjectsComponent implements OnInit {
     this.projectToDelete = project;
     this.showDeleteModal = true;
   }
-  
 
   /**
    * Close delete confirmation modal
