@@ -140,12 +140,16 @@ const authorizeStageCreation = async (user, projectId) => {
     return;
   } else if (user.role === "ROLE_MANAGER") {
     // Here we use StageRepository.findUnique for project lookup for simplicity.
-    const project = await StageRepository.findUnique({ where: { id: projectId } });
+    const project = await StageRepository.findUnique({
+      where: { id: projectId },
+    });
     if (!project) {
       return Promise.reject({ status: 404, message: "Project not found" });
     }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(`Manager authorized to create stage for project: ${projectId}`);
+      console.log(
+        `Manager authorized to create stage for project: ${projectId}`
+      );
       return;
     } else {
       return Promise.reject({
@@ -251,7 +255,8 @@ export const getStageByIdService = async (user, id) => {
         console.warn("Access denied: User does not have permission");
         return Promise.reject({
           status: 403,
-          message: "Access denied: You do not have permission to view this stage",
+          message:
+            "Access denied: You do not have permission to view this stage",
         });
       } else {
         console.warn("Stage not found in database");
@@ -281,7 +286,10 @@ export const createStageService = async (user, data) => {
       ...data,
       name: data.name.toLowerCase(),
     };
-    const newStage = await StageRepository.create(stageData, { tasks: true, Project: true });
+    const newStage = await StageRepository.create(stageData, {
+      tasks: true,
+      Project: true,
+    });
     return new StageDTO(newStage);
   } catch (error) {
     console.error("Error creating stage:", error);
@@ -312,14 +320,19 @@ export const updateStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
+      unauthorizedLog:
+        "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);
     const updateData = { ...data };
     if (updateData.name) updateData.name = updateData.name.toLowerCase();
-    const updatedStage = await StageRepository.update(id, updateData, { tasks: true, Project: true });
+    const updatedStage = await StageRepository.update(id, updateData, {
+      tasks: true,
+      Project: true,
+    });
     return new StageDTO(updatedStage);
   } catch (error) {
     console.error("Error updating stage:", error);
@@ -350,8 +363,10 @@ export const patchStageService = async (user, id, data) => {
     const logConfig = {
       adminLog: "Admin updating stage: {id}",
       managerLog: "Manager updating stage they manage or created: {id}",
-      unauthorizedLog: "Access denied: User not authorized to update stage {id}",
-      unauthorizedMessage: "Access denied: You do not have permission to update this stage",
+      unauthorizedLog:
+        "Access denied: User not authorized to update stage {id}",
+      unauthorizedMessage:
+        "Access denied: You do not have permission to update this stage",
     };
 
     await authorizeStageModification(user, id, logConfig);
@@ -369,7 +384,10 @@ export const patchStageService = async (user, id, data) => {
     if (updateData.name) {
       updateData.name = updateData.name.toLowerCase();
     }
-    const updatedStage = await StageRepository.update(id, updateData, { tasks: true, Project: true });
+    const updatedStage = await StageRepository.update(id, updateData, {
+      tasks: true,
+      Project: true,
+    });
     return new StageDTO(updatedStage);
   } catch (error) {
     console.error("Error updating stage:", error);

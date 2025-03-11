@@ -9,6 +9,11 @@ export enum TaskPriority {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+export interface TaskUser {
+  id: string;
+  fullName: string;
+  role: string;
+}
 
 export interface Task {
   id: string;
@@ -17,7 +22,7 @@ export interface Task {
   priority: TaskPriority;
   stageId: string;
   projectId: string;
-  assignedTo?: string;
+  assignedTo?: TaskUser | null;
   images?: string[];
   type?: 'Draft' | 'Bug' | 'Feature' | 'Task';
   estimate?: number;

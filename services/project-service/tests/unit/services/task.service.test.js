@@ -155,7 +155,11 @@ describe("🛠 Task Service Tests", () => {
       TaskRepository.count.mockResolvedValue(1);
 
       const customQuery = { page: "2", limit: "5" };
-      const result = await getTasksService(adminUser, customQuery, "fake-token");
+      const result = await getTasksService(
+        adminUser,
+        customQuery,
+        "fake-token"
+      );
       expect(result.page).toBe(2);
       expect(result.limit).toBe(5);
       expect(TaskRepository.findMany).toHaveBeenCalledWith(
@@ -256,7 +260,11 @@ describe("🛠 Task Service Tests", () => {
       TaskRepository.findMany.mockResolvedValue([]);
       TaskRepository.count.mockResolvedValue(0);
 
-      await getTasksService(adminUser, { sortField: "invalidField" }, "fake-token");
+      await getTasksService(
+        adminUser,
+        { sortField: "invalidField" },
+        "fake-token"
+      );
       expect(TaskRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { createdAt: "desc" },
@@ -427,7 +435,11 @@ describe("🛠 Task Service Tests", () => {
         assignedTo: mockTask.assignedTo,
         images: mockTask.images,
       };
-      const result = await createTaskService(adminUser, inputData, "fake-token");
+      const result = await createTaskService(
+        adminUser,
+        inputData,
+        "fake-token"
+      );
 
       expect(TaskRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -506,7 +518,11 @@ describe("🛠 Task Service Tests", () => {
         assignedTo: null,
       };
 
-      const result = await createTaskService(adminUser, inputData, "fake-token");
+      const result = await createTaskService(
+        adminUser,
+        inputData,
+        "fake-token"
+      );
       expect(fetchUsersByIds).not.toHaveBeenCalled();
       expect(result.assignedTo).toBeNull();
     });
@@ -523,7 +539,11 @@ describe("🛠 Task Service Tests", () => {
         projectId: mockProject.id,
         assignedTo: "user-uuid",
       };
-      const result = await createTaskService(adminUser, inputData, "fake-token");
+      const result = await createTaskService(
+        adminUser,
+        inputData,
+        "fake-token"
+      );
       expect(result.assignedTo).toEqual({
         id: "user-uuid",
         name: "Some Manager",
@@ -564,7 +584,8 @@ describe("🛠 Task Service Tests", () => {
         )
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this task",
+        message:
+          "Access denied: You do not have permission to update this task",
       });
     });
 
@@ -675,7 +696,8 @@ describe("🛠 Task Service Tests", () => {
         )
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this task",
+        message:
+          "Access denied: You do not have permission to update this task",
       });
     });
 
@@ -773,10 +795,13 @@ describe("🛠 Task Service Tests", () => {
         { title: "Updated Task" },
         "fake-token"
       );
-      expect(result.assignedTo).toEqual({ id: "user-uuid", name: "Enriched User" });
+      expect(result.assignedTo).toEqual({
+        id: "user-uuid",
+        name: "Enriched User",
+      });
     });
   });
-  
+
   describe("patchTaskService", () => {
     beforeEach(() => {
       TaskRepository.findUnique.mockResolvedValue(mockTask);
@@ -805,7 +830,8 @@ describe("🛠 Task Service Tests", () => {
         patchTaskService(managerUser, mockTask.id, multiPatch, "fake-token")
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this task",
+        message:
+          "Access denied: You do not have permission to update this task",
       });
     });
 
@@ -821,7 +847,8 @@ describe("🛠 Task Service Tests", () => {
         )
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this task",
+        message:
+          "Access denied: You do not have permission to update this task",
       });
     });
 
@@ -833,14 +860,14 @@ describe("🛠 Task Service Tests", () => {
         stageId: "updated-stage",
         // title remains "Task Title" because it wasn't patched
       });
-    
+
       const result = await patchTaskService(
         adminUser,
         mockTask.id,
         partialData,
         "fake-token"
       );
-    
+
       // 'title' was not included in the final update
       expect(TaskRepository.update).toHaveBeenCalledWith(
         mockTask.id,
@@ -849,7 +876,7 @@ describe("🛠 Task Service Tests", () => {
       );
       expect(result.stageId).toEqual("updated-stage");
       expect(result.title).toEqual("Task Title");
-    });    
+    });
 
     test("✅ patches task successfully and converts title to lowercase", async () => {
       const partialData = { title: "PATCHED TASK" };
@@ -975,12 +1002,7 @@ describe("🛠 Task Service Tests", () => {
     test("🚫 rejects for ROLE_EMPLOYEE if patching fields other than stageId", async () => {
       const partialData = { title: "Not Allowed" };
       await expect(
-        patchTaskService(
-          employeeUser,
-          mockTask.id,
-          partialData,
-          "fake-token"
-        )
+        patchTaskService(employeeUser, mockTask.id, partialData, "fake-token")
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Employees can only update the task stage",
@@ -1055,10 +1077,13 @@ describe("🛠 Task Service Tests", () => {
         { title: "PATCH IT" },
         "fake-token"
       );
-      expect(result.assignedTo).toEqual({ id: "user-uuid", name: "Enriched Patch" });
+      expect(result.assignedTo).toEqual({
+        id: "user-uuid",
+        name: "Enriched Patch",
+      });
     });
   });
-  
+
   describe("deleteTaskService", () => {
     test("✅ deletes task successfully (200)", async () => {
       TaskRepository.findUnique.mockResolvedValue(mockTask);
@@ -1082,12 +1107,13 @@ describe("🛠 Task Service Tests", () => {
       };
       TaskRepository.findUnique.mockResolvedValue(taskWithDiffCreator);
 
-      await expect(
-        deleteTaskService(managerUser, mockTask.id)
-      ).rejects.toEqual({
-        status: 403,
-        message: "Access denied: You do not have permission to delete this task",
-      });
+      await expect(deleteTaskService(managerUser, mockTask.id)).rejects.toEqual(
+        {
+          status: 403,
+          message:
+            "Access denied: You do not have permission to delete this task",
+        }
+      );
     });
 
     test("🚫 rejects with 403 if unknown role tries to delete", async () => {
@@ -1098,7 +1124,8 @@ describe("🛠 Task Service Tests", () => {
         deleteTaskService(unknownRoleUser, mockTask.id)
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to delete this task",
+        message:
+          "Access denied: You do not have permission to delete this task",
       });
     });
 
@@ -1140,12 +1167,13 @@ describe("🛠 Task Service Tests", () => {
         ...mockTask,
         Project: { ...mockTask.Project, createdBy: "another-user" },
       });
-      await expect(
-        deleteTaskService(managerUser, mockTask.id)
-      ).rejects.toEqual({
-        status: 403,
-        message: "Access denied: You do not have permission to delete this task",
-      });
+      await expect(deleteTaskService(managerUser, mockTask.id)).rejects.toEqual(
+        {
+          status: 403,
+          message:
+            "Access denied: You do not have permission to delete this task",
+        }
+      );
     });
 
     test("🚫 rejects with 500 on generic error in deleteTaskService", async () => {
@@ -1162,18 +1190,18 @@ describe("🛠 Task Service Tests", () => {
   describe("authorizeTaskModification direct tests", () => {
     test("✅ covers default opType = 'update'", async () => {
       TaskRepository.findUnique.mockResolvedValue(mockTask);
-      const result = await authorizeTaskModification(
-        adminUser,
-        mockTask.id,
-        { priority: "LOW" }
-      );
+      const result = await authorizeTaskModification(adminUser, mockTask.id, {
+        priority: "LOW",
+      });
       expect(result).toEqual(mockTask); // Should succeed for ROLE_ADMIN
     });
 
     test("🚫 rejects if task not found (default opType = 'update')", async () => {
       TaskRepository.findUnique.mockResolvedValue(null);
       await expect(
-        authorizeTaskModification(adminUser, "non-existent-id", { priority: "LOW" })
+        authorizeTaskModification(adminUser, "non-existent-id", {
+          priority: "LOW",
+        })
       ).rejects.toEqual({
         status: 404,
         message: "Task not found",
@@ -1187,14 +1215,13 @@ describe("🛠 Task Service Tests", () => {
       TaskRepository.findUnique.mockResolvedValue(noProjectTask);
 
       await expect(
-        authorizeTaskModification(
-          managerUser,
-          noProjectTask.id,
-          { priority: "LOW" }
-        )
+        authorizeTaskModification(managerUser, noProjectTask.id, {
+          priority: "LOW",
+        })
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this task",
+        message:
+          "Access denied: You do not have permission to update this task",
       });
     });
   });

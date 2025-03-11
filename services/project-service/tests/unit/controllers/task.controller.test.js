@@ -182,7 +182,11 @@ describe("🛠 Task Controller Tests", () => {
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         message: "Task updated successfully",
-        task: new TaskDTO({ ...taskData, title: "updated task", priority: "LOW" }),
+        task: new TaskDTO({
+          ...taskData,
+          title: "updated task",
+          priority: "LOW",
+        }),
       });
     });
 

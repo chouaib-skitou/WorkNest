@@ -336,7 +336,10 @@ describe("🛠 Stage Service Tests", () => {
 
     test("🚫 rejects with 403 if user is neither ADMIN nor MANAGER", async () => {
       await expect(
-        createStageService(employeeUser, { name: "Test", projectId: "project-xyz" })
+        createStageService(employeeUser, {
+          name: "Test",
+          projectId: "project-xyz",
+        })
       ).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins and managers can create stages",
@@ -416,7 +419,10 @@ describe("🛠 Stage Service Tests", () => {
       StageRepository.findUnique.mockResolvedValue(null);
 
       await expect(
-        createStageService(managerUser, { name: "Test", projectId: "project-123" })
+        createStageService(managerUser, {
+          name: "Test",
+          projectId: "project-123",
+        })
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -431,10 +437,14 @@ describe("🛠 Stage Service Tests", () => {
       });
 
       await expect(
-        createStageService(managerUser, { name: "Test", projectId: "project-xyz" })
+        createStageService(managerUser, {
+          name: "Test",
+          projectId: "project-xyz",
+        })
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to create a stage for this project",
+        message:
+          "Access denied: You do not have permission to create a stage for this project",
       });
     });
   });
@@ -526,14 +536,21 @@ describe("🛠 Stage Service Tests", () => {
   describe("patchStageService", () => {
     beforeEach(() => {
       StageRepository.findUnique.mockResolvedValue(mockStage);
-      StageRepository.update.mockResolvedValue({ ...mockStage, color: "green" });
+      StageRepository.update.mockResolvedValue({
+        ...mockStage,
+        color: "green",
+      });
     });
 
     test("✅ patches stage successfully, ignoring undefined fields, lowercasing name if present", async () => {
       const partialData = { color: "GREEN", position: undefined };
       const patchedStage = { ...mockStage, color: "green" };
 
-      const result = await patchStageService(adminUser, mockStage.id, partialData);
+      const result = await patchStageService(
+        adminUser,
+        mockStage.id,
+        partialData
+      );
 
       expect(StageRepository.update).toHaveBeenCalledWith(
         mockStage.id,
@@ -627,10 +644,12 @@ describe("🛠 Stage Service Tests", () => {
       StageRepository.findUnique.mockResolvedValue(mockStage);
       StageRepository.delete.mockRejectedValue(new Error("DB error"));
 
-      await expect(deleteStageService(adminUser, mockStage.id)).rejects.toEqual({
-        status: 500,
-        message: "Internal server error",
-      });
+      await expect(deleteStageService(adminUser, mockStage.id)).rejects.toEqual(
+        {
+          status: 500,
+          message: "Internal server error",
+        }
+      );
     });
   });
 
