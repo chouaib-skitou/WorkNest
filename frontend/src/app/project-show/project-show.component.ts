@@ -42,7 +42,7 @@ import { UserService, User } from '../core/services/user.service';
 import { TaskFilterPipe } from '../core/pipes/task-filter.pipe';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
-import { DocumentService, DocumentResponse } from "../core/services/document.service"
+import { DocumentService } from "../core/services/document.service"
 
 interface Column {
   id: string;
@@ -1162,7 +1162,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
 
     this.documentService.createDocument(this.selectedFile).subscribe({
-      next: (response: DocumentResponse) => {
+      next: () => {
         this.closeAddDocumentModal()
         this.flashMessageService.showSuccess("Document created successfully")
         this.closeAddDocumentModal();
