@@ -260,11 +260,14 @@
       </div>
     </div>
 
-    <div *ngSwitchCase="'employees'" class="employees-tab">
+    <div *ngSwitchCase="'employees'" class="documents-tab">
       <div class="section-header">
         <h2>Project Team</h2>
+        <button class="btn-primary add-document-btn" *ngIf="canManageProject">
+          <i class="fas fa-plus"></i> Add Team Member
+        </button>
       </div>
-
+    
       <div class="search-section">
         <div class="search-container">
           <input
@@ -275,25 +278,78 @@
             (ngModelChange)="searchEmployees()"
           />
         </div>
-      </div>
-
-      <div class="employee-list">
-        <div *ngFor="let employee of paginatedEmployees" class="employee-card">
-          <div class="employee-info">
-            <div class="avatar">{{ employee.fullName.charAt(0) }}</div>
-            <div class="details">
-              <h3>{{ employee.fullName }}</h3>
-              <span class="email">contactworknest.fr</span>
-            </div>
-          </div>
-          <div class="employee-meta">
-            <span class="role-badge" [ngClass]="getRoleClass(employee.role)">
-              {{ formatRole(employee.role) }}
-            </span>
-          </div>
+        <div class="filter-actions">
+          <button class="btn-secondary">
+            <i class="fas fa-sort"></i> Sort
+          </button>
+          <button class="btn-secondary">
+            <i class="fas fa-filter"></i> Filter
+          </button>
         </div>
       </div>
-
+    
+      <div class="documents-table-container">
+        <table class="documents-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Join Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let employee of paginatedEmployees">
+              <td class="document-name-cell">
+                <div class="document-icon avatar">
+                  {{ employee.fullName.charAt(0) }}
+                </div>
+                <div class="document-info">
+                  <span class="document-title">{{ employee.fullName }}</span>
+                  <span class="document-url">Team Member</span>
+                </div>
+              </td>
+              <td>contactworknest.fr</td>
+              <td>
+                <span class="document-type" [ngClass]="getRoleClass(employee.role)">
+                  {{ formatRole(employee.role) }}
+                </span>
+              </td>
+              <td>Mar 11, 2025</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+              <td>
+                <div class="document-actions">
+                  <button class="btn-icon" title="View Profile">
+                    <i class="fas fa-user"></i>
+                  </button>
+                  <button class="btn-icon" title="Edit" *ngIf="canManageProject">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-icon delete" title="Remove" *ngIf="canManageProject">
+                    <i class="fas fa-user-minus"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    
+      <div *ngIf="!paginatedEmployees?.length" class="no-documents">
+        <div class="empty-state">
+          <i class="fas fa-users"></i>
+          <h3>No team members yet</h3>
+          <p>Add team members to collaborate on this project</p>
+          <button class="btn-primary" *ngIf="canManageProject">
+            <i class="fas fa-plus"></i> Add First Team Member
+          </button>
+        </div>
+      </div>
+    
       <div class="pagination">
         <button
           class="pagination-button"
@@ -303,7 +359,7 @@
           <i class="fas fa-chevron-left"></i>
           Previous
         </button>
-
+    
         <div class="page-numbers">
           <ng-container *ngFor="let page of getPageNumbers()">
             <ng-container *ngIf="page === '...'">
@@ -320,7 +376,7 @@
             </ng-container>
           </ng-container>
         </div>
-
+    
         <button
           class="pagination-button"
           (click)="nextPage()"
@@ -331,10 +387,196 @@
         </button>
       </div>
     </div>
+    
 
-    <div *ngSwitchCase="'documents'">
-      <h2>Project Documents</h2>
-      <p>No documents available for this project.</p>
+    <div *ngSwitchCase="'documents'" class="documents-tab">
+      <div class="section-header">
+        <h2>Project Documents</h2>
+        <button class="btn-primary add-document-btn" (click)="openAddDocumentModal()">
+          <i class="fas fa-plus"></i> Add New Document
+        </button>
+      </div>
+    
+      <div class="search-section">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search documents..."
+            [(ngModel)]="documentSearchQuery"
+          />
+        </div>
+        <div class="filter-actions">
+          <button class="btn-secondary">
+            <i class="fas fa-sort"></i> Sort
+          </button>
+          <button class="btn-secondary">
+            <i class="fas fa-filter"></i> Filter
+          </button>
+        </div>
+      </div>
+    
+      <div class="documents-table-container">
+        <table class="documents-table">
+          <thead>
+            <tr>
+              <th>Document Name</th>
+              <th>Type</th>
+              <th>Added Date</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let document of project?.documents">
+              <td class="document-name-cell">
+                <div class="document-icon">
+                  <i class="fas fa-file-pdf"></i>
+                </div>
+                <div class="document-info">
+                  <span class="document-title">{{ getDocumentName(document) }}</span>
+                  <span class="document-url">{{ document }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="document-type">PDF</span>
+              </td>
+              <td>Mar 11, 2025</td>
+              <td>2.4 MB</td>
+              <td>
+                <span class="status-badge status-active">Active</span>
+              </td>
+              <td>
+                <div class="document-actions">
+                  <button class="btn-icon" title="View Document" (click)="viewDocument(document)">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button class="btn-icon" title="Download" (click)="downloadDocument(document)">
+                    <i class="fas fa-download"></i>
+                  </button>
+                  <button class="btn-icon" title="Edit" (click)="editDocument(document)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn-icon delete" title="Delete" (click)="deleteDocument(document)">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    
+      <div *ngIf="!project?.documents?.length" class="no-documents">
+        <div class="empty-state">
+          <i class="fas fa-file-alt"></i>
+          <h3>No documents yet</h3>
+          <p>Add documents to share with your team</p>
+          <button class="btn-primary" (click)="openAddDocumentModal()">
+            <i class="fas fa-plus"></i> Add First Document
+          </button>
+        </div>
+      </div>
+    
+      <div class="pagination">
+        <button class="pagination-button" [disabled]="currentPage === 1">
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </button>
+    
+        <div class="page-numbers">
+          <button class="page-number active">1</button>
+          <button class="page-number">2</button>
+          <button class="page-number">3</button>
+        </div>
+    
+        <button class="pagination-button">
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+    
+    
+  </div>
+
+  <div class="modal" *ngIf="showAddDocumentModal">
+    <div 
+      class="modal-overlay" 
+      (click)="closeAddDocumentModal()" 
+      (keydown.escape)="closeAddDocumentModal()"
+      tabindex="0"
+      role="button"
+      aria-label="Close modal"
+    ></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add New Document</h2>
+        <button class="close-button" (click)="closeAddDocumentModal()">
+          &times;
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="addDocumentForm" (ngSubmit)="submitAddDocumentForm()">
+          <div class="form-group">
+            <label for="file">
+              Document File <span class="required">*</span>
+            </label>
+            <div 
+              class="file-upload"
+              (click)="fileInput.click()"
+              (keydown.enter)="fileInput.click()"
+              tabindex="0"
+              role="button"
+              aria-label="Upload document"
+            >
+              <input
+                #fileInput
+                type="file"
+                id="file"
+                accept=".pdf,.doc,.docx"
+                (change)="onFileSelected($event)"
+                style="display: none"
+              />
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p class="upload-text">
+                {{ selectedFile ? selectedFile.name : 'Click to upload document' }}
+              </p>
+            </div>
+            <div 
+              class="error-message" 
+              *ngIf="addDocumentForm.get('file')?.invalid && addDocumentForm.get('file')?.touched"
+            >
+              Please select a document to upload
+            </div>
+          </div>
+
+          <div class="form-error" *ngIf="formError">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ formError }}
+          </div>
+
+          <div class="form-actions">
+            <button 
+              type="button" 
+              class="cancel-button" 
+              (click)="closeAddDocumentModal()"
+            >
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button
+              type="submit"
+              class="submit-button"
+              [disabled]="formSubmitting || addDocumentForm.invalid"
+            >
+              <i class="fas fa-save"></i>
+              <span *ngIf="formSubmitting">Uploading...</span>
+              <span *ngIf="!formSubmitting">Upload Document</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
