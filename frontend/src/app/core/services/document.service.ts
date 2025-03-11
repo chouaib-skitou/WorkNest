@@ -23,7 +23,7 @@ export interface ListDocumentsResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DocumentService {
   // Change the baseUrl to your API URL if different.
@@ -49,7 +49,11 @@ export class DocumentService {
    * @param file - Optional new File object.
    * @param newName - Optional new name.
    */
-  updateDocument(fileId: string, file?: File, newName?: string): Observable<DocumentResponse> {
+  updateDocument(
+    fileId: string,
+    file?: File,
+    newName?: string
+  ): Observable<DocumentResponse> {
     const formData = new FormData();
     if (file) {
       formData.append('file', file);
@@ -57,7 +61,10 @@ export class DocumentService {
     if (newName) {
       formData.append('newName', newName);
     }
-    return this.http.put<DocumentResponse>(`${this.baseUrl}/${fileId}`, formData);
+    return this.http.put<DocumentResponse>(
+      `${this.baseUrl}/${fileId}`,
+      formData
+    );
   }
 
   /**
@@ -73,7 +80,10 @@ export class DocumentService {
    * @param pageSize - Number of documents per page.
    * @param pageToken - Continuation token for pagination.
    */
-  listDocuments(pageSize?: number, pageToken?: string): Observable<ListDocumentsResponse> {
+  listDocuments(
+    pageSize?: number,
+    pageToken?: string
+  ): Observable<ListDocumentsResponse> {
     let params = new HttpParams();
     if (pageSize) {
       params = params.set('pageSize', pageSize.toString());

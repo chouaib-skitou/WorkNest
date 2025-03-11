@@ -42,7 +42,7 @@ import { UserService, User } from '../core/services/user.service';
 import { TaskFilterPipe } from '../core/pipes/task-filter.pipe';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
-import { DocumentService } from "../core/services/document.service"
+import { DocumentService } from '../core/services/document.service';
 
 interface Column {
   id: string;
@@ -78,7 +78,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   project: Project | null = null;
 
   searchQuery = '';
-  documentSearchQuery = "";
+  documentSearchQuery = '';
   newTaskTitle = '';
   activeColumn: string | null = null;
   columnIds: string[] = [];
@@ -129,9 +129,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   projectManager: ProjectUser | null = null;
   projectCreatedBy: ProjectUser | null = null;
 
-  showAddDocumentModal = false
-  addDocumentForm: FormGroup
-  selectedFile: File | null = null
+  showAddDocumentModal = false;
+  addDocumentForm: FormGroup;
+  selectedFile: File | null = null;
 
   employeeSearchQuery = '';
   filteredEmployees: ProjectUser[] = [];
@@ -171,8 +171,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.createTaskForm = this.createTaskFormGroup();
     this.editTaskForm = this.createTaskFormGroup();
     this.addDocumentForm = this.fb.group({
-      file: ["", Validators.required],
-    })
+      file: ['', Validators.required],
+    });
   }
 
   ngOnInit(): void {
@@ -1117,60 +1117,62 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
   getDocumentName(url: string): string {
-    console.log("Getting document name for:", url)
-    const parts = url.split("/")
-    return parts[parts.length - 1] || url
+    console.log('Getting document name for:', url);
+    const parts = url.split('/');
+    return parts[parts.length - 1] || url;
   }
 
   viewDocument(document: string): void {
-    console.log("Viewing document:", document)
+    console.log('Viewing document:', document);
   }
 
   downloadDocument(document: string): void {
-    console.log("Downloading document:", document)
+    console.log('Downloading document:', document);
   }
 
   editDocument(document: string): void {
-    console.log("Editing document:", document)
+    console.log('Editing document:', document);
   }
 
   deleteDocument(document: string): void {
-    console.log("Deleting document:", document)
+    console.log('Deleting document:', document);
   }
 
   openAddDocumentModal(): void {
-    this.showAddDocumentModal = true
-    this.addDocumentForm.reset()
-    this.selectedFile = null
+    this.showAddDocumentModal = true;
+    this.addDocumentForm.reset();
+    this.selectedFile = null;
   }
 
   closeAddDocumentModal(): void {
-    this.showAddDocumentModal = false
+    this.showAddDocumentModal = false;
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement
+    const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile = input.files[0]
-      this.addDocumentForm.patchValue({ file: this.selectedFile.name })
+      this.selectedFile = input.files[0];
+      this.addDocumentForm.patchValue({ file: this.selectedFile.name });
     }
   }
 
   submitAddDocumentForm(): void {
     if (this.addDocumentForm.invalid || !this.selectedFile) {
-      return
+      return;
     }
 
     this.documentService.createDocument(this.selectedFile).subscribe({
       next: () => {
-        this.closeAddDocumentModal()
-        this.flashMessageService.showSuccess("Document created successfully")
+        this.closeAddDocumentModal();
+        this.flashMessageService.showSuccess('Document created successfully');
         this.closeAddDocumentModal();
       },
       error: (error) => {
-        console.error("Error creating document:", error)
-        this.flashMessageService.showError("Failed to create document. Please try again.")
+        console.error('Error creating document:', error);
+        this.flashMessageService.showError(
+          'Failed to create document. Please try again.'
+        );
       },
-    })
+    });
   }
 }
