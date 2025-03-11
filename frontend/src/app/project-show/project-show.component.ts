@@ -1000,4 +1000,43 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       this.updatePaginatedEmployees();
     }
   }
+
+  getPageNumbers(): (number | string)[] {
+    const visiblePageCount = 5;
+    const pageNumbers: (number | string)[] = [];
+    
+    if (this.totalPages <= visiblePageCount) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+      
+      if (this.currentPage > 3) {
+        pageNumbers.push('...');
+      }
+      
+      const start = Math.max(2, this.currentPage - 1);
+      const end = Math.min(this.totalPages - 1, this.currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pageNumbers.push(i);
+      }
+      
+      if (this.currentPage < this.totalPages - 2) {
+        pageNumbers.push('...');
+      }
+      
+      pageNumbers.push(this.totalPages);
+    }
+    
+    return pageNumbers;
+  }
+
+  goToPage(page: number): void {
+    if (page !== this.currentPage && page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.updatePaginatedEmployees();
+    }
+  }
 }
