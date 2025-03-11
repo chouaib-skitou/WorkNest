@@ -1,4 +1,23 @@
-// project-show.component.scss
+@use 'sass:color';
+
+// Variables
+$primary-color: #4a90e2;
+$secondary-color: #4caf50;
+$background-color: #f8f9fa;
+$card-background: #ffffff;
+$text-color: #333333;
+$border-color: #e0e0e0;
+$error-color: #d32f2f;
+$warning-color: #ffc107;
+$success-color: #4caf50;
+$shadow-color: rgba(0, 0, 0, 0.1);
+$transition-speed: 0.3s;
+
+$border-color: #d0d7de;
+$text-color: #24292f;
+$primary-color: #0969da;
+$transition-speed: 0.2s;
+
 .project-board {
   background-color: #f6f8fa;
   min-height: calc(100vh - 64px);
@@ -7,37 +26,156 @@
   margin-top: 100px;
 
   .project-header {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
     margin-bottom: 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-    .project-info {
-      h1 {
-        font-size: 2rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        color: #24292f;
-        letter-spacing: -0.025em;
-      }
+    .project-image-container {
+      .project-image {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f3f4f6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
-      .project-description {
-        color: #57606a;
-        font-size: 1rem;
-        line-height: 1.5;
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
       }
     }
 
-    .project-actions {
-      display: flex;
-      gap: 0.75rem;
+    .project-info {
+      .project-title-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
 
-      .btn-primary {
-        background: #2da44e;
-
-        &:hover {
-          background: #2c974b;
+        h1 {
+          font-size: 2rem;
+          font-weight: 600;
+          color: #111827;
+          margin: 0;
         }
+      }
+
+      .project-description {
+        font-size: 1rem;
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+      }
+
+      .project-meta {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          i {
+            color: #6b7280;
+            font-size: 1rem;
+          }
+        }
+      }
+
+      .project-people {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+
+        .people-item {
+          background: #f9fafb;
+          padding: 1rem;
+          border-radius: 8px;
+
+          .people-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+
+            i {
+              font-size: 0.875rem;
+            }
+          }
+
+          .people-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+
+            .avatar {
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              background: #3b82f6;
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 500;
+            }
+
+            span {
+              font-weight: 500;
+              color: #111827;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .project-tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+
+    button {
+      flex: 1;
+      padding: 1rem;
+      border: none;
+      background-color: transparent;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #57606a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #f6f8fa;
+      }
+
+      &.active {
+        background-color: #f6f8fa;
+        color: #24292f;
+        border-bottom: 2px solid #0969da;
       }
     }
   }
@@ -301,6 +439,204 @@
           &:focus {
             outline: none;
           }
+        }
+      }
+    }
+  }
+
+  .employees-tab {
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+      }
+    }
+
+    .employee-list {
+      display: grid;
+      gap: 1rem;
+
+      .employee-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+
+        &:hover {
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          transform: translateY(-1px);
+        }
+
+        .employee-info {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+
+          .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 1.125rem;
+          }
+
+          .details {
+            h3 {
+              font-size: 1rem;
+              font-weight: 500;
+              color: #111827;
+              margin: 0 0 0.25rem 0;
+            }
+
+            .email {
+              font-size: 0.875rem;
+              color: #6b7280;
+            }
+          }
+        }
+
+        .employee-meta {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+
+          .role-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #f3f4f6;
+            color: #6b7280;
+
+            &.role-admin {
+              background: #fef3c7;
+              color: #92400e;
+            }
+
+            &.role-manager {
+              background: #dbeafe;
+              color: #1e40af;
+            }
+
+            &.role-employee {
+              background: #f3f4f6;
+              color: #374151;
+            }
+          }
+
+          .actions {
+            display: flex;
+            gap: 0.5rem;
+
+            .btn-icon {
+              padding: 0.5rem;
+              border-radius: 6px;
+              color: #6b7280;
+              transition: all 0.2s ease;
+
+              &:hover {
+                background: #f3f4f6;
+                color: #111827;
+              }
+            }
+          }
+        }
+      }
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 2rem;
+  
+      .pagination-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        background-color: white;
+        border: 1px solid $border-color;
+        border-radius: 6px;
+        color: $text-color;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all $transition-speed ease;
+  
+        &:hover:not(:disabled) {
+          border-color: $primary-color;
+          color: $primary-color;
+          background-color: rgba($primary-color, 0.05);
+        }
+  
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+  
+        i {
+          font-size: 0.8rem;
+        }
+      }
+  
+      .pagination-numbers {
+        display: flex;
+        gap: 0.5rem;
+      }
+  
+      .pagination-number {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid $border-color;
+        background-color: white;
+        border-radius: 6px;
+        color: $text-color;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all $transition-speed ease;
+  
+        &:hover:not(.active) {
+          border-color: $primary-color;
+          color: $primary-color;
+          background-color: rgba($primary-color, 0.05);
+        }
+  
+        &.active {
+          background-color: $primary-color;
+          color: white;
+          border-color: $primary-color;
+        }
+      }
+  
+      @media (max-width: 768px) {
+        flex-direction: column;
+  
+        .pagination-btn {
+          width: 100%;
+          justify-content: center;
+        }
+  
+        .pagination-numbers {
+          flex-wrap: wrap;
+          justify-content: center;
         }
       }
     }

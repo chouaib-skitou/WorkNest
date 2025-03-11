@@ -26,7 +26,6 @@ import {
   Task,
   TaskPriority,
   TaskCreateUpdate,
-  TaskUser,
 } from '../core/services/task.service';
 import {
   StageService,
@@ -115,6 +114,35 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   canManageProject = false;
 
   projectEmployees: ProjectUser[] = [];
+
+  activeTab: 'board' | 'employees' | 'documents' = 'board';
+  projectImage: string | null = null;
+  projectStatus: string = 'PENDING';
+  projectPriority: string = 'MEDIUM';
+  projectDueDate: string | null = null;
+  projectManager: ProjectUser | null = null;
+  projectCreatedBy: ProjectUser | null = null;
+
+  employeeSearchQuery: string = '';
+  filteredEmployees: ProjectUser[] = [];
+  paginatedEmployees: ProjectUser[] = [];
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalPages: number = 1;
+
+  placeholderSvg = `
+  <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#f3f4f6;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#grad)"/>
+    <circle cx="100" cy="85" r="25" fill="#9ca3af"/>
+    <rect x="60" y="120" width="80" height="8" rx="4" fill="#9ca3af"/>
+    <rect x="75" y="135" width="50" height="6" rx="3" fill="#d1d5db"/>
+  </svg>`;
 
   constructor(
     private route: ActivatedRoute,
@@ -205,7 +233,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.project = project;
         this.projectName = project.name;
         this.projectDescription = project.description || '';
-
+        this.projectImage = project.image || null;
+        this.projectStatus = project.status;
+        this.projectPriority = project.priority;
+        this.projectDueDate = project.dueDate;
+        this.projectManager = project.manager || null;
+        this.projectCreatedBy = project.createdBy || null;
         this.projectEmployees = project.employees || [];
 
         this.canManageProject = this.isAdmin || 
@@ -242,6 +275,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
         this.columnIds = this.columns.map((col) => col.id);
         this.pageLoading = false;
+
+        this.filteredEmployees = this.projectEmployees;
+        this.updatePaginatedEmployees();
       },
       error: (error) => {
         console.error('Error fetching project details:', error);
@@ -319,7 +355,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     return this.canManageProject;
   }
 
-  getAssignedUserName(assignedTo: string | TaskUser | null | undefined): string {
+  getAssignedUserName(assignedTo: string | ProjectUser | null | undefined): string {
     if (!assignedTo) {
       return 'Unassigned';
     }
@@ -882,5 +918,80 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
 
     return '';
+  }
+
+  setActiveTab(tab: 'board' | 'employees' | 'documents'): void {
+    this.activeTab = tab;
+  }
+
+  formatDate(date: string | null): string {
+    if (!date) return 'Not set';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  getStatusClass(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'PENDING': 'status-pending',
+      'IN_PROGRESS': 'status-in-progress',
+      'COMPLETED': 'status-completed',
+      'ON_HOLD': 'status-on-hold'
+    };
+    return statusMap[status] || 'status-pending';
+  }
+
+  getProjectPriorityClass(priority: string): string {
+    const priorityMap: { [key: string]: string } = {
+      'LOW': 'priority-low',
+      'MEDIUM': 'priority-medium',
+      'HIGH': 'priority-high'
+    };
+    return priorityMap[priority] || 'priority-medium';
+  }
+
+  getRoleClass(role: string): string {
+    const roleMap: { [key: string]: string } = {
+      'ROLE_ADMIN': 'role-admin',
+      'ROLE_MANAGER': 'role-manager',
+      'ROLE_EMPLOYEE': 'role-employee'
+    };
+    return roleMap[role] || 'role-employee';
+  }
+
+  formatRole(role: string): string {
+    return role.replace('ROLE_', '').charAt(0) + 
+           role.replace('ROLE_', '').slice(1).toLowerCase();
+  }
+
+  searchEmployees(): void {
+    this.filteredEmployees = this.projectEmployees.filter(employee =>
+      employee.fullName.toLowerCase().includes(this.employeeSearchQuery.toLowerCase())
+    );
+    this.currentPage = 1;
+    this.updatePaginatedEmployees();
+  }
+
+  updatePaginatedEmployees(): void {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.paginatedEmployees = this.filteredEmployees.slice(startIndex, endIndex);
+    this.totalPages = Math.ceil(this.filteredEmployees.length / this.pageSize);
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePaginatedEmployees();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePaginatedEmployees();
+    }
   }
 }
