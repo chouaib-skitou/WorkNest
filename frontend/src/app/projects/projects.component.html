@@ -222,8 +222,21 @@
           <!-- Employees -->
           <div class="form-group">
             <label for="employeeIds">Employees</label>
-            <select id="employeeIds" formControlName="employeeIds" multiple>
-              <option *ngFor="let employee of employees" [value]="employee.id">
+            <select
+              id="employeeIds"
+              formControlName="employeeIds"
+              multiple
+              [compareWith]="compareById"
+            >
+              <option
+                *ngFor="let employee of employees"
+                [value]="employee.id"
+                [selected]="
+                  updateProjectForm
+                    .get('employeeIds')
+                    ?.value?.includes(employee.id)
+                "
+              >
                 {{ employee.fullName }}
               </option>
             </select>

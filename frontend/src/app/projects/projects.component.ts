@@ -21,6 +21,9 @@ import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 import { AuthService } from '../core/services/auth.service';
 import { Router } from '@angular/router';
+interface ProjectWithEmployeeIds extends Project {
+  employeeIds?: string[];
+}
 
 @Component({
   selector: 'app-projects',
@@ -471,7 +474,8 @@ export class ProjectsComponent implements OnInit {
       name: project.name,
       description: project.description || '',
       managerId: project.manager?.id || '',
-      employeeIds: project.employees?.map((emp) => emp.id) || [],
+      // Use employeeIds directly instead of mapping project.employees (if available)
+      employeeIds: (project as ProjectWithEmployeeIds).employeeIds || [],
       dueDate: this.formatDateForInput(new Date(project.dueDate)),
       status: project.status,
       priority: project.priority,

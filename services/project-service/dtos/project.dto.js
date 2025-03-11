@@ -27,6 +27,7 @@ export class GetAllProjectsDTO {
     this.name = project.name;
     this.description = project.description;
     this.image = project.image;
+    this.employeeIds = project.employeeIds;
     this.createdAt = project.createdAt;
     this.createdBy = project.createdBy;
     this.manager = project.manager;

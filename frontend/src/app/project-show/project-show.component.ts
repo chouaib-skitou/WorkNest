@@ -1,4 +1,3 @@
-// Final completed version of project-show.component.ts
 import {
   Component,
   OnInit,
@@ -21,7 +20,11 @@ import {
   transferArrayItem,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
-import { ProjectService, Project } from '../core/services/project.service';
+import {
+  ProjectService,
+  Project,
+  User as ProjectUser,
+} from '../core/services/project.service';
 import {
   TaskService,
   Task,
@@ -40,7 +43,6 @@ import { TaskFilterPipe } from '../core/pipes/task-filter.pipe';
 import { finalize, forkJoin } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
 
-// Define a Column interface for our board
 interface Column {
   id: string;
   name: string;
@@ -69,25 +71,20 @@ interface Column {
 export class ProjectShowComponent implements OnInit, AfterViewInit {
   @ViewChild('newTaskInput') newTaskInput!: ElementRef;
 
-  // Project information loaded from the backend
   projectId = '';
   projectName = '';
   projectDescription = '';
   project: Project | null = null;
 
-  // Local state for new tasks and filtering
   searchQuery = '';
   newTaskTitle = '';
   activeColumn: string | null = null;
   columnIds: string[] = [];
 
-  // The board columns derived from the project's stages
   columns: Column[] = [];
 
-  // User lists for task assignment
   users: User[] = [];
 
-  // Modal states
   showCreateStageModal = false;
   showEditStageModal = false;
   showDeleteStageModal = false;
@@ -95,7 +92,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   showEditTaskModal = false;
   showDeleteTaskModal = false;
 
-  // Form states
   createStageForm: FormGroup;
   editStageForm: FormGroup;
   createTaskForm: FormGroup;
@@ -103,28 +99,54 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   formSubmitting = false;
   formError: string | null = null;
 
-  // Selected items for edit/delete
   selectedStage: Stage | null = null;
   selectedTask: Task | null = null;
 
-  // Task priority options
   priorityOptions = Object.values(TaskPriority);
 
-  // Loading states
   loading = false;
   pageLoading = false;
   error: string | null = null;
 
-  // File upload states
   selectedTaskImages: File[] = [];
   taskImagePreviews: string[] = [];
   editTaskImagePreviews: string[] = [];
 
-  // User permissions
   isAdmin = false;
   isManager = false;
   currentUserId: string | null = null;
   canManageProject = false;
+
+  projectEmployees: ProjectUser[] = [];
+
+  activeTab: 'board' | 'employees' | 'documents' = 'board';
+  projectImage: string | null = null;
+  projectStatus = 'PENDING';
+  projectPriority = 'MEDIUM';
+  projectDueDate: string | null = null;
+  projectManager: ProjectUser | null = null;
+  projectCreatedBy: ProjectUser | null = null;
+
+  employeeSearchQuery = '';
+  filteredEmployees: ProjectUser[] = [];
+  paginatedEmployees: ProjectUser[] = [];
+  currentPage = 1;
+  pageSize = 6;
+  totalPages = 1;
+
+  placeholderSvg = `
+  <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#f3f4f6;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#grad)"/>
+    <circle cx="100" cy="85" r="25" fill="#9ca3af"/>
+    <rect x="60" y="120" width="80" height="8" rx="4" fill="#9ca3af"/>
+    <rect x="75" y="135" width="50" height="6" rx="3" fill="#d1d5db"/>
+  </svg>`;
 
   constructor(
     private route: ActivatedRoute,
@@ -137,7 +159,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     private authService: AuthService,
     private fb: FormBuilder
   ) {
-    // Initialize forms
     this.createStageForm = this.createStageFormGroup();
     this.editStageForm = this.createStageFormGroup();
     this.createTaskForm = this.createTaskFormGroup();
@@ -156,13 +177,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Check user permissions and load project if authorized
-   */
   checkUserPermissions(): void {
     this.pageLoading = true;
 
-    // Get the project id from the route parameter
     this.projectId = this.route.snapshot.paramMap.get('id') || '';
 
     if (!this.projectId) {
@@ -171,7 +188,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Check if user is admin or manager
     this.authService.authorize().subscribe({
       next: (user) => {
         this.currentUserId = user.id;
@@ -179,10 +195,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         this.isManager =
           user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN';
 
-        // Load project data
         this.loadProject();
 
-        // Only load users data if the user is an admin or manager
         if (this.isAdmin || this.isManager) {
           this.loadUsers();
         }
@@ -197,9 +211,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Create a form group for stage creation/update
-   */
   createStageFormGroup(): FormGroup {
     return this.fb.group({
       name: [
@@ -215,9 +226,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Create a form group for task creation/update
-   */
   createTaskFormGroup(): FormGroup {
     return this.fb.group({
       title: [
@@ -237,33 +245,32 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Load project data from the backend
-   */
   loadProject(): void {
     this.pageLoading = true;
     this.error = null;
 
-    // Fetch the full project details from the backend
     this.projectService.getOneById(this.projectId).subscribe({
       next: (project: Project) => {
         this.project = project;
         this.projectName = project.name;
         this.projectDescription = project.description || '';
+        this.projectImage = project.image || null;
+        this.projectStatus = project.status;
+        this.projectPriority = project.priority;
+        this.projectDueDate = project.dueDate;
+        this.projectManager = project.manager || null;
+        this.projectCreatedBy = project.createdBy || null;
+        this.projectEmployees = project.employees || [];
 
-        // Check if user can manage this project
         this.canManageProject =
           this.isAdmin ||
           (this.isManager &&
             (project.createdBy?.id === this.currentUserId ||
               project.manager?.id === this.currentUserId));
 
-        // Map the project's stages into our board columns
         if (project.stages && project.stages.length > 0) {
-          // Cast through unknown to Stage[] to avoid type errors
           const stages = project.stages as unknown as Stage[];
 
-          // Sort stages by position
           stages.sort((a, b) => a.position - b.position);
 
           this.columns = stages.map((stage) => {
@@ -287,9 +294,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           this.columns = [];
         }
 
-        // Store the column IDs for drag & drop connectivity
         this.columnIds = this.columns.map((col) => col.id);
         this.pageLoading = false;
+
+        this.filteredEmployees = this.projectEmployees;
+        this.updatePaginatedEmployees();
       },
       error: (error) => {
         console.error('Error fetching project details:', error);
@@ -300,9 +309,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Reload all tasks for a specific stage
-   */
   reloadStageTasks(stageId: string): void {
     const column = this.columns.find((col) => col.id === stageId);
     if (!column) return;
@@ -326,9 +332,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Load users for task assignment
-   */
   loadUsers(): void {
     forkJoin({
       managers: this.userService.getManagers(),
@@ -345,7 +348,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           fullName: this.userService.formatFullName(user),
         }));
 
-        // Combine managers and employees, removing duplicates
         this.users = [...managers];
         employees.forEach((emp) => {
           if (!this.users.find((u) => u.id === emp.id)) {
@@ -360,9 +362,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Update column totals and estimates
-   */
   private updateColumnTotals(): void {
     this.columns.forEach((column) => {
       column.total = column.tasks.length;
@@ -373,18 +372,25 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Check if the current user can create/edit/delete stages and tasks
-   * Admins can do everything
-   * Managers can only manage if they are the project creator or project manager
-   */
   canManageStagesAndTasks(): boolean {
     return this.canManageProject;
   }
 
-  /**
-   * Handle drag and drop of tasks between columns
-   */
+  getAssignedUserName(
+    assignedTo: string | ProjectUser | null | undefined
+  ): string {
+    if (!assignedTo) {
+      return 'Unassigned';
+    }
+    if (typeof assignedTo === 'string') {
+      const employee = this.projectEmployees.find(
+        (emp) => emp.id === assignedTo
+      );
+      return employee ? employee.fullName : 'Unassigned';
+    }
+    return assignedTo.fullName;
+  }
+
   drop(event: CdkDragDrop<Task[]>): void {
     if (event.previousContainer === event.container) {
       moveItemInArray(
@@ -400,59 +406,41 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         event.currentIndex
       );
 
-      // The task has been moved to a new stage (column)
       const movedTask = event.container.data[event.currentIndex];
-      // The new stageId is now the column id (which is the actual stage id)
       const newStageId = event.container.id;
 
-      // Update the task locally with the new stage id
       movedTask.stageId = newStageId;
 
-      // Now send a patch request to update the task's stageId on the backend
-      this.taskService
-        .partialUpdateTask(movedTask.id, { stageId: newStageId })
-        .subscribe({
-          next: () => {
-            console.log(
-              `Task ${movedTask.id} updated to new stage ${newStageId}`
-            );
-            this.flashMessageService.showSuccess('Task moved successfully');
+      this.taskService.moveTaskToStage(movedTask.id, newStageId).subscribe({
+        next: () => {
+          console.log(
+            `Task ${movedTask.id} updated to new stage ${newStageId}`
+          );
+          this.flashMessageService.showSuccess('Task moved successfully');
 
-            // Reload both the source and destination stages to ensure data consistency
-            this.reloadStageTasks(event.previousContainer.id);
-            this.reloadStageTasks(newStageId);
-          },
-          error: (error) => {
-            console.error('Error updating task stage', error);
-            this.flashMessageService.showError('Failed to update task stage');
+          this.reloadStageTasks(event.previousContainer.id);
+          this.reloadStageTasks(newStageId);
+        },
+        error: (error) => {
+          console.error('Error updating task stage', error);
+          this.flashMessageService.showError('Failed to update task stage');
 
-            // Reload the project to reset the UI state
-            this.loadProject();
-          },
-        });
+          this.loadProject();
+        },
+      });
     }
     this.updateColumnTotals();
   }
 
-  /**
-   * Show add item input in a column
-   */
   showAddItem(columnId: string): void {
-    // Instead of showing the input, open the create task modal with pre-selected stage
     this.openCreateTaskModal(columnId);
   }
 
-  /**
-   * Hide add item input (no longer needed but kept for compatibility)
-   */
   hideAddItem(): void {
     this.activeColumn = null;
     this.newTaskTitle = '';
   }
 
-  /**
-   * Quick add a task to a column
-   */
   addItem(columnId: string, event: KeyboardEvent): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -469,7 +457,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           stageId: columnId,
           projectId: this.projectId,
           priority: TaskPriority.MEDIUM,
-          type: 'Task',
         };
 
         this.loading = true;
@@ -480,7 +467,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             next: () => {
               this.flashMessageService.showSuccess('Task created successfully');
 
-              // Reload the stage to ensure data consistency
               this.reloadStageTasks(columnId);
               this.hideAddItem();
             },
@@ -495,15 +481,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /**
-   * Handle task image selection
-   */
   onTaskImagesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedTaskImages = Array.from(input.files);
 
-      // Create previews
       this.taskImagePreviews = [];
       this.selectedTaskImages.forEach((file) => {
         const reader = new FileReader();
@@ -515,17 +497,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /**
-   * Remove task image preview
-   */
   removeTaskImage(index: number): void {
     this.taskImagePreviews.splice(index, 1);
     this.selectedTaskImages.splice(index, 1);
   }
 
-  /**
-   * Open create stage modal
-   */
   openCreateStageModal(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -534,7 +510,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Calculate next position
     const nextPosition =
       this.columns.length > 0
         ? Math.max(...this.columns.map((col) => col.position)) + 1
@@ -550,16 +525,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showCreateStageModal = true;
   }
 
-  /**
-   * Close create stage modal
-   */
   closeCreateStageModal(): void {
     this.showCreateStageModal = false;
   }
 
-  /**
-   * Submit create stage form
-   */
   submitCreateStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -592,7 +561,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             `Stage "${stage.name}" created successfully`
           );
 
-          // Reload the project to ensure data consistency
           this.loadProject();
         },
         error: (error) => {
@@ -603,9 +571,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Open edit stage modal
-   */
   openEditStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -636,17 +601,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showEditStageModal = true;
   }
 
-  /**
-   * Close edit stage modal
-   */
   closeEditStageModal(): void {
     this.showEditStageModal = false;
     this.selectedStage = null;
   }
 
-  /**
-   * Submit edit stage form
-   */
   submitEditStageForm(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -678,7 +637,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             `Stage "${stage.name}" updated successfully`
           );
 
-          // Reload the project to ensure data consistency
           this.loadProject();
         },
         error: (error) => {
@@ -689,9 +647,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Open delete stage modal
-   */
   openDeleteStageModal(columnId: string): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -715,17 +670,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showDeleteStageModal = true;
   }
 
-  /**
-   * Close delete stage modal
-   */
   closeDeleteStageModal(): void {
     this.showDeleteStageModal = false;
     this.selectedStage = null;
   }
 
-  /**
-   * Delete a stage
-   */
   deleteStage(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -749,7 +698,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             `Stage "${this.selectedStage?.name}" deleted successfully`
           );
 
-          // Reload the project to ensure data consistency
           this.loadProject();
         },
         error: (error) => {
@@ -759,9 +707,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Open create task modal
-   */
   openCreateTaskModal(columnId?: string): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -786,16 +731,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showCreateTaskModal = true;
   }
 
-  /**
-   * Close create task modal
-   */
   closeCreateTaskModal(): void {
     this.showCreateTaskModal = false;
   }
 
-  /**
-   * Submit create task form
-   */
   submitCreateTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -831,8 +770,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
         next: () => {
           this.closeCreateTaskModal();
           this.flashMessageService.showSuccess('Task created successfully');
-
-          // Reload the stage to ensure data consistency
           this.reloadStageTasks(stageId);
         },
         error: (error) => {
@@ -843,9 +780,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Open edit task modal
-   */
   openEditTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -856,21 +790,27 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
     this.selectedTask = task;
 
+    let assignedToId = '';
+    if (task.assignedTo) {
+      assignedToId =
+        typeof task.assignedTo === 'string'
+          ? task.assignedTo
+          : task.assignedTo.id;
+    }
+
     this.editTaskForm.reset({
       title: task.title,
       description: task.description || '',
       priority: task.priority || TaskPriority.MEDIUM,
       stageId: task.stageId,
-      assignedTo: task.assignedTo || '',
+      assignedTo: assignedToId,
       type: task.type || 'Task',
       estimate: task.estimate || 0,
     });
 
-    // Reset image previews
     this.selectedTaskImages = [];
     this.taskImagePreviews = [];
 
-    // If the task has images, show them in the preview
     if (task.images && task.images.length > 0) {
       this.editTaskImagePreviews = task.images;
     } else {
@@ -881,18 +821,12 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showEditTaskModal = true;
   }
 
-  /**
-   * Close edit task modal
-   */
   closeEditTaskModal(): void {
     this.showEditTaskModal = false;
     this.selectedTask = null;
     this.editTaskImagePreviews = [];
   }
 
-  /**
-   * Submit edit task form
-   */
   submitEditTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -910,7 +844,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.formSubmitting = true;
     this.formError = null;
 
-    // Store the old stageId for later use
     const oldStageId = this.selectedTask.stageId;
     const newStageId = this.editTaskForm.value.stageId;
 
@@ -931,12 +864,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           this.closeEditTaskModal();
           this.flashMessageService.showSuccess('Task updated successfully');
 
-          // If stage has changed, reload both stages
           if (oldStageId !== newStageId) {
             this.reloadStageTasks(oldStageId);
             this.reloadStageTasks(newStageId);
           } else {
-            // Just reload the current stage
             this.reloadStageTasks(newStageId);
           }
         },
@@ -948,9 +879,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Open delete task modal
-   */
   openDeleteTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -963,17 +891,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showDeleteTaskModal = true;
   }
 
-  /**
-   * Close delete task modal
-   */
   closeDeleteTaskModal(): void {
     this.showDeleteTaskModal = false;
     this.selectedTask = null;
   }
 
-  /**
-   * Delete a task
-   */
   deleteTask(): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -999,7 +921,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             `Task "${taskTitle}" deleted successfully`
           );
 
-          // Reload the stage to ensure data consistency
           this.reloadStageTasks(stageId);
         },
         error: (error) => {
@@ -1009,32 +930,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
-  /**
-   * Get user name by ID
-   */
-  getUserName(userId: string | undefined): string {
-    if (!userId) return 'Unassigned';
-    const user = this.users.find((u) => u.id === userId);
-    return user
-      ? user.fullName || `${user.firstName} ${user.lastName}`
-      : 'Unassigned';
-  }
-
-  /**
-   * Format priority for display
-   */
   formatPriority(priority: TaskPriority): string {
-    return priority.charAt(0) + priority.slice(1).toLowerCase();
+    return priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
   }
 
-  /**
-     string {
-    return priority.charAt(0) + priority.slice(1).toLowerCase();
-  }
-
-  /**
-   * Get priority class for styling
-   */
   getPriorityClass(priority: TaskPriority): string {
     switch (priority) {
       case TaskPriority.LOW:
@@ -1048,9 +947,6 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
   }
 
-  /**
-   * Mark all form controls as touched to trigger validation
-   */
   markFormGroupTouched(formGroup: FormGroup): void {
     Object.values(formGroup.controls).forEach((control) => {
       control.markAsTouched();
@@ -1060,17 +956,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     });
   }
 
-  /**
-   * Check if form control is invalid and touched
-   */
   isInvalidControl(formGroup: FormGroup, controlName: string): boolean {
     const control = formGroup.get(controlName);
     return control ? control.invalid && control.touched : false;
   }
 
-  /**
-   * Get error message for form control
-   */
   getControlErrorMessage(formGroup: FormGroup, controlName: string): string {
     const control = formGroup.get(controlName);
     if (!control) return '';
@@ -1086,5 +976,134 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     }
 
     return '';
+  }
+
+  setActiveTab(tab: 'board' | 'employees' | 'documents'): void {
+    this.activeTab = tab;
+    if (tab === 'employees') {
+      // Reset pagination when switching to employees tab
+      this.currentPage = 1;
+      this.filteredEmployees = this.projectEmployees; // reapply any filters if needed
+      this.updatePaginatedEmployees();
+    }
+  }
+
+  formatDate(date: string | null): string {
+    if (!date) return 'Not set';
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  getStatusClass(status: string): string {
+    const statusMap: Record<string, string> = {
+      PENDING: 'status-pending',
+      IN_PROGRESS: 'status-in-progress',
+      COMPLETED: 'status-completed',
+      ON_HOLD: 'status-on-hold',
+    };
+    return statusMap[status] || 'status-pending';
+  }
+
+  getProjectPriorityClass(priority: string): string {
+    const priorityMap: Record<string, string> = {
+      LOW: 'priority-low',
+      MEDIUM: 'priority-medium',
+      HIGH: 'priority-high',
+    };
+    return priorityMap[priority] || 'priority-medium';
+  }
+
+  getRoleClass(role: string): string {
+    const roleMap: Record<string, string> = {
+      ROLE_ADMIN: 'role-admin',
+      ROLE_MANAGER: 'role-manager',
+      ROLE_EMPLOYEE: 'role-employee',
+    };
+    return roleMap[role] || 'role-employee';
+  }
+
+  formatRole(role: string): string {
+    return (
+      role.replace('ROLE_', '').charAt(0) +
+      role.replace('ROLE_', '').slice(1).toLowerCase()
+    );
+  }
+
+  searchEmployees(): void {
+    this.filteredEmployees = this.projectEmployees.filter((employee) =>
+      employee.fullName
+        .toLowerCase()
+        .includes(this.employeeSearchQuery.toLowerCase())
+    );
+    this.currentPage = 1;
+    this.updatePaginatedEmployees();
+  }
+
+  updatePaginatedEmployees(): void {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.paginatedEmployees = this.filteredEmployees.slice(
+      startIndex,
+      endIndex
+    );
+    this.totalPages = Math.ceil(this.filteredEmployees.length / this.pageSize);
+  }
+
+  previousPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.updatePaginatedEmployees();
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.updatePaginatedEmployees();
+    }
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const visiblePageCount = 5;
+    const pageNumbers: (number | string)[] = [];
+
+    if (this.totalPages <= visiblePageCount) {
+      for (let i = 1; i <= this.totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+
+      if (this.currentPage > 3) {
+        pageNumbers.push('...');
+      }
+
+      const start = Math.max(2, this.currentPage - 1);
+      const end = Math.min(this.totalPages - 1, this.currentPage + 1);
+
+      for (let i = start; i <= end; i++) {
+        pageNumbers.push(i);
+      }
+
+      if (this.currentPage < this.totalPages - 2) {
+        pageNumbers.push('...');
+      }
+
+      pageNumbers.push(this.totalPages);
+    }
+
+    return pageNumbers;
+  }
+
+  goToPage(page: number | string): void {
+    if (typeof page === 'number') {
+      if (page !== this.currentPage && page >= 1 && page <= this.totalPages) {
+        this.currentPage = page;
+        this.updatePaginatedEmployees();
+      }
+    }
   }
 }

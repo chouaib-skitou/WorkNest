@@ -51,7 +51,7 @@ describe("🛠 Project Service Tests", () => {
 
     jest.clearAllMocks();
   });
-  
+
   describe("getProjectsService", () => {
     test("✅ returns projects successfully when projects exist", async () => {
       ProjectRepository.findMany.mockResolvedValue([mockProject]);
@@ -98,10 +98,10 @@ describe("🛠 Project Service Tests", () => {
     test("✅ applies priority filter correctly", async () => {
       ProjectRepository.findMany.mockResolvedValue([mockProject]);
       ProjectRepository.count.mockResolvedValue(1);
-    
+
       const customQuery = { priority: "MEDIUM" };
       await getProjectsService(adminUser, customQuery, "testtoken");
-    
+
       expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -110,14 +110,14 @@ describe("🛠 Project Service Tests", () => {
         })
       );
     });
-    
+
     test("✅ applies status filter correctly", async () => {
       ProjectRepository.findMany.mockResolvedValue([mockProject]);
       ProjectRepository.count.mockResolvedValue(1);
-    
+
       const customQuery = { status: "IN_PROGRESS" };
       await getProjectsService(adminUser, customQuery, "testtoken");
-    
+
       expect(ProjectRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -126,7 +126,6 @@ describe("🛠 Project Service Tests", () => {
         })
       );
     });
-    
 
     test("✅ returns empty result when no projects found", async () => {
       ProjectRepository.findMany.mockResolvedValue([]);
@@ -235,7 +234,9 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 403 when error code is P2025", async () => {
       ProjectRepository.findMany.mockRejectedValue({ code: "P2025" });
-      await expect(getProjectsService(adminUser, query, "testtoken")).rejects.toEqual({
+      await expect(
+        getProjectsService(adminUser, query, "testtoken")
+      ).rejects.toEqual({
         status: 403,
         message: "Access denied: You do not have permission to view projects",
       });
@@ -245,7 +246,9 @@ describe("🛠 Project Service Tests", () => {
       const error = new Error("Database error");
       ProjectRepository.findMany.mockRejectedValue(error);
 
-      await expect(getProjectsService(adminUser, query, "testtoken")).rejects.toEqual({
+      await expect(
+        getProjectsService(adminUser, query, "testtoken")
+      ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
@@ -290,7 +293,7 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-  
+
   describe("getProjectByIdService", () => {
     test("✅ returns project successfully when found with role filter", async () => {
       const projectWithDetails = { ...mockProject, stages: [] };
@@ -313,7 +316,11 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, mockProject.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        mockProject.id,
+        "testtoken"
+      );
       const expectedProject = new ProjectDTO({
         ...projectWithDetails,
         manager: {
@@ -344,16 +351,21 @@ describe("🛠 Project Service Tests", () => {
         .mockResolvedValueOnce(null) // role-based lookup => null
         .mockResolvedValueOnce({ id: mockProject.id }); // second => project found
 
-      await expect(getProjectByIdService(adminUser, mockProject.id, "testtoken")).rejects.toEqual({
+      await expect(
+        getProjectByIdService(adminUser, mockProject.id, "testtoken")
+      ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to view this project",
+        message:
+          "Access denied: You do not have permission to view this project",
       });
       expect(ProjectRepository.findUnique).toHaveBeenCalledTimes(2);
     });
 
     test("🚫 rejects with 404 if project does not exist", async () => {
       ProjectRepository.findUnique.mockResolvedValue(null);
-      await expect(getProjectByIdService(adminUser, "non-existent-id", "testtoken")).rejects.toEqual({
+      await expect(
+        getProjectByIdService(adminUser, "non-existent-id", "testtoken")
+      ).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
@@ -362,7 +374,9 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 500 on generic error", async () => {
       const error = new Error("Database error");
       ProjectRepository.findUnique.mockRejectedValue(error);
-      await expect(getProjectByIdService(adminUser, mockProject.id, "testtoken")).rejects.toEqual(error);
+      await expect(
+        getProjectByIdService(adminUser, mockProject.id, "testtoken")
+      ).rejects.toEqual(error);
     });
 
     // Additional Branch Coverage for managerId/createdBy/employeeIds
@@ -392,7 +406,11 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, projectNoManager.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        projectNoManager.id,
+        "testtoken"
+      );
       expect(result.manager).toBeNull();
       expect(result.employees).toHaveLength(2);
     });
@@ -418,13 +436,21 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, projectNoCreator.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        projectNoCreator.id,
+        "testtoken"
+      );
       expect(result.createdBy).toBeNull();
       expect(result.manager).toBeDefined();
     });
 
     test("employeeIds is undefined => employees => []", async () => {
-      const projectNoEmployees = { ...mockProject, stages: [], employeeIds: undefined };
+      const projectNoEmployees = {
+        ...mockProject,
+        stages: [],
+        employeeIds: undefined,
+      };
       ProjectRepository.findUnique.mockResolvedValue(projectNoEmployees);
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
@@ -439,12 +465,20 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, projectNoEmployees.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        projectNoEmployees.id,
+        "testtoken"
+      );
       expect(result.employees).toEqual([]);
     });
 
     test("employeeIds is empty => employees => []", async () => {
-      const projectEmptyEmployees = { ...mockProject, stages: [], employeeIds: [] };
+      const projectEmptyEmployees = {
+        ...mockProject,
+        stages: [],
+        employeeIds: [],
+      };
       ProjectRepository.findUnique.mockResolvedValue(projectEmptyEmployees);
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
@@ -459,7 +493,11 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, projectEmptyEmployees.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        projectEmptyEmployees.id,
+        "testtoken"
+      );
       expect(result.employees).toEqual([]);
     });
 
@@ -469,7 +507,9 @@ describe("🛠 Project Service Tests", () => {
         stages: [],
         employeeIds: ["emp-1", "emp-unknown"],
       };
-      ProjectRepository.findUnique.mockResolvedValue(projectWithUnknownEmployees);
+      ProjectRepository.findUnique.mockResolvedValue(
+        projectWithUnknownEmployees
+      );
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
           id: "manager-id",
@@ -488,17 +528,23 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await getProjectByIdService(adminUser, projectWithUnknownEmployees.id, "testtoken");
+      const result = await getProjectByIdService(
+        adminUser,
+        projectWithUnknownEmployees.id,
+        "testtoken"
+      );
       expect(result.employees).toEqual([
         { id: "emp-1", fullName: "Employee One", role: "ROLE_EMPLOYEE" },
         { id: "emp-unknown" },
       ]);
     });
   });
-  
+
   describe("createProjectService", () => {
     test("🚫 rejects with 403 if user is not allowed to create project", async () => {
-      await expect(createProjectService(employeeUser, { name: "Test" }, "testtoken")).rejects.toEqual({
+      await expect(
+        createProjectService(employeeUser, { name: "Test" }, "testtoken")
+      ).rejects.toEqual({
         status: 403,
         message: "Access denied: Only admins and managers can create projects",
       });
@@ -527,7 +573,11 @@ describe("🛠 Project Service Tests", () => {
       });
 
       const inputData = { name: "New Project", description: "A new project" };
-      const result = await createProjectService(adminUser, inputData, "testtoken");
+      const result = await createProjectService(
+        adminUser,
+        inputData,
+        "testtoken"
+      );
       const expectedProject = new ProjectDTO({
         ...projectForCreate,
         manager: {
@@ -559,7 +609,9 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
       ProjectRepository.create.mockRejectedValue({ code: "P2002" });
-      await expect(createProjectService(adminUser, { name: "Duplicate" }, "testtoken")).rejects.toEqual({
+      await expect(
+        createProjectService(adminUser, { name: "Duplicate" }, "testtoken")
+      ).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
       });
@@ -567,7 +619,9 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 500 for generic error", async () => {
       ProjectRepository.create.mockRejectedValue(new Error("Database error"));
-      await expect(createProjectService(adminUser, { name: "Some Project" }, "testtoken")).rejects.toEqual({
+      await expect(
+        createProjectService(adminUser, { name: "Some Project" }, "testtoken")
+      ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
@@ -596,7 +650,11 @@ describe("🛠 Project Service Tests", () => {
           },
         });
 
-        const result = await createProjectService(adminUser, { name: "Hello" }, "testtoken");
+        const result = await createProjectService(
+          adminUser,
+          { name: "Hello" },
+          "testtoken"
+        );
         expect(result.manager).toBeNull();
       });
 
@@ -627,7 +685,11 @@ describe("🛠 Project Service Tests", () => {
           },
         });
 
-        const result = await createProjectService(adminUser, { name: "Hello2" }, "testtoken");
+        const result = await createProjectService(
+          adminUser,
+          { name: "Hello2" },
+          "testtoken"
+        );
         expect(result.createdBy).toBeNull();
       });
 
@@ -648,7 +710,11 @@ describe("🛠 Project Service Tests", () => {
           },
         });
 
-        const result = await createProjectService(adminUser, { name: "NoEmployees" }, "testtoken");
+        const result = await createProjectService(
+          adminUser,
+          { name: "NoEmployees" },
+          "testtoken"
+        );
         expect(result.employees).toEqual([]);
       });
 
@@ -716,7 +782,7 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-  
+
   describe("updateProjectService", () => {
     beforeEach(() => {
       // By default, findUnique returns a project the user can update
@@ -755,7 +821,12 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await updateProjectService(adminUser, mockProject.id, inputData, "testtoken");
+      const result = await updateProjectService(
+        adminUser,
+        mockProject.id,
+        inputData,
+        "testtoken"
+      );
       const expectedProject = new ProjectDTO({
         ...mockProject,
         ...expectedData,
@@ -779,7 +850,10 @@ describe("🛠 Project Service Tests", () => {
       });
 
       // ensure we call ProjectRepository.update with the final data
-      expect(ProjectRepository.update).toHaveBeenCalledWith(mockProject.id, expectedData);
+      expect(ProjectRepository.update).toHaveBeenCalledWith(
+        mockProject.id,
+        expectedData
+      );
       expect(result).toEqual(expectedProject);
     });
 
@@ -790,17 +864,17 @@ describe("🛠 Project Service Tests", () => {
         managerId: managerUser.id,
         createdBy: adminUser.id,
       });
-    
+
       // We simulate that the repository returns the same name if we never updated it
       const updatedProject = {
         ...mockProject,
         name: "OriginalName", // unchanged
         description: "updated desc", // we *did* update description
       };
-    
+
       // The repository update call will get some data that does NOT have "name"
       ProjectRepository.update.mockResolvedValue(updatedProject);
-    
+
       // We'll also mock fetchUsersByIds to return something for manager & admin
       fetchUsersByIds.mockResolvedValue({
         "manager-id": {
@@ -819,34 +893,37 @@ describe("🛠 Project Service Tests", () => {
           role: "ROLE_EMPLOYEE",
         },
       });
-    
+
       // We pass an update data object WITHOUT a "name" field
       const updateData = { description: "updated desc" };
-    
+
       const result = await updateProjectService(
         adminUser,
         mockProject.id,
         updateData,
         "testtoken"
       );
-    
+
       // We confirm the repository update was called with no "name" property
       // => the service didn't do toLowerCase() or anything else for "name"
-      expect(ProjectRepository.update).toHaveBeenCalledWith(
-        mockProject.id,
-        { description: "updated desc" }
-      );
-    
+      expect(ProjectRepository.update).toHaveBeenCalledWith(mockProject.id, {
+        description: "updated desc",
+      });
+
       // And confirm the result has the original name
       expect(result.name).toBe("OriginalName");
       expect(result.description).toBe("updated desc");
     });
-    
 
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
       ProjectRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        updateProjectService(adminUser, mockProject.id, { name: "Duplicate" }, "testtoken")
+        updateProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Duplicate" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
@@ -856,7 +933,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 404 when project not found (P2025)", async () => {
       ProjectRepository.update.mockRejectedValue({ code: "P2025" });
       await expect(
-        updateProjectService(adminUser, "non-existent-id", { name: "Some Project" }, "testtoken")
+        updateProjectService(
+          adminUser,
+          "non-existent-id",
+          { name: "Some Project" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -866,7 +948,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 500 for generic update error", async () => {
       ProjectRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        updateProjectService(adminUser, mockProject.id, { name: "Updated Project" }, "testtoken")
+        updateProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Updated Project" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -876,7 +963,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 propagates authorization error if modification not allowed", async () => {
       ProjectRepository.findUnique.mockResolvedValue(null); // Not found or not allowed
       await expect(
-        updateProjectService(adminUser, mockProject.id, { name: "Updated Project" }, "testtoken")
+        updateProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Updated Project" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -1066,7 +1158,7 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-  
+
   describe("patchProjectService", () => {
     beforeEach(() => {
       ProjectRepository.findUnique.mockResolvedValue({
@@ -1077,7 +1169,11 @@ describe("🛠 Project Service Tests", () => {
     });
 
     test("✅ patches project successfully, filtering undefined fields and lowercasing name", async () => {
-      const inputData = { name: "MiXeDcAsE", description: undefined, extra: "value" };
+      const inputData = {
+        name: "MiXeDcAsE",
+        description: undefined,
+        extra: "value",
+      };
       const expectedData = { name: "mixedcase", extra: "value" };
       ProjectRepository.update.mockResolvedValue({
         ...mockProject,
@@ -1103,7 +1199,12 @@ describe("🛠 Project Service Tests", () => {
         },
       });
 
-      const result = await patchProjectService(adminUser, mockProject.id, inputData, "testtoken");
+      const result = await patchProjectService(
+        adminUser,
+        mockProject.id,
+        inputData,
+        "testtoken"
+      );
       const expectedProject = new ProjectDTO({
         ...mockProject,
         ...expectedData,
@@ -1126,12 +1227,17 @@ describe("🛠 Project Service Tests", () => {
         ],
       });
 
-      expect(ProjectRepository.update).toHaveBeenCalledWith(mockProject.id, expectedData);
+      expect(ProjectRepository.update).toHaveBeenCalledWith(
+        mockProject.id,
+        expectedData
+      );
       expect(result).toEqual(expectedProject);
     });
 
     test("🚫 rejects with 400 when no valid fields provided", async () => {
-      await expect(patchProjectService(adminUser, mockProject.id, {}, "testtoken")).rejects.toEqual({
+      await expect(
+        patchProjectService(adminUser, mockProject.id, {}, "testtoken")
+      ).rejects.toEqual({
         status: 400,
         message: "No valid fields provided for update",
       });
@@ -1140,7 +1246,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 409 on duplicate name (P2002)", async () => {
       ProjectRepository.update.mockRejectedValue({ code: "P2002" });
       await expect(
-        patchProjectService(adminUser, mockProject.id, { name: "Duplicate", extra: "value" }, "testtoken")
+        patchProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Duplicate", extra: "value" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 409,
         message: "A project with this name already exists",
@@ -1150,7 +1261,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 404 when project not found (P2025)", async () => {
       ProjectRepository.update.mockRejectedValue({ code: "P2025" });
       await expect(
-        patchProjectService(adminUser, mockProject.id, { name: "Nonexistent", extra: "value" }, "testtoken")
+        patchProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Nonexistent", extra: "value" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -1160,7 +1276,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 rejects with 500 for generic patch error", async () => {
       ProjectRepository.update.mockRejectedValue(new Error("Database error"));
       await expect(
-        patchProjectService(adminUser, mockProject.id, { name: "Test", extra: "value" }, "testtoken")
+        patchProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Test", extra: "value" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
@@ -1170,7 +1291,12 @@ describe("🛠 Project Service Tests", () => {
     test("🚫 propagates authorization error if patch not allowed", async () => {
       ProjectRepository.findUnique.mockResolvedValue(null);
       await expect(
-        patchProjectService(adminUser, mockProject.id, { name: "Test", extra: "value" }, "testtoken")
+        patchProjectService(
+          adminUser,
+          mockProject.id,
+          { name: "Test", extra: "value" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 404,
         message: "Project not found",
@@ -1355,7 +1481,7 @@ describe("🛠 Project Service Tests", () => {
       });
     });
   });
-  
+
   describe("deleteProjectService", () => {
     test("✅ deletes project successfully", async () => {
       ProjectRepository.findUnique.mockResolvedValue({
@@ -1371,7 +1497,9 @@ describe("🛠 Project Service Tests", () => {
 
     test("🚫 rejects with 404 when project not found on delete (P2025)", async () => {
       ProjectRepository.findUnique.mockResolvedValue(null);
-      await expect(deleteProjectService(adminUser, "non-existent-id")).rejects.toEqual({
+      await expect(
+        deleteProjectService(adminUser, "non-existent-id")
+      ).rejects.toEqual({
         status: 404,
         message: "Project not found",
       });
@@ -1384,7 +1512,9 @@ describe("🛠 Project Service Tests", () => {
       });
       ProjectRepository.delete.mockRejectedValue(new Error("Database error"));
 
-      await expect(deleteProjectService(adminUser, mockProject.id)).rejects.toEqual({
+      await expect(
+        deleteProjectService(adminUser, mockProject.id)
+      ).rejects.toEqual({
         status: 500,
         message: "Internal server error",
       });
@@ -1395,9 +1525,12 @@ describe("🛠 Project Service Tests", () => {
         id: mockProject.id,
         createdBy: "another-user",
       });
-      await expect(deleteProjectService(managerUser, mockProject.id)).rejects.toEqual({
+      await expect(
+        deleteProjectService(managerUser, mockProject.id)
+      ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to delete this project",
+        message:
+          "Access denied: You do not have permission to delete this project",
       });
     });
   });
@@ -1457,10 +1590,16 @@ describe("🛠 Project Service Tests", () => {
       const mgrUser = { id: "mgr-123", role: "ROLE_MANAGER" };
 
       await expect(
-        updateProjectService(mgrUser, "test-id", { name: "New Name" }, "testtoken")
+        updateProjectService(
+          mgrUser,
+          "test-id",
+          { name: "New Name" },
+          "testtoken"
+        )
       ).rejects.toEqual({
         status: 403,
-        message: "Access denied: You do not have permission to update this project",
+        message:
+          "Access denied: You do not have permission to update this project",
       });
     });
 
@@ -1496,7 +1635,11 @@ describe("🛠 Project Service Tests", () => {
       ProjectRepository.findMany.mockResolvedValue([mockProject]);
       ProjectRepository.count.mockResolvedValue(1);
 
-      const result = await getProjectsService(adminUser, validQuery, "testtoken");
+      const result = await getProjectsService(
+        adminUser,
+        validQuery,
+        "testtoken"
+      );
       expect(result.page).toBe(2);
       expect(result.limit).toBe(5);
     });
@@ -1514,15 +1657,119 @@ describe("🛠 Project Service Tests", () => {
       // Spy on console.log
       const spyLog = jest.spyOn(console, "log").mockImplementation(() => {});
       // Make sure the update call resolves
-      ProjectRepository.update.mockResolvedValue({ ...mockProject, managerId: "mgr-999" });
+      ProjectRepository.update.mockResolvedValue({
+        ...mockProject,
+        managerId: "mgr-999",
+      });
       fetchUsersByIds.mockResolvedValue({});
 
-      await updateProjectService(managerUserX, "some-proj-id", { name: "someName" }, "token");
+      await updateProjectService(
+        managerUserX,
+        "some-proj-id",
+        { name: "someName" },
+        "token"
+      );
 
       expect(spyLog).toHaveBeenCalledWith(
         "Manager updating project they manage or created: some-proj-id"
       );
       spyLog.mockRestore();
+    });
+  });
+
+  describe("Task assignedTo enrichment in getProjectByIdService", () => {
+    test("✅ enriches task assignedTo field with user details when found", async () => {
+      // Create a project that has one stage with two tasks:
+      // - One task assigned to a known user ("user-1")
+      // - One task assigned to an unknown user ("user-unknown")
+      const projectWithTasks = {
+        ...mockProject,
+        stages: [
+          {
+            id: "stage-1",
+            name: "backlog",
+            tasks: [
+              { id: "task-1", assignedTo: "user-1", title: "Task 1" },
+              { id: "task-2", assignedTo: "user-unknown", title: "Task 2" },
+            ],
+          },
+        ],
+      };
+
+      // Simulate that the repository returns the project with its stages and tasks
+      ProjectRepository.findUnique.mockResolvedValue(projectWithTasks);
+
+      // Simulate fetching user details: only "user-1" is found
+      fetchUsersByIds.mockResolvedValue({
+        "user-1": { id: "user-1", fullName: "User One", role: "ROLE_EMPLOYEE" },
+      });
+
+      const result = await getProjectByIdService(
+        adminUser,
+        projectWithTasks.id,
+        "testtoken"
+      );
+
+      // The first task should have enriched assignedTo, the second falls back to { id: "user-unknown" }
+      expect(result.stages[0].tasks[0].assignedTo).toEqual({
+        id: "user-1",
+        fullName: "User One",
+        role: "ROLE_EMPLOYEE",
+      });
+      expect(result.stages[0].tasks[1].assignedTo).toEqual({
+        id: "user-unknown",
+      });
+    });
+
+    test("✅ returns null for task assignedTo when not provided", async () => {
+      // Create a project with one stage and one task that has no assignedTo field.
+      const projectWithoutAssignedTask = {
+        ...mockProject,
+        stages: [
+          {
+            id: "stage-1",
+            name: "backlog",
+            tasks: [{ id: "task-3", title: "Task without assignment" }],
+          },
+        ],
+      };
+
+      ProjectRepository.findUnique.mockResolvedValue(
+        projectWithoutAssignedTask
+      );
+      // No user is expected since no assignedTo is provided.
+      fetchUsersByIds.mockResolvedValue({});
+
+      const result = await getProjectByIdService(
+        adminUser,
+        projectWithoutAssignedTask.id,
+        "testtoken"
+      );
+      expect(result.stages[0].tasks[0].assignedTo).toBeNull();
+    });
+
+    test("✅ when stage.tasks is an empty array, enrichment returns an empty array", async () => {
+      // Simulate a project with a stage that has an empty tasks array.
+      const projectEmptyTasks = {
+        ...mockProject,
+        stages: [
+          {
+            id: "stage-empty",
+            name: "In Progress",
+            tasks: [],
+          },
+        ],
+      };
+      ProjectRepository.findUnique.mockResolvedValue(projectEmptyTasks);
+      fetchUsersByIds.mockResolvedValue({});
+
+      const result = await getProjectByIdService(
+        adminUser,
+        projectEmptyTasks.id,
+        "testtoken"
+      );
+      // Expect that tasks remains an empty array
+      expect(result.stages[0].tasks).toEqual([]);
     });
   });
 });
