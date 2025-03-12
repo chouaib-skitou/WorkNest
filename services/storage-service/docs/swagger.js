@@ -13,7 +13,8 @@ const swaggerOptions = {
     openapi: "3.0.0",
     info: {
       title: "Storage Service API",
-      description: "API documentation for managing document storage within WorkNest",
+      description:
+        "API documentation for managing document storage within WorkNest",
       version: "1.0.0",
       contact: {
         name: "WorkNest Team",

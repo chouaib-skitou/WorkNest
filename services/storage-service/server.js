@@ -2,9 +2,9 @@ import express from "express";
 import storageRoutes from "./routes/storage.routes.js";
 import { setupSwagger } from "./docs/swagger.js";
 import dotenv from "dotenv";
-import morgan from 'morgan';
-import helmet from 'helmet';
-import cors from 'cors';
+import morgan from "morgan";
+import helmet from "helmet";
+import cors from "cors";
 dotenv.config();
 
 const app = express();
@@ -23,5 +23,7 @@ app.use("/api", storageRoutes);
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
-  console.log(`Storage service running on port ${PORT} at http://localhost:${PORT}`);
+  console.log(
+    `Storage service running on port ${PORT} at http://localhost:${PORT}`
+  );
 });

@@ -120,7 +120,11 @@ router.get("/documents/:fileId", StorageController.get);
  *       500:
  *         description: Failed to update document.
  */
-router.put("/documents/:fileId", upload.single("file"), StorageController.update);
+router.put(
+  "/documents/:fileId",
+  upload.single("file"),
+  StorageController.update
+);
 
 /**
  * @swagger
@@ -154,7 +158,11 @@ router.put("/documents/:fileId", upload.single("file"), StorageController.update
  *       500:
  *         description: Failed to update document.
  */
-router.patch("/documents/:fileId", upload.single("file"), StorageController.update);
+router.patch(
+  "/documents/:fileId",
+  upload.single("file"),
+  StorageController.update
+);
 
 /**
  * @swagger

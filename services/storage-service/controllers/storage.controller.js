@@ -17,8 +17,7 @@ export const StorageController = {
   async upload(req, res) {
     try {
       const file = req.file;
-      if (!file)
-        return res.status(400).json({ error: "No file uploaded" });
+      if (!file) return res.status(400).json({ error: "No file uploaded" });
       const result = await uploadDocument(file);
       res.status(201).json(result);
     } catch (error) {

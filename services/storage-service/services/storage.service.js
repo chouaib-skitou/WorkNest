@@ -38,12 +38,11 @@ export const uploadDocument = async (file) => {
     }
   });
 
-  return { 
+  return {
     message: "Document created successfully",
-    data: { id: data.Key, name: data.Key, location: data.Location } 
+    data: { id: data.Key, name: data.Key, location: data.Location },
   };
 };
-
 
 /**
  * Updates a document on MinIO.
@@ -68,26 +67,28 @@ export const updateDocument = async (fileId, file, newName) => {
     const data = await s3.upload(params).promise();
     if (newName && newName !== fileId) {
       await s3.deleteObject({ Bucket: BUCKET, Key: fileId }).promise();
-      return { 
+      return {
         message: "Document updated and renamed successfully",
-        data: { id: key, name: key, location: data.Location }
+        data: { id: key, name: key, location: data.Location },
       };
     }
-    return { 
+    return {
       message: "Document updated successfully",
-      data: { id: key, name: key, location: data.Location }
+      data: { id: key, name: key, location: data.Location },
     };
   } else if (newName) {
     // Rename the file by copying then deleting the original
-    await s3.copyObject({
-      Bucket: BUCKET,
-      CopySource: `${BUCKET}/${fileId}`,
-      Key: newName,
-    }).promise();
+    await s3
+      .copyObject({
+        Bucket: BUCKET,
+        CopySource: `${BUCKET}/${fileId}`,
+        Key: newName,
+      })
+      .promise();
     await s3.deleteObject({ Bucket: BUCKET, Key: fileId }).promise();
-    return { 
+    return {
       message: "Document renamed successfully",
-      data: { id: newName, name: newName }
+      data: { id: newName, name: newName },
     };
   }
   throw new Error("Nothing to update");
@@ -116,7 +117,7 @@ export const listDocuments = async (queryParams) => {
     ContinuationToken: queryParams.pageToken || undefined,
   };
   const data = await s3.listObjectsV2(params).promise();
-  const files = data.Contents.map(item => ({
+  const files = data.Contents.map((item) => ({
     id: item.Key,
     name: item.Key,
     size: item.Size,
