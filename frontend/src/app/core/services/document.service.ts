@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import {
   HttpClient,
-  HttpParams,
-  HttpErrorResponse,
+  HttpParams
 } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
@@ -36,27 +35,22 @@ export class DocumentService {
 
   constructor(private http: HttpClient) {}
 
-  private handleError(error: HttpErrorResponse) {
-    // Si l'erreur a un statut 201, ce n'est pas réellement une erreur
-    if (error.status === 201) {
-      console.log('Received 201 status with error handling');
-      return of({
-        message: 'Document uploaded successfully',
-        data: {
-          id: 'temp-id',
-          name: 'document',
-          location: 'document-location'
-        }
-      });
+  /**
+   * Handles HTTP errors
+   * @param error The error to process
+   * @returns An error Observable
+   */
+  private handleError(error: unknown): Observable<never> {
+    let errorMessage = 'An unknown error occurred while processing the document';
+    
+    if (typeof error === 'object' && error !== null) {
+      // We can add more specific checks here
+      if ('message' in error && typeof error.message === 'string') {
+        errorMessage = error.message;
+      }
     }
     
-    let errorMessage = 'An unknown error occurred';
-    if (error.error instanceof ErrorEvent) {
-      errorMessage = `Error: ${error.error.message}`;
-    } else {
-      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
-    }
-    console.error(errorMessage);
+    console.error('Document service error:', error);
     return throwError(() => new Error(errorMessage));
   }
 
@@ -69,14 +63,14 @@ export class DocumentService {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Utiliser la configuration observe: 'response' pour obtenir le statut HTTP
+    // Use the observe: 'response' configuration to get the HTTP status
     return this.http
-      .post<any>(this.baseUrl, formData, { observe: 'response' })
+      .post<DocumentResponse>(this.baseUrl, formData, { observe: 'response' })
       .pipe(
         map(response => {
-          // Si nous recevons un statut 201, c'est un succès, même si le corps est vide
+          // If we receive a 201 status, it's a success, even if the body is empty
           if (response.status === 201) {
-            // Retourner un objet de réponse valide, même si le corps est null
+            // Return a valid response object, even if the body is null
             return response.body || {
               message: 'Document uploaded successfully',
               data: {
@@ -86,13 +80,22 @@ export class DocumentService {
               }
             };
           }
-          return response.body;
+          return response.body || {
+            message: 'Unknown response',
+            data: undefined as unknown as DocumentData
+          };
         }),
         catchError(this.handleError)
       );
   }
 
-  // Le reste du service reste inchangé
+  /**
+   * Updates an existing document
+   * @param fileId ID of the document to update
+   * @param file Optional new file content
+   * @param newName Optional new name for the document
+   * @returns Observable with the updated document response
+   */
   updateDocument(
     fileId: string,
     file?: File,
@@ -111,10 +114,21 @@ export class DocumentService {
     );
   }
 
+  /**
+   * Deletes a document
+   * @param fileId ID of the document to delete
+   * @returns Observable with the deletion confirmation
+   */
   deleteDocument(fileId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${fileId}`);
   }
 
+  /**
+   * Lists all documents with optional pagination
+   * @param pageSize Number of documents per page
+   * @param pageToken Token for the next page
+   * @returns Observable with the list of documents
+   */
   listDocuments(
     pageSize?: number,
     pageToken?: string
@@ -129,6 +143,11 @@ export class DocumentService {
     return this.http.get<ListDocumentsResponse>(this.baseUrl, { params });
   }
 
+  /**
+   * Gets a single document by ID
+   * @param fileId ID of the document to retrieve
+   * @returns Observable with the document data
+   */
   getDocument(fileId: string): Observable<DocumentResponse> {
     return this.http.get<DocumentResponse>(`${this.baseUrl}/${fileId}`);
   }
