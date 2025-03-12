@@ -1,18 +1,15 @@
-# Use a lightweight Node.js image
 FROM node:18-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+COPY .babelrc ./
 COPY package*.json ./
 RUN npm install
 
-# Copy all application source
 COPY . .
 
-# Expose port defined in .env or default to 5002
+RUN npm run build
+
 EXPOSE 5002
 
-# Start the service
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
