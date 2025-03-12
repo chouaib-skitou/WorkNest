@@ -60,7 +60,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         dueDate: "2025-03-04T00:00:00.000Z",
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Cannot set Project ID manually");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Cannot set Project ID manually"
+      );
     });
 
     test("🚫 should fail when createdBy is set manually", async () => {
@@ -68,10 +70,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        createdBy: "user-id"
+        createdBy: "user-id",
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Cannot set createdBy manually");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Cannot set createdBy manually"
+      );
     });
 
     test("🚫 should fail when invalid image URL is provided", async () => {
@@ -79,7 +83,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        image: "not-a-url"
+        image: "not-a-url",
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
       expect(errors.map((e) => e.msg)).toContain("Image must be a valid URL");
@@ -90,10 +94,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        documents: ["https://valid-url.com", "not-a-url"]
+        documents: ["https://valid-url.com", "not-a-url"],
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Each document must be a valid URL");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Each document must be a valid URL"
+      );
     });
 
     test("🚫 should fail when employeeIds is not an array", async () => {
@@ -101,10 +107,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        employeeIds: "not-an-array"
+        employeeIds: "not-an-array",
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Employee IDs must be an array of user IDs");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Employee IDs must be an array of user IDs"
+      );
     });
 
     test("🚫 should fail when employeeIds contains non-string values", async () => {
@@ -112,10 +120,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        employeeIds: ["valid-id", 12345]
+        employeeIds: ["valid-id", 12345],
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Each employee ID must be a string");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Each employee ID must be a string"
+      );
     });
 
     test("🚫 should fail when invalid status is provided", async () => {
@@ -123,10 +133,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        status: "INVALID_STATUS"
+        status: "INVALID_STATUS",
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Status must be one of: PENDING, IN_PROGRESS, COMPLETED");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Status must be one of: PENDING, IN_PROGRESS, COMPLETED"
+      );
     });
 
     test("🚫 should fail when invalid priority is provided", async () => {
@@ -134,10 +146,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Test Project",
         description: "A test project",
         dueDate: "2025-03-04T00:00:00.000Z",
-        priority: "CRITICAL" // Not in [LOW, MEDIUM, HIGH]
+        priority: "CRITICAL", // Not in [LOW, MEDIUM, HIGH]
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
-      expect(errors.map((e) => e.msg)).toContain("Priority must be one of: LOW, MEDIUM, HIGH");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Priority must be one of: LOW, MEDIUM, HIGH"
+      );
     });
 
     test("✅ should pass with valid data", async () => {
@@ -160,9 +174,12 @@ describe("Project Validator Tests (100% coverage)", () => {
         status: "PENDING",
         priority: "MEDIUM",
         image: "https://example.com/image.jpg",
-        documents: ["https://example.com/doc1.pdf", "https://example.com/doc2.pdf"],
+        documents: [
+          "https://example.com/doc1.pdf",
+          "https://example.com/doc2.pdf",
+        ],
         managerId: "manager-123",
-        employeeIds: ["employee-1", "employee-2"]
+        employeeIds: ["employee-1", "employee-2"],
       };
       const errors = await runValidatorRules(createProjectValidation, reqBody);
       expect(errors.length).toBe(0);
@@ -185,7 +202,7 @@ describe("Project Validator Tests (100% coverage)", () => {
           "Invalid Project ID format",
           "Project name is required",
           "Project description is required",
-          "Due date is required"
+          "Due date is required",
         ])
       );
     });
@@ -195,7 +212,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         id: "7237003f-1fd1-44bf-917c-445144a125c0",
         name: "Updated Project",
         description: "Updated description",
-        dueDate: "2025-03-04T00:00:00.000Z"
+        dueDate: "2025-03-04T00:00:00.000Z",
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -203,7 +220,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Project ID cannot be changed");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Project ID cannot be changed"
+      );
     });
 
     test("🚫 should fail when invalid image URL is provided", async () => {
@@ -211,7 +230,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Updated Project",
         description: "Updated description",
         dueDate: "2025-03-04T00:00:00.000Z",
-        image: "invalid-url"
+        image: "invalid-url",
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -228,7 +247,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Updated Project",
         description: "Updated description",
         dueDate: "2025-03-04T00:00:00.000Z",
-        documents: ["invalid-url"] // This should trigger the throw Error
+        documents: ["invalid-url"], // This should trigger the throw Error
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -236,7 +255,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Each document must be a valid URL");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Each document must be a valid URL"
+      );
     });
 
     test("🚫 should fail when invalid priority is provided", async () => {
@@ -262,7 +283,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Valid Project",
         description: "A valid description",
         dueDate: "2025-03-04T00:00:00.000Z",
-        createdBy: "user-123"
+        createdBy: "user-123",
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -270,7 +291,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Cannot set createdBy manually");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Cannot set createdBy manually"
+      );
     });
 
     test("✅ should pass with valid data", async () => {
@@ -297,7 +320,10 @@ describe("Project Validator Tests (100% coverage)", () => {
         dueDate: "2025-03-04T00:00:00.000Z",
         status: "IN_PROGRESS",
         priority: "HIGH",
-        documents: ["https://example.com/doc1.pdf", "https://example.com/doc2.pdf"]
+        documents: [
+          "https://example.com/doc1.pdf",
+          "https://example.com/doc2.pdf",
+        ],
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -345,7 +371,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Project name cannot be empty");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Project name cannot be empty"
+      );
     });
 
     test("🚫 should fail when trying to provide empty description", async () => {
@@ -356,13 +384,15 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Project description cannot be empty");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Project description cannot be empty"
+      );
     });
 
     // SPECIFICALLY COVER: throw new Error("Image must be a valid URL"); in patchProjectValidation
     test("🚫 should fail when invalid image URL is provided", async () => {
       const reqBody = {
-        image: "not-a-valid-url" // This should trigger the throw Error
+        image: "not-a-valid-url", // This should trigger the throw Error
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -381,7 +411,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Each document must be a valid URL");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Each document must be a valid URL"
+      );
     });
 
     test("🚫 should fail when employeeIds is not an array", async () => {
@@ -392,7 +424,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Employee IDs must be an array of user IDs");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Employee IDs must be an array of user IDs"
+      );
     });
 
     test("🚫 should fail when trying to change project ID", async () => {
@@ -403,7 +437,9 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      expect(errors.map((e) => e.msg)).toContain("Project ID cannot be changed");
+      expect(errors.map((e) => e.msg)).toContain(
+        "Project ID cannot be changed"
+      );
     });
 
     test("✅ should pass when valid fields are provided", async () => {
@@ -432,7 +468,10 @@ describe("Project Validator Tests (100% coverage)", () => {
     // SPECIFICALLY COVER: body("documents.*") > return true; on patchProjectValidation
     test("✅ should pass with valid document URLs", async () => {
       const reqBody = {
-        documents: ["https://example.com/valid-doc.pdf", "https://another.com/doc.pdf"]
+        documents: [
+          "https://example.com/valid-doc.pdf",
+          "https://another.com/doc.pdf",
+        ],
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -451,7 +490,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         status: "IN_PROGRESS",
         dueDate: "2025-03-04T00:00:00.000Z",
         image: "https://example.com/patched-image.jpg",
-        employeeIds: ["employee-3", "employee-4"]
+        employeeIds: ["employee-3", "employee-4"],
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -490,7 +529,7 @@ describe("Project Validator Tests (100% coverage)", () => {
         name: "Updated Project",
         description: "An updated description",
         dueDate: "2025-03-04T00:00:00.000Z",
-        image: "https://example.com/valid-image.jpg" // This should trigger the return true path
+        image: "https://example.com/valid-image.jpg", // This should trigger the return true path
       };
       const reqParams = { id: "7237003f-1fd1-44bf-917c-445144a125c0" };
       const errors = await runValidatorRules(
@@ -498,13 +537,13 @@ describe("Project Validator Tests (100% coverage)", () => {
         reqBody,
         reqParams
       );
-      
+
       // No errors should be present
       expect(errors.length).toBe(0);
-      
+
       // Make sure there's no error related to the image field
-      const imageErrors = errors.filter(error => 
-        error.path === 'image' || error.msg.includes('image')
+      const imageErrors = errors.filter(
+        (error) => error.path === "image" || error.msg.includes("image")
       );
       expect(imageErrors.length).toBe(0);
     });

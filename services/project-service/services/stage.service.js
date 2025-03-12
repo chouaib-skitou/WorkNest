@@ -138,9 +138,9 @@ const authorizeStageDeletion = async (user, id) => {
 const authorizeStageCreation = async (user, projectId) => {
   // First, check if the project exists for ALL roles
   const project = await ProjectRepository.findUnique({
-    where: { id: projectId }
+    where: { id: projectId },
   });
-  
+
   if (!project) {
     return Promise.reject({ status: 404, message: "Project not found" });
   }
@@ -150,18 +150,21 @@ const authorizeStageCreation = async (user, projectId) => {
     return;
   } else if (user.role === "ROLE_MANAGER") {
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(`Manager authorized to create stage for project: ${projectId}`);
+      console.log(
+        `Manager authorized to create stage for project: ${projectId}`
+      );
       return;
     } else {
       return Promise.reject({
         status: 403,
-        message: "Access denied: You do not have permission to create a stage for this project"
+        message:
+          "Access denied: You do not have permission to create a stage for this project",
       });
     }
   } else {
     return Promise.reject({
       status: 403,
-      message: "Access denied: Only admins and managers can create stages"
+      message: "Access denied: Only admins and managers can create stages",
     });
   }
 };

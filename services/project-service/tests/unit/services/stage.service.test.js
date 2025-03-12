@@ -31,7 +31,6 @@ import { StageDTO } from "../../../dtos/stage.dto.js";
 
 describe("🛠 Stage Service Tests", () => {
   let adminUser, managerUser, employeeUser;
-  // eslint-disable-next-line no-unused-vars
   let mockStage, mockProject;
   let query;
 
@@ -39,7 +38,7 @@ describe("🛠 Stage Service Tests", () => {
     adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
     managerUser = { id: "manager-id", role: "ROLE_MANAGER" };
     employeeUser = { id: "employee-id", role: "ROLE_EMPLOYEE" };
-  
+
     // Example Stage
     mockStage = {
       id: "stage-1234",
@@ -58,7 +57,7 @@ describe("🛠 Stage Service Tests", () => {
         employeeIds: ["employee-id"],
       },
     };
-  
+
     mockProject = {
       id: "project-xyz",
       name: "Sample Project",
@@ -66,21 +65,21 @@ describe("🛠 Stage Service Tests", () => {
       managerId: "manager-id",
       employeeIds: ["employee-id"],
     };
-  
+
     query = {};
-  
+
     jest.clearAllMocks();
-    
+
     // Reset StageRepository mocks
-    Object.values(StageRepository).forEach(mockFn => {
-      if (typeof mockFn === 'function') mockFn.mockReset();
+    Object.values(StageRepository).forEach((mockFn) => {
+      if (typeof mockFn === "function") mockFn.mockReset();
     });
-    
+
     // Reset ProjectRepository mocks
-    Object.values(ProjectRepository).forEach(mockFn => {
-      if (typeof mockFn === 'function') mockFn.mockReset();
+    Object.values(ProjectRepository).forEach((mockFn) => {
+      if (typeof mockFn === "function") mockFn.mockReset();
     });
-    
+
     // Setup default mock for ProjectRepository.findUnique to make most tests pass
     ProjectRepository.findUnique.mockResolvedValue(mockProject);
   });
@@ -378,27 +377,27 @@ describe("🛠 Stage Service Tests", () => {
     test("✅ creates stage successfully for ROLE_MANAGER when authorized by managerId", async () => {
       // Replace this:
       // StageRepository.findUnique.mockResolvedValue({...})
-      
+
       // With this:
       ProjectRepository.findUnique.mockResolvedValue({
         id: "project-xyz",
         managerId: managerUser.id,
         createdBy: "someone-else",
       });
-      
+
       StageRepository.create.mockResolvedValue(mockStage);
-    
+
       const inputData = {
         name: "PLANNING",
         position: 1,
         projectId: "project-xyz",
       };
       const result = await createStageService(managerUser, inputData);
-    
+
       expect(ProjectRepository.findUnique).toHaveBeenCalledWith({
         where: { id: "project-xyz" },
       });
-      
+
       expect(StageRepository.create).toHaveBeenCalledWith(
         { name: "planning", position: 1, projectId: "project-xyz" },
         { tasks: true, Project: true }
@@ -414,14 +413,14 @@ describe("🛠 Stage Service Tests", () => {
         createdBy: managerUser.id,
       });
       StageRepository.create.mockResolvedValue(mockStage);
-    
+
       const inputData = {
         name: "PLANNING",
         position: 1,
         projectId: "project-xyz",
       };
       const result = await createStageService(managerUser, inputData);
-    
+
       expect(ProjectRepository.findUnique).toHaveBeenCalledWith({
         where: { id: "project-xyz" },
       });
@@ -435,7 +434,7 @@ describe("🛠 Stage Service Tests", () => {
     test("🚫 rejects with 404 if project is not found for ROLE_MANAGER", async () => {
       // Use ProjectRepository instead of StageRepository and resolve with null
       ProjectRepository.findUnique.mockResolvedValue(null);
-    
+
       await expect(
         createStageService(managerUser, {
           name: "Test",
@@ -454,7 +453,7 @@ describe("🛠 Stage Service Tests", () => {
         managerId: "another-manager",
         createdBy: "another-user",
       });
-    
+
       await expect(
         createStageService(managerUser, {
           name: "Test",
