@@ -33,6 +33,33 @@ export class DocumentService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Generates a random 6-character hex string
+   * @returns A 6-character hex string (e.g., "3f4a9c")
+   */
+  private generateHexCode(): string {
+    return Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  }
+
+  /**
+   * Creates a unique filename by adding a 6-character hex code
+   * @param originalName The original filename
+   * @returns A unique filename with a hex code inserted before the extension
+   */
+  private createUniqueFilename(originalName: string): string {
+    const hexCode = this.generateHexCode();
+    const lastDotIndex = originalName.lastIndexOf('.');
+    
+    if (lastDotIndex === -1) {
+      // No extension
+      return `${originalName}_${hexCode}`;
+    }
+    
+    const nameWithoutExtension = originalName.substring(0, lastDotIndex);
+    const extension = originalName.substring(lastDotIndex);
+    return `${nameWithoutExtension}_${hexCode}${extension}`;
+  }
+
+  /**
    * Get authorization headers with the current access token
    * @returns HttpHeaders with Authorization header
    */
@@ -64,16 +91,27 @@ export class DocumentService {
   }
 
   /**
-   * Uploads a new document.
+   * Uploads a new document with a unique filename.
    * Expects a File object from a file input.
    * Returns an Observable with the document response.
    */
   createDocument(file: File): Observable<DocumentResponse> {
+    // Create a unique filename
+    const uniqueFilename = this.createUniqueFilename(file.name);
+    
+    // Create a new File object with the unique name
+    const uniqueFile = new File([file], uniqueFilename, { 
+      type: file.type,
+      lastModified: file.lastModified 
+    });
+    
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', uniqueFile);
 
     // Get auth headers
     const headers = this.getAuthHeaders();
+    
+    console.log(`Uploading file with unique name: ${uniqueFilename}`);
 
     // Use the observe: 'response' configuration to get the HTTP status
     return this.http
@@ -90,8 +128,8 @@ export class DocumentService {
               response.body || {
                 message: 'Document uploaded successfully',
                 data: {
-                  id: 'generated-id',
-                  name: file.name,
+                  id: uniqueFilename,
+                  name: uniqueFilename,
                   location: 'document-location',
                 },
               }
@@ -122,10 +160,24 @@ export class DocumentService {
   ): Observable<DocumentResponse> {
     const formData = new FormData();
     if (file) {
-      formData.append('file', file);
+      // If updating with a new file, make that filename unique too
+      const uniqueFilename = this.createUniqueFilename(file.name);
+      const uniqueFile = new File([file], uniqueFilename, { 
+        type: file.type,
+        lastModified: file.lastModified 
+      });
+      formData.append('file', uniqueFile);
+      
+      // If no new name was explicitly provided, use the unique filename
+      if (!newName) {
+        formData.append('newName', uniqueFilename);
+      }
     }
+    
     if (newName) {
-      formData.append('newName', newName);
+      // If a new name was provided, make it unique
+      const uniqueNewName = this.createUniqueFilename(newName);
+      formData.append('newName', uniqueNewName);
     }
     
     // Get auth headers
