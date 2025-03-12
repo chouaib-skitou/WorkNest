@@ -16,11 +16,14 @@ import {
   ProjectCreateUpdate,
 } from '../core/services/project.service';
 import { UserService, User } from '../core/services/user.service';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, Observable, of } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
 import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 import { AuthService } from '../core/services/auth.service';
 import { Router } from '@angular/router';
+import { DocumentService } from '../core/services/document.service';
+
 interface ProjectWithEmployeeIds extends Project {
   employeeIds?: string[];
 }
@@ -96,7 +99,8 @@ export class ProjectsComponent implements OnInit {
     private flashMessageService: FlashMessageService,
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private documentService: DocumentService // Added DocumentService
   ) {
     // Initialize forms
     this.createProjectForm = this.createProjectFormGroup();
@@ -589,102 +593,242 @@ export class ProjectsComponent implements OnInit {
   }
 
   /**
-   * Submit create project form
+   * Upload a single file and return its URL
    */
-  submitCreateForm() {
-    // Double-check permissions
-    if (!this.canCreateProject()) {
-      this.flashMessageService.showError(
-        'You do not have permission to create projects'
-      );
-      this.closeCreateModal();
-      return;
-    }
+  private uploadSingleFile(file: File): Observable<string | null> {
+    if (!file) return of(null);
 
-    if (this.createProjectForm.invalid) {
-      this.markFormGroupTouched(this.createProjectForm);
-      return;
-    }
-
-    this.formSubmitting = true;
-    this.formError = null;
-
-    const formData: ProjectCreateUpdate = {
-      ...this.createProjectForm.value,
-      image: this.selectedImage || undefined,
-      documents:
-        this.selectedDocuments.length > 0 ? this.selectedDocuments : undefined,
-    };
-
-    this.projectService
-      .addProject(formData)
-      .pipe(finalize(() => (this.formSubmitting = false)))
-      .subscribe({
-        next: (project) => {
-          console.log('Project created:', project);
-          this.closeCreateModal();
-          this.fetchProjects();
-          this.flashMessageService.showSuccess(
-            `Project "${project.name}" has been created successfully`
-          );
-        },
-        error: (error) => {
-          console.error('Error creating project:', error);
-          this.formError = 'Failed to create project. Please try again.';
-          this.flashMessageService.showError('Failed to create project');
-        },
-      });
+    console.log(`Uploading file: ${file.name}`);
+    return this.documentService.createDocument(file).pipe(
+      map(response => {
+        console.log(`Upload successful for ${file.name}:`, response);
+        // Return the location URL from the response
+        return response.data.location;
+      }),
+      catchError(error => {
+        console.error(`Error uploading file ${file.name}:`, error);
+        this.flashMessageService.showError(`Failed to upload file: ${file.name}`);
+        return of(null);
+      })
+    );
   }
 
   /**
-   * Submit update project form
+   * Extract file ID from document URL
    */
-  submitUpdateForm() {
-    if (!this.selectedProject) return;
-
-    // Double-check permissions
-    if (!this.canUpdateProject(this.selectedProject)) {
-      this.flashMessageService.showError(
-        'You do not have permission to update this project'
-      );
-      this.closeUpdateModal();
-      return;
-    }
-
-    if (this.updateProjectForm.invalid) {
-      this.markFormGroupTouched(this.updateProjectForm);
-      return;
-    }
-
-    this.formSubmitting = true;
-    this.formError = null;
-
-    const formData: ProjectCreateUpdate = {
-      ...this.updateProjectForm.value,
-      image: this.selectedImage || undefined,
-      documents:
-        this.selectedDocuments.length > 0 ? this.selectedDocuments : undefined,
-    };
-
-    this.projectService
-      .updateProject(this.selectedProject.id, formData)
-      .pipe(finalize(() => (this.formSubmitting = false)))
-      .subscribe({
-        next: (project) => {
-          console.log('Project updated:', project);
-          this.closeUpdateModal();
-          this.fetchProjects();
-          this.flashMessageService.showSuccess(
-            `Project "${project.name}" has been updated successfully`
-          );
-        },
-        error: (error) => {
-          console.error('Error updating project:', error);
-          this.formError = 'Failed to update project. Please try again.';
-          this.flashMessageService.showError('Failed to update project');
-        },
-      });
+  private getFileIdFromUrl(url: string): string | null {
+    if (!url) return null;
+    
+    // Get the last part of the URL which should be the filename
+    const parts = url.split('/');
+    return parts[parts.length - 1] || null;
   }
+
+  /**
+   * Delete document from storage
+   */
+  private deleteDocument(url: string): Observable<boolean> {
+    if (!url) return of(true);
+    
+    const fileId = this.getFileIdFromUrl(url);
+    if (!fileId) return of(false);
+    
+    console.log(`Deleting document with ID: ${fileId}`);
+    return this.documentService.deleteDocument(fileId).pipe(
+      map(() => {
+        console.log(`Successfully deleted document: ${fileId}`);
+        return true;
+      }),
+      catchError(error => {
+        console.error(`Error deleting document ${fileId}:`, error);
+        return of(false);
+      })
+    );
+  }
+
+  /**
+ * Submit create project form
+ */
+submitCreateForm() {
+  // Double-check permissions
+  if (!this.canCreateProject()) {
+    this.flashMessageService.showError(
+      'You do not have permission to create projects'
+    );
+    this.closeCreateModal();
+    return;
+  }
+
+  if (this.createProjectForm.invalid) {
+    this.markFormGroupTouched(this.createProjectForm);
+    return;
+  }
+
+  this.formSubmitting = true;
+  this.formError = null;
+
+  // Step 1: Upload image if exists
+  const imageUpload$ = this.selectedImage ? 
+    this.uploadSingleFile(this.selectedImage) : 
+    of(null);
+  
+  // Step 2: Upload all documents if any
+  let documentUploads$: Observable<string[]> = of([]);
+  
+  if (this.selectedDocuments && this.selectedDocuments.length > 0) {
+    const documentObservables = this.selectedDocuments.map(doc => 
+      this.uploadSingleFile(doc)
+    );
+    
+    documentUploads$ = forkJoin(documentObservables).pipe(
+      map(results => results.filter(url => url !== null) as string[])
+    );
+  }
+
+  // Step 3: When all uploads are done, create the project with URLs
+  forkJoin({
+    imageUrl: imageUpload$,
+    documentUrls: documentUploads$
+  }).pipe(
+    mergeMap(results => {
+      console.log('All uploads completed. Image URL:', results.imageUrl);
+      console.log('Document URLs:', results.documentUrls);
+      
+      // Prepare data with document URLs instead of binary files
+      const formData = {
+        ...this.createProjectForm.value,
+        // Only include the URL if it exists
+        image: results.imageUrl || undefined,
+        // Only include document URLs if we have any
+        documents: results.documentUrls.length > 0 ? results.documentUrls : undefined
+      };
+
+      // Send project data with document URLs
+      return this.projectService.addProject(formData);
+    }),
+    finalize(() => this.formSubmitting = false)
+  ).subscribe({
+    next: (project) => {
+      console.log('Project created:', project);
+      this.closeCreateModal();
+      this.fetchProjects();
+      this.flashMessageService.showSuccess(
+        `Project "${project.name}" has been created successfully`
+      );
+    },
+    error: (error) => {
+      console.error('Error creating project:', error);
+      this.formError = 'Failed to create project. Please try again.';
+      this.flashMessageService.showError('Failed to create project');
+    }
+  });
+}
+
+ /**
+ * Submit update project form
+ */
+submitUpdateForm() {
+  if (!this.selectedProject) return;
+
+  // Double-check permissions
+  if (!this.canUpdateProject(this.selectedProject)) {
+    this.flashMessageService.showError(
+      'You do not have permission to update this project'
+    );
+    this.closeUpdateModal();
+    return;
+  }
+
+  if (this.updateProjectForm.invalid) {
+    this.markFormGroupTouched(this.updateProjectForm);
+    return;
+  }
+
+  this.formSubmitting = true;
+  this.formError = null;
+
+  // Step 1: Handle image changes
+  let imageUpload$: Observable<string | null>;
+
+  if (this.selectedImage) {
+    // If we have a new image and an existing image, delete old one first
+    if (this.selectedProject.image) {
+      imageUpload$ = this.deleteDocument(this.selectedProject.image).pipe(
+        // Fix null check issue
+        mergeMap(() => {
+          // We've already checked selectedImage isn't null
+          return this.uploadSingleFile(this.selectedImage!);
+        })
+      );
+    } else {
+      // Just upload the new image
+      imageUpload$ = this.uploadSingleFile(this.selectedImage);
+    }
+  } else {
+    // Keep existing image
+    imageUpload$ = of(this.selectedProject.image || null);
+  }
+
+  // Step 2: Handle document uploads
+  let documentUploads$: Observable<string[]>;
+  
+  if (this.selectedDocuments && this.selectedDocuments.length > 0) {
+    // Upload any new documents
+    const documentObservables = this.selectedDocuments.map(doc => 
+      this.uploadSingleFile(doc)
+    );
+    
+    documentUploads$ = forkJoin(documentObservables).pipe(
+      map(results => {
+        // Filter out failed uploads and combine with existing documents
+        const newDocuments = results.filter(url => url !== null) as string[];
+        // Include existing documents if they exist
+        return [...newDocuments, ...(this.selectedProject?.documents || [])];
+      })
+    );
+  } else {
+    // Keep existing documents
+    documentUploads$ = of(this.selectedProject.documents || []);
+  }
+
+  // Step 3: When all uploads are done, update the project with URLs
+  forkJoin({
+    imageUrl: imageUpload$,
+    documentUrls: documentUploads$
+  }).pipe(
+    mergeMap(results => {
+      console.log('All uploads completed for update. Image URL:', results.imageUrl);
+      console.log('Document URLs for update:', results.documentUrls);
+      
+      // Prepare data with document URLs instead of binary files
+      const formData = {
+        ...this.updateProjectForm.value,
+        // Only include the URL if it exists
+        image: results.imageUrl || undefined,
+        // Only include document URLs if we have any
+        documents: results.documentUrls.length > 0 ? results.documentUrls : undefined
+      };
+
+      // Send project data with document URLs
+      return this.projectService.updateProject(this.selectedProject!.id, formData);
+    }),
+    finalize(() => this.formSubmitting = false)
+  ).subscribe({
+    next: (project) => {
+      console.log('Project updated:', project);
+      this.closeUpdateModal();
+      this.fetchProjects();
+      this.flashMessageService.showSuccess(
+        `Project "${project.name}" has been updated successfully`
+      );
+    },
+    error: (error) => {
+      console.error('Error updating project:', error);
+      this.formError = 'Failed to update project. Please try again.';
+      this.flashMessageService.showError('Failed to update project');
+    }
+  });
+}
 
   /**
    * Mark all form controls as touched to trigger validation
