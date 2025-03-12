@@ -37,7 +37,9 @@ export class DocumentService {
    * @returns A 6-character hex string (e.g., "3f4a9c")
    */
   private generateHexCode(): string {
-    return Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    return Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, '0');
   }
 
   /**
@@ -48,12 +50,12 @@ export class DocumentService {
   private createUniqueFilename(originalName: string): string {
     const hexCode = this.generateHexCode();
     const lastDotIndex = originalName.lastIndexOf('.');
-    
+
     if (lastDotIndex === -1) {
       // No extension
       return `${originalName}_${hexCode}`;
     }
-    
+
     const nameWithoutExtension = originalName.substring(0, lastDotIndex);
     const extension = originalName.substring(lastDotIndex);
     return `${nameWithoutExtension}_${hexCode}${extension}`;
@@ -98,26 +100,26 @@ export class DocumentService {
   createDocument(file: File): Observable<DocumentResponse> {
     // Create a unique filename
     const uniqueFilename = this.createUniqueFilename(file.name);
-    
+
     // Create a new File object with the unique name
-    const uniqueFile = new File([file], uniqueFilename, { 
+    const uniqueFile = new File([file], uniqueFilename, {
       type: file.type,
-      lastModified: file.lastModified 
+      lastModified: file.lastModified,
     });
-    
+
     const formData = new FormData();
     formData.append('file', uniqueFile);
 
     // Get auth headers
     const headers = this.getAuthHeaders();
-    
+
     console.log(`Uploading file with unique name: ${uniqueFilename}`);
 
     // Use the observe: 'response' configuration to get the HTTP status
     return this.http
-      .post<DocumentResponse>(this.baseUrl, formData, { 
+      .post<DocumentResponse>(this.baseUrl, formData, {
         headers,
-        observe: 'response'
+        observe: 'response',
       })
       .pipe(
         map((response) => {
@@ -162,34 +164,30 @@ export class DocumentService {
     if (file) {
       // If updating with a new file, make that filename unique too
       const uniqueFilename = this.createUniqueFilename(file.name);
-      const uniqueFile = new File([file], uniqueFilename, { 
+      const uniqueFile = new File([file], uniqueFilename, {
         type: file.type,
-        lastModified: file.lastModified 
+        lastModified: file.lastModified,
       });
       formData.append('file', uniqueFile);
-      
+
       // If no new name was explicitly provided, use the unique filename
       if (!newName) {
         formData.append('newName', uniqueFilename);
       }
     }
-    
+
     if (newName) {
       // If a new name was provided, make it unique
       const uniqueNewName = this.createUniqueFilename(newName);
       formData.append('newName', uniqueNewName);
     }
-    
+
     // Get auth headers
     const headers = this.getAuthHeaders();
 
-    return this.http.put<DocumentResponse>(
-      `${this.baseUrl}/${fileId}`,
-      formData,
-      { headers }
-    ).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .put<DocumentResponse>(`${this.baseUrl}/${fileId}`, formData, { headers })
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -201,12 +199,9 @@ export class DocumentService {
     // Get auth headers
     const headers = this.getAuthHeaders();
 
-    return this.http.delete<{ message: string }>(
-      `${this.baseUrl}/${fileId}`,
-      { headers }
-    ).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .delete<{ message: string }>(`${this.baseUrl}/${fileId}`, { headers })
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -226,19 +221,16 @@ export class DocumentService {
     if (pageToken) {
       params = params.set('pageToken', pageToken);
     }
-    
+
     // Get auth headers
     const headers = this.getAuthHeaders();
 
-    return this.http.get<ListDocumentsResponse>(
-      this.baseUrl, 
-      { 
+    return this.http
+      .get<ListDocumentsResponse>(this.baseUrl, {
         headers,
-        params 
-      }
-    ).pipe(
-      catchError(this.handleError)
-    );
+        params,
+      })
+      .pipe(catchError(this.handleError));
   }
 
   /**
@@ -250,11 +242,8 @@ export class DocumentService {
     // Get auth headers
     const headers = this.getAuthHeaders();
 
-    return this.http.get<DocumentResponse>(
-      `${this.baseUrl}/${fileId}`,
-      { headers }
-    ).pipe(
-      catchError(this.handleError)
-    );
+    return this.http
+      .get<DocumentResponse>(`${this.baseUrl}/${fileId}`, { headers })
+      .pipe(catchError(this.handleError));
   }
 }

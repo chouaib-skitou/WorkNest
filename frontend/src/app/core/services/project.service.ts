@@ -135,62 +135,62 @@ export class ProjectService {
   }
 
   /**
- * Create a new project.
- * @param projectData - The project data to be created.
- * @returns {Observable<Project>} - Returns the created project.
- */
-addProject(
-  projectData: Partial<Project> | ProjectCreateUpdate
-): Observable<Project> {
-  const accessToken = localStorage.getItem('accessToken');
-  const headers = new HttpHeaders({
-    Authorization: `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-  });
+   * Create a new project.
+   * @param projectData - The project data to be created.
+   * @returns {Observable<Project>} - Returns the created project.
+   */
+  addProject(
+    projectData: Partial<Project> | ProjectCreateUpdate
+  ): Observable<Project> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
 
-  // Format the date properly if it exists
-  const formattedData = { ...projectData };
-  if ('dueDate' in formattedData && formattedData.dueDate) {
-    formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
+    // Format the date properly if it exists
+    const formattedData = { ...projectData };
+    if ('dueDate' in formattedData && formattedData.dueDate) {
+      formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
+    }
+
+    // Send JSON data - we only use string URLs now, no File objects
+    return this.http.post<Project>(
+      `${this.projectServiceUrl}/projects`,
+      formattedData,
+      { headers }
+    );
   }
-
-  // Send JSON data - we only use string URLs now, no File objects
-  return this.http.post<Project>(
-    `${this.projectServiceUrl}/projects`,
-    formattedData,
-    { headers }
-  );
-}
 
   /**
- * Update an existing project.
- * @param projectId - The ID of the project to update.
- * @param projectData - The updated project data.
- * @returns {Observable<Project>} - Returns the updated project.
- */
-updateProject(
-  projectId: string,
-  projectData: Partial<Project> | ProjectCreateUpdate
-): Observable<Project> {
-  const accessToken = localStorage.getItem('accessToken');
-  const headers = new HttpHeaders({
-    Authorization: `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-  });
+   * Update an existing project.
+   * @param projectId - The ID of the project to update.
+   * @param projectData - The updated project data.
+   * @returns {Observable<Project>} - Returns the updated project.
+   */
+  updateProject(
+    projectId: string,
+    projectData: Partial<Project> | ProjectCreateUpdate
+  ): Observable<Project> {
+    const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
 
-  // Format the date properly if it exists
-  const formattedData = { ...projectData };
-  if ('dueDate' in formattedData && formattedData.dueDate) {
-    formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
+    // Format the date properly if it exists
+    const formattedData = { ...projectData };
+    if ('dueDate' in formattedData && formattedData.dueDate) {
+      formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
+    }
+
+    // Send JSON data - we only use string URLs now, no File objects
+    return this.http.put<Project>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      formattedData,
+      { headers }
+    );
   }
-
-  // Send JSON data - we only use string URLs now, no File objects
-  return this.http.put<Project>(
-    `${this.projectServiceUrl}/projects/${projectId}`,
-    formattedData,
-    { headers }
-  );
-}
 
   /**
    * Partially update an existing project.
