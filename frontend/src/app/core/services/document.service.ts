@@ -6,6 +6,7 @@ import {
 } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 // Interfaces for responses
 export interface DocumentData {
@@ -31,7 +32,7 @@ export interface ListDocumentsResponse {
   providedIn: 'root',
 })
 export class DocumentService {
-  private baseUrl = 'http://localhost:5002/api/documents';
+  private baseUrl = environment.storageServiceUrl;
 
   constructor(private http: HttpClient) {}
 

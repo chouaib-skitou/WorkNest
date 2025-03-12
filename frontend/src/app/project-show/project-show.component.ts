@@ -14,6 +14,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   CdkDragDrop,
   moveItemInArray,
@@ -794,7 +795,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             return imageUrl; // Fallback à l'URL originale
           }
         }),
-        catchError((error: any) => {
+        catchError((error: unknown) => {
           console.error('Error uploading task image:', error);
           return of(null);
         })
@@ -927,15 +928,16 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
               this.reloadStageTasks(stageId);
               this.formSubmitting = false;
             },
-            error: (error: any) => {
+            error: (error: HttpErrorResponse) => {
               console.error('Error creating task:', error);
               this.formError = 'Failed to create task. Please try again.';
-              this.flashMessageService.showError('Failed to create task: ' + (error.error?.message || error.message));
+              this.flashMessageService.showError('Failed to create task: ' + 
+                (error.error?.message || error.statusText || 'Unknown error'));
               this.formSubmitting = false;
             }
           });
         },
-        error: (error: any) => {
+        error: (error: unknown) => {
           console.error('Error uploading task images:', error);
           this.formError = 'Failed to upload task images. Please try again.';
           this.flashMessageService.showError('Failed to upload task images');
@@ -965,10 +967,11 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           this.reloadStageTasks(stageId);
           this.formSubmitting = false;
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           console.error('Error creating task:', error);
           this.formError = 'Failed to create task. Please try again.';
-          this.flashMessageService.showError('Failed to create task: ' + (error.error?.message || error.message));
+          this.flashMessageService.showError('Failed to create task: ' + 
+            (error.error?.message || error.statusText || 'Unknown error'));
           this.formSubmitting = false;
         }
       });
@@ -1080,7 +1083,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
               
               this.formSubmitting = false;
             },
-            error: (error: any) => {
+            error: (error: HttpErrorResponse) => {
               console.error('Error updating task:', error);
               this.formError = 'Failed to update task. Please try again.';
               this.flashMessageService.showError('Failed to update task: ' + (error.error?.message || error.message));
@@ -1088,7 +1091,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
             }
           });
         },
-        error: (error: any) => {
+        error: (error: unknown) => {
           console.error('Error uploading task images:', error);
           this.formError = 'Failed to upload task images. Please try again.';
           this.flashMessageService.showError('Failed to upload task images');
@@ -1130,7 +1133,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
           
           this.formSubmitting = false;
         },
-        error: (error: any) => {
+        error: (error: HttpErrorResponse) => {
           console.error('Error updating task:', error);
           this.formError = 'Failed to update task. Please try again.';
           this.flashMessageService.showError('Failed to update task: ' + (error.error?.message || error.message));
