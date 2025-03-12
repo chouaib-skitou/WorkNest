@@ -1,7 +1,7 @@
-// routes/storage.routes.js
 import express from "express";
 import multer from "multer";
 import { StorageController } from "../controllers/storage.controller.js";
+import { authMiddleware } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
@@ -20,6 +20,8 @@ const upload = multer({ dest: "uploads/" });
  *     summary: Upload a new document
  *     description: Uploads a document to the storage service.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -35,10 +37,14 @@ const upload = multer({ dest: "uploads/" });
  *         description: Document uploaded successfully.
  *       400:
  *         description: No file uploaded.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to upload document.
  */
-router.post("/documents", upload.single("file"), StorageController.upload);
+router.post("/documents", authMiddleware, upload.single("file"), StorageController.upload);
 
 /**
  * @swagger
@@ -47,6 +53,8 @@ router.post("/documents", upload.single("file"), StorageController.upload);
  *     summary: List documents
  *     description: Returns a list of documents stored in the service.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: query
  *         name: pageSize
@@ -61,21 +69,27 @@ router.post("/documents", upload.single("file"), StorageController.upload);
  *     responses:
  *       200:
  *         description: A list of documents.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to list documents.
  */
-router.get("/documents", StorageController.list);
+router.get("/documents", authMiddleware, StorageController.list);
 
 /**
  * @swagger
- * /api/documents/{fileId}:
+ * /api/documents/{id}:
  *   get:
  *     summary: Get document metadata
  *     description: Retrieves metadata for a specific document by its ID.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: fileId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -83,21 +97,27 @@ router.get("/documents", StorageController.list);
  *     responses:
  *       200:
  *         description: Document metadata retrieved successfully.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to retrieve document metadata.
  */
-router.get("/documents/:fileId", StorageController.get);
+router.get("/documents/:id", authMiddleware, StorageController.get);
 
 /**
  * @swagger
- * /api/documents/{fileId}:
+ * /api/documents/{id}:
  *   put:
  *     summary: Update a document
  *     description: Updates the document content and/or metadata. Provide a new file for content or a newName for metadata update.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: fileId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -117,25 +137,32 @@ router.get("/documents/:fileId", StorageController.get);
  *     responses:
  *       200:
  *         description: Document updated successfully.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to update document.
  */
 router.put(
-  "/documents/:fileId",
+  "/documents/:id",
+  authMiddleware,
   upload.single("file"),
   StorageController.update
 );
 
 /**
  * @swagger
- * /api/documents/{fileId}:
+ * /api/documents/{id}:
  *   patch:
  *     summary: Partially update a document
  *     description: Updates parts of a document (e.g., metadata) without replacing the entire file.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: fileId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -155,25 +182,32 @@ router.put(
  *     responses:
  *       200:
  *         description: Document updated successfully.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to update document.
  */
 router.patch(
-  "/documents/:fileId",
+  "/documents/:id",
+  authMiddleware,
   upload.single("file"),
   StorageController.update
 );
 
 /**
  * @swagger
- * /api/documents/{fileId}:
+ * /api/documents/{id}:
  *   delete:
  *     summary: Delete a document
  *     description: Deletes a document from the storage service.
  *     tags: [Storage]
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
  *       - in: path
- *         name: fileId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -181,9 +215,13 @@ router.patch(
  *     responses:
  *       200:
  *         description: Document deleted successfully.
+ *       401:
+ *         description: Unauthorized - Invalid or missing token.
+ *       403:
+ *         description: Forbidden - User doesn't have permissions.
  *       500:
  *         description: Failed to delete document.
  */
-router.delete("/documents/:fileId", StorageController.delete);
+router.delete("/documents/:id", authMiddleware, StorageController.delete);
 
 export default router;

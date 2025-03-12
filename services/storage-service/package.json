@@ -26,6 +26,7 @@
   "dependencies": {
     "@babel/runtime": "^7.26.10",
     "aws-sdk": "^2.1692.0",
+    "axios": "^1.8.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
