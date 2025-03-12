@@ -6,8 +6,8 @@ dotenv.config();
 
 // Separate ENV variables
 const INTERNAL_ENDPOINT = process.env.MINIO_INTERNAL_ENDPOINT; // e.g. "http://minio:9000"
-const PUBLIC_URL = process.env.MINIO_PUBLIC_URL;              // e.g. "http://localhost:9000"
-const BUCKET = process.env.MINIO_BUCKET;                      // e.g. "worknest-bucket"
+const PUBLIC_URL = process.env.MINIO_PUBLIC_URL; // e.g. "http://localhost:9000"
+const BUCKET = process.env.MINIO_BUCKET; // e.g. "worknest-bucket"
 
 // Configure AWS SDK for S3 to work with MinIO internally
 const s3 = new AWS.S3({
@@ -77,6 +77,7 @@ export const updateDocument = async (fileId, file, newName) => {
       ContentType: file.mimetype,
     };
 
+    // eslint-disable-next-line no-unused-vars
     const data = await s3.upload(params).promise();
 
     if (newName && newName !== fileId) {
@@ -171,7 +172,7 @@ export const getDocument = async (fileId) => {
     data: {
       id: fileId,
       name: fileId,
-      location: getPublicLink(fileId),  // includes bucket
+      location: getPublicLink(fileId), // includes bucket
       ...data,
     },
   };

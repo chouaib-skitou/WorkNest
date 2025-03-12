@@ -164,7 +164,7 @@ describe("Storage Controller", () => {
       const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
 
       await StorageController.update(mockRequest, mockResponse);
-      
+
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith({
         error: "Failed to update document",
