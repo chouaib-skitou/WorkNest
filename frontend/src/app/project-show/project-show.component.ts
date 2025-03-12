@@ -20,7 +20,6 @@ import {
   transferArrayItem,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
-import type { HttpErrorResponse } from '@angular/common/http';
 import {
   ProjectService,
   Project,
@@ -41,7 +40,7 @@ import { FlashMessageService } from '../core/services/flash-message.service';
 import { FlashMessagesComponent } from '../shared/components/flash-messages/flash-messages.component';
 import { UserService, User } from '../core/services/user.service';
 import { TaskFilterPipe } from '../core/pipes/task-filter.pipe';
-import { finalize, forkJoin } from 'rxjs';
+import { Observable, map, finalize, forkJoin,catchError,throwError, of  } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
 import {
   DocumentService,
@@ -97,6 +96,8 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   showCreateTaskModal = false;
   showEditTaskModal = false;
   showDeleteTaskModal = false;
+  showViewTaskModal = false;
+  viewTaskImagePreviews: string[] = [];
 
   createStageForm: FormGroup;
   editStageForm: FormGroup;
@@ -138,6 +139,10 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   selectedFile: File | null = null;
   showDeleteDocumentModal = false;
   selectedDocument: string | null = null;
+
+  showEditProjectImageModal = false;
+  editProjectImageForm: FormGroup;
+  selectedProjectImage: File | null = null;
 
   employeeSearchQuery = '';
   filteredEmployees: ProjectUser[] = [];
@@ -185,6 +190,9 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.editTaskForm = this.createTaskFormGroup();
     this.addDocumentForm = this.fb.group({
       file: ['', Validators.required],
+    });
+    this.editProjectImageForm = this.fb.group({
+      projectImage: ['', Validators.required]
     });
   }
 
@@ -511,8 +519,32 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
   onTaskImagesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedTaskImages = Array.from(input.files);
-
+      // Filtrer les fichiers pour s'assurer que ce sont des images
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5 MB
+      
+      const validFiles = Array.from(input.files).filter(file => {
+        // Vérifier le type de fichier
+        if (!allowedTypes.includes(file.type)) {
+          this.flashMessageService.showError(`File "${file.name}" is not a valid image type`);
+          return false;
+        }
+        
+        // Vérifier la taille du fichier
+        if (file.size > maxSizeInBytes) {
+          this.flashMessageService.showError(`File "${file.name}" exceeds the maximum size of 5MB`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      this.selectedTaskImages = validFiles;
+      
+      // Reset the file input value to allow selecting the same file again if needed
+      input.value = '';
+  
+      // Générer des aperçus pour les images valides
       this.taskImagePreviews = [];
       this.selectedTaskImages.forEach((file) => {
         const reader = new FileReader();
@@ -734,6 +766,50 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       });
   }
 
+  uploadTaskImages(images: File[]): Observable<string[]> {
+    if (images.length === 0) {
+      return of([]);
+    }
+  
+    console.log(`Uploading ${images.length} task images...`);
+  
+    // Créer un tableau d'observables pour chaque téléchargement d'image
+    const uploadObservables = images.map(image => 
+      this.documentService.createDocument(image).pipe(
+        map((response: DocumentResponse) => {
+          const imageUrl = response.data?.location;
+          if (!imageUrl) {
+            console.error('Image upload succeeded but URL was not provided', response);
+            throw new Error('Image upload succeeded but URL was not provided');
+          }
+          
+          console.log('Image uploaded successfully, raw URL:', imageUrl);
+          
+          // S'assurer que l'URL est correctement formatée
+          try {
+            // Retourner l'URL complète sans modification
+            return imageUrl;
+          } catch (error) {
+            console.error('Error processing image URL:', error);
+            return imageUrl; // Fallback à l'URL originale
+          }
+        }),
+        catchError((error: any) => {
+          console.error('Error uploading task image:', error);
+          return of(null);
+        })
+      )
+    );
+  
+    return forkJoin(uploadObservables).pipe(
+      map((urls: (string | null)[]) => {
+        const validUrls = urls.filter(url => url !== null) as string[];
+        console.log('All task images uploaded successfully, final URLs:', validUrls);
+        return validUrls;
+      })
+    );
+  }
+
   openCreateTaskModal(columnId?: string): void {
     if (!this.canManageStagesAndTasks()) {
       this.flashMessageService.showError(
@@ -762,50 +838,143 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
     this.showCreateTaskModal = false;
   }
 
+  openViewTaskModal(task: Task): void {
+    console.log('Opening view task modal for task:', task);
+    this.selectedTask = task;
+    this.viewTaskImagePreviews = [];
+    
+    if (task.images && task.images.length > 0) {
+      this.viewTaskImagePreviews = task.images;
+    }
+    
+    this.showViewTaskModal = true;
+  }
+
+  closeViewTaskModal(): void {
+    console.log('Closing view task modal');
+    this.showViewTaskModal = false;
+    this.selectedTask = null;
+    this.viewTaskImagePreviews = [];
+  }
+
+  switchToEditTask(): void {
+    console.log('Switching from view to edit mode for task:', this.selectedTask);
+    // Close view modal and open edit modal for the same task
+    const taskToEdit = this.selectedTask;
+    this.closeViewTaskModal();
+    
+    if (taskToEdit) {
+      setTimeout(() => {
+        this.openEditTaskModal(taskToEdit);
+      }, 100);
+    }
+  }
+
+  getStageNameById(stageId: string | undefined): string {
+    if (!stageId) return 'Unknown';
+    
+    const stage = this.columns.find(col => col.id === stageId);
+    return stage ? stage.name : 'Unknown';
+  }
+
   submitCreateTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError(
-        'You do not have permission to create tasks'
-      );
+      this.flashMessageService.showError('You do not have permission to create tasks');
       this.closeCreateTaskModal();
       return;
     }
-
+  
     if (this.createTaskForm.invalid) {
       this.markFormGroupTouched(this.createTaskForm);
       return;
     }
-
+  
     this.formSubmitting = true;
     this.formError = null;
-
-    const taskData: TaskCreateUpdate = {
-      ...this.createTaskForm.value,
-      projectId: this.projectId,
-      images:
-        this.selectedTaskImages.length > 0
-          ? this.selectedTaskImages
-          : undefined,
-    };
-
-    const stageId = taskData.stageId;
-
-    this.taskService
-      .createTask(taskData)
-      .pipe(finalize(() => (this.formSubmitting = false)))
-      .subscribe({
-        next: () => {
+  
+    // Récupérer les valeurs du formulaire
+    const formValues = this.createTaskForm.value;
+    const stageId = formValues.stageId;
+  
+    // Si nous avons des images à télécharger
+    if (this.selectedTaskImages.length > 0) {
+      console.log('Starting upload of task images before creating task');
+      
+      this.uploadTaskImages(this.selectedTaskImages).subscribe({
+        next: (imageUrls: string[]) => {
+          console.log('Creating task with uploaded images:', imageUrls);
+          
+          // Définir un type explicite pour éviter l'erreur TypeScript
+          const taskData: TaskCreateUpdate = {
+            title: formValues.title,
+            description: formValues.description || '',
+            priority: formValues.priority,
+            stageId: formValues.stageId,
+            projectId: this.projectId,
+            assignedTo: formValues.assignedTo || undefined,
+            type: formValues.type || undefined,
+            estimate: formValues.estimate || 0,
+            images: imageUrls // Tableau d'URLs d'images
+          };
+          
+          console.log('Sending task creation request with data:', taskData);
+          
+          this.taskService.createTask(taskData).subscribe({
+            next: (response) => {
+              console.log('Task created successfully:', response);
+              this.closeCreateTaskModal();
+              this.flashMessageService.showSuccess('Task created successfully');
+              this.reloadStageTasks(stageId);
+              this.formSubmitting = false;
+            },
+            error: (error: any) => {
+              console.error('Error creating task:', error);
+              this.formError = 'Failed to create task. Please try again.';
+              this.flashMessageService.showError('Failed to create task: ' + (error.error?.message || error.message));
+              this.formSubmitting = false;
+            }
+          });
+        },
+        error: (error: any) => {
+          console.error('Error uploading task images:', error);
+          this.formError = 'Failed to upload task images. Please try again.';
+          this.flashMessageService.showError('Failed to upload task images');
+          this.formSubmitting = false;
+        }
+      });
+    } else {
+      // Définir un type explicite pour éviter l'erreur TypeScript
+      const taskData: TaskCreateUpdate = {
+        title: formValues.title,
+        description: formValues.description || '',
+        priority: formValues.priority,
+        stageId: formValues.stageId,
+        projectId: this.projectId,
+        assignedTo: formValues.assignedTo || undefined,
+        type: formValues.type || undefined,
+        estimate: formValues.estimate || 0
+      };
+      
+      console.log('Creating task without images:', taskData);
+      
+      this.taskService.createTask(taskData).subscribe({
+        next: (response) => {
+          console.log('Task created successfully:', response);
           this.closeCreateTaskModal();
           this.flashMessageService.showSuccess('Task created successfully');
           this.reloadStageTasks(stageId);
+          this.formSubmitting = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error creating task:', error);
           this.formError = 'Failed to create task. Please try again.';
-          this.flashMessageService.showError('Failed to create task');
-        },
+          this.flashMessageService.showError('Failed to create task: ' + (error.error?.message || error.message));
+          this.formSubmitting = false;
+        }
       });
+    }
   }
+  
 
   openEditTaskModal(task: Task): void {
     if (!this.canManageStagesAndTasks()) {
@@ -856,54 +1025,119 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
   submitEditTaskForm(): void {
     if (!this.canManageStagesAndTasks()) {
-      this.flashMessageService.showError(
-        'You do not have permission to edit tasks'
-      );
+      this.flashMessageService.showError('You do not have permission to edit tasks');
       this.closeEditTaskModal();
       return;
     }
-
+  
     if (!this.selectedTask || this.editTaskForm.invalid) {
       this.markFormGroupTouched(this.editTaskForm);
       return;
     }
-
+  
     this.formSubmitting = true;
     this.formError = null;
-
+  
+    const formValues = this.editTaskForm.value;
     const oldStageId = this.selectedTask.stageId;
-    const newStageId = this.editTaskForm.value.stageId;
-
-    const taskData: TaskCreateUpdate = {
-      ...this.editTaskForm.value,
-      projectId: this.projectId,
-      images:
-        this.selectedTaskImages.length > 0
-          ? this.selectedTaskImages
-          : undefined,
-    };
-
-    this.taskService
-      .updateTask(this.selectedTask.id, taskData)
-      .pipe(finalize(() => (this.formSubmitting = false)))
-      .subscribe({
-        next: () => {
+    const newStageId = formValues.stageId;
+  
+    // Si nous avons de nouvelles images à télécharger
+    if (this.selectedTaskImages.length > 0) {
+      console.log('Starting upload of task images before updating task');
+      
+      this.uploadTaskImages(this.selectedTaskImages).subscribe({
+        next: (newImageUrls: string[]) => {
+          console.log('Updating task with uploaded images:', newImageUrls);
+          
+          // Définir un type explicite pour éviter l'erreur TypeScript
+          const taskData: TaskCreateUpdate = {
+            title: formValues.title,
+            description: formValues.description || '',
+            priority: formValues.priority,
+            stageId: formValues.stageId,
+            projectId: this.projectId,
+            assignedTo: formValues.assignedTo || undefined,
+            type: formValues.type || undefined,
+            estimate: formValues.estimate || 0,
+            images: newImageUrls // Nouvelles images
+          };
+          
+          console.log('Sending task update request with data:', taskData);
+          
+          this.taskService.updateTask(this.selectedTask!.id, taskData).subscribe({
+            next: (response) => {
+              console.log('Task updated successfully:', response);
+              this.closeEditTaskModal();
+              this.flashMessageService.showSuccess('Task updated successfully');
+              
+              if (oldStageId !== newStageId) {
+                this.reloadStageTasks(oldStageId);
+                this.reloadStageTasks(newStageId);
+              } else {
+                this.reloadStageTasks(newStageId);
+              }
+              
+              this.formSubmitting = false;
+            },
+            error: (error: any) => {
+              console.error('Error updating task:', error);
+              this.formError = 'Failed to update task. Please try again.';
+              this.flashMessageService.showError('Failed to update task: ' + (error.error?.message || error.message));
+              this.formSubmitting = false;
+            }
+          });
+        },
+        error: (error: any) => {
+          console.error('Error uploading task images:', error);
+          this.formError = 'Failed to upload task images. Please try again.';
+          this.flashMessageService.showError('Failed to upload task images');
+          this.formSubmitting = false;
+        }
+      });
+    } else {
+      // Définir un type explicite pour éviter l'erreur TypeScript
+      const taskData: TaskCreateUpdate = {
+        title: formValues.title,
+        description: formValues.description || '',
+        priority: formValues.priority,
+        stageId: formValues.stageId,
+        projectId: this.projectId,
+        assignedTo: formValues.assignedTo || undefined,
+        type: formValues.type || undefined,
+        estimate: formValues.estimate || 0
+      };
+      
+      // Ajouter les images existantes si présentes
+      if (this.selectedTask.images && this.selectedTask.images.length > 0) {
+        taskData.images = this.selectedTask.images;
+      }
+      
+      console.log('Updating task with existing images:', taskData);
+      
+      this.taskService.updateTask(this.selectedTask.id, taskData).subscribe({
+        next: (response) => {
+          console.log('Task updated successfully:', response);
           this.closeEditTaskModal();
           this.flashMessageService.showSuccess('Task updated successfully');
-
+          
           if (oldStageId !== newStageId) {
             this.reloadStageTasks(oldStageId);
             this.reloadStageTasks(newStageId);
           } else {
             this.reloadStageTasks(newStageId);
           }
+          
+          this.formSubmitting = false;
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error updating task:', error);
           this.formError = 'Failed to update task. Please try again.';
-          this.flashMessageService.showError('Failed to update task');
-        },
+          this.flashMessageService.showError('Failed to update task: ' + (error.error?.message || error.message));
+          this.formSubmitting = false;
+        }
       });
+    }
   }
 
   openDeleteTaskModal(task: Task): void {
@@ -1298,48 +1532,73 @@ goToDocumentPage(page: number | string): void {
     
     // Extraire l'ID du document (nom du fichier) de l'URL
     const documentId = this.getDocumentIdFromUrl(this.selectedDocument);
+    const documentToDelete = this.selectedDocument; // Stockage local pour éviter des problèmes de référence
+    
+    console.log('Deleting document:', documentId);
     
     // 1. Supprimer le document du storage via le service document
-    this.documentService.deleteDocument(documentId).subscribe({
-      next: () => {
-        // 2. Supprimer l'URL du document de la liste des documents du projet
-        if (this.project && this.project.documents) {
-          const updatedDocuments = this.project.documents.filter(
-            doc => doc !== this.selectedDocument
-          );
+    this.documentService.deleteDocument(documentId)
+      .pipe(
+        catchError(error => {
+          // Gérer spécifiquement l'erreur 404 (fichier déjà supprimé)
+          console.warn('Error deleting document from storage:', error);
           
-          // 3. Mettre à jour le projet avec la nouvelle liste de documents
-          this.projectService.partialUpdateProject(this.projectId, {
-            documents: updatedDocuments
-          }).subscribe({
-            next: (updatedProject) => {
-              this.closeDeleteDocumentModal();
-              this.flashMessageService.showSuccess('Document deleted successfully');
-              this.project = updatedProject;
-              this.formSubmitting = false;
-            },
-            error: (updateError) => {
-              console.error('Error updating project after document deletion:', updateError);
-              this.flashMessageService.showError(
-                'Document was deleted from storage but could not be removed from project'
-              );
-              this.formSubmitting = false;
-              this.closeDeleteDocumentModal();
-            }
-          });
-        } else {
-          this.closeDeleteDocumentModal();
-          this.flashMessageService.showSuccess('Document deleted successfully');
+          if (error.status === 404) {
+            // Si le document n'existe pas sur le serveur, on continue quand même
+            // pour le supprimer de la liste du projet
+            console.log('Document not found in storage, continuing with project update');
+            return of({ message: 'Document not found, continuing with project update' });
+          }
+          
+          // Pour d'autres erreurs, propager l'erreur pour arrêter le processus
+          return throwError(() => error);
+        })
+      )
+      .subscribe({
+        next: () => {
+          // 2. Supprimer l'URL du document de la liste des documents du projet
+          if (this.project && this.project.documents) {
+            const updatedDocuments = this.project.documents.filter(
+              doc => doc !== documentToDelete
+            );
+            
+            // 3. Mettre à jour le projet avec la nouvelle liste de documents
+            this.projectService.partialUpdateProject(this.projectId, {
+              documents: updatedDocuments
+            }).subscribe({
+              next: (updatedProject) => {
+                this.closeDeleteDocumentModal();
+                this.flashMessageService.showSuccess('Document deleted successfully');
+                this.project = updatedProject;
+                
+                // Recharger les documents paginés
+                this.filteredDocuments = updatedProject.documents || [];
+                this.updatePaginatedDocuments();
+                
+                this.formSubmitting = false;
+              },
+              error: (updateError) => {
+                console.error('Error updating project after document deletion:', updateError);
+                this.flashMessageService.showError(
+                  'Document was deleted from storage but could not be removed from project'
+                );
+                this.formSubmitting = false;
+                this.closeDeleteDocumentModal();
+              }
+            });
+          } else {
+            this.closeDeleteDocumentModal();
+            this.flashMessageService.showSuccess('Document deleted successfully');
+            this.formSubmitting = false;
+          }
+        },
+        error: (error) => {
+          console.error('Error deleting document:', error);
+          this.flashMessageService.showError('Failed to delete document: ' + (error.error?.message || error.message));
           this.formSubmitting = false;
+          this.closeDeleteDocumentModal();
         }
-      },
-      error: (error) => {
-        console.error('Error deleting document:', error);
-        this.flashMessageService.showError('Failed to delete document');
-        this.formSubmitting = false;
-        this.closeDeleteDocumentModal();
-      }
-    });
+      });
   }
 
   openAddDocumentModal(): void {
@@ -1443,4 +1702,118 @@ goToDocumentPage(page: number | string): void {
       }
     });
   }
+
+  // New methods for handling the edit image functionality
+openEditProjectImageModal(): void {
+  console.log('Opening edit project image modal');
+  this.showEditProjectImageModal = true;
+  this.editProjectImageForm.reset();
+  this.selectedProjectImage = null;
+}
+
+closeEditProjectImageModal(): void {
+  console.log('Closing edit project image modal');
+  this.showEditProjectImageModal = false;
+  this.selectedProjectImage = null;
+}
+
+onProjectImageSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    this.selectedProjectImage = input.files[0];
+    console.log('Project image selected:', this.selectedProjectImage.name);
+  }
+}
+
+submitEditProjectImage(): void {
+  if (!this.selectedProjectImage) {
+    return;
+  }
+  
+  // Stocker une référence locale à l'image pour éviter des problèmes de type
+  const imageFile = this.selectedProjectImage;
+  this.formSubmitting = true;
+  
+  // Étape préliminaire : supprimer l'image existante si elle existe
+  const deleteExistingImageIfNeeded = () => {
+    if (this.project && this.project.image) {
+      // Extraire le nom du fichier de l'URL de l'image existante
+      const oldImageId = this.getDocumentIdFromUrl(this.project.image);
+      
+      if (oldImageId) {
+        console.log('Deleting existing project image:', oldImageId);
+        
+        return this.documentService.deleteDocument(oldImageId).pipe(
+          catchError(error => {
+            // On continue même si la suppression échoue, juste logguer l'erreur
+            console.warn('Failed to delete old project image:', error);
+            return of(null); // Retourner un observable qui ne fait rien
+          })
+        );
+      }
+    }
+    
+    // Si pas d'image à supprimer, retourner un observable qui ne fait rien
+    return of(null);
+  };
+
+  // Chaîner les opérations : d'abord supprimer, puis télécharger
+  deleteExistingImageIfNeeded().subscribe({
+    next: () => {
+      // Utiliser la référence locale non-nullable
+      this.documentService.createDocument(imageFile).subscribe({
+        next: (response: DocumentResponse) => {
+          // Récupérer l'URL de l'image téléchargée
+          let imageUrl = response.data?.location;
+          
+          if (imageUrl && this.project) {
+            try {
+              // Formater correctement l'URL
+              const parsedUrl = new URL(imageUrl);
+              const pathSegments = parsedUrl.pathname.split('/').map(segment => 
+                segment !== '' ? encodeURIComponent(decodeURIComponent(segment)) : ''
+              );
+              parsedUrl.pathname = pathSegments.join('/');
+              imageUrl = parsedUrl.toString();
+              
+              // Mettre à jour l'image du projet
+              this.projectService.partialUpdateProject(this.projectId, {
+                image: imageUrl
+              }).subscribe({
+                next: (updatedProject) => {
+                  this.closeEditProjectImageModal();
+                  this.project = updatedProject;
+                  this.projectImage = updatedProject.image || null;
+                  this.flashMessageService.showSuccess('Project image updated successfully');
+                  this.formSubmitting = false;
+                },
+                error: (updateError) => {
+                  console.error('Error updating project image:', updateError);
+                  this.flashMessageService.showError('Image uploaded but could not be set as project image');
+                  this.formSubmitting = false;
+                  this.closeEditProjectImageModal();
+                }
+              });
+            } catch (error) {
+              console.error('Error processing image URL:', error);
+              this.flashMessageService.showError(`Invalid image URL format: ${imageUrl}`);
+              this.formSubmitting = false;
+              this.closeEditProjectImageModal();
+            }
+          } else {
+            this.closeEditProjectImageModal();
+            this.flashMessageService.showError('Image uploaded but location was not provided');
+            this.formSubmitting = false;
+          }
+        },
+        error: (error) => {
+          console.error('Error uploading project image:', error);
+          this.flashMessageService.showError('Failed to upload project image');
+          this.formSubmitting = false;
+          this.closeEditProjectImageModal();
+        }
+      });
+    }
+  });
+}
 }

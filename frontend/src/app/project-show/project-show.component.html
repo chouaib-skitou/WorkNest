@@ -17,6 +17,15 @@
           class="placeholder"
           [innerHTML]="placeholderSvg"
         ></div>
+        <!-- Added this button -->
+        <button 
+          *ngIf="canManageProject"
+          class="edit-image-button"
+          (click)="openEditProjectImageModal()"
+          title="Edit project image"
+        >
+          <i class="fas fa-camera"></i>
+        </button>
       </div>
     </div>
 
@@ -195,35 +204,40 @@
               (click)="openEditTaskModal(task)"
               (keydown.enter)="openEditTaskModal(task)"
             >
-              <div class="task-header">
-                <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
-                <div class="task-actions" *ngIf="canManageStagesAndTasks()">
-                  <button
-                    class="btn-icon-sm"
-                    (click)="openEditTaskModal(task); $event.stopPropagation()"
-                    (keydown.enter)="
-                      openEditTaskModal(task); $event.stopPropagation()
-                    "
-                    title="Edit Task"
-                    tabindex="0"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn-icon-sm"
-                    (click)="
-                      openDeleteTaskModal(task); $event.stopPropagation()
-                    "
-                    (keydown.enter)="
-                      openDeleteTaskModal(task); $event.stopPropagation()
-                    "
-                    title="Delete Task"
-                    tabindex="0"
-                  >
-                    <i class="fas fa-trash-alt"></i>
-                  </button>
-                </div>
+            <div class="task-header">
+              <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
+              <div class="task-actions">
+                <button
+                  class="btn-icon-sm"
+                  (click)="openViewTaskModal(task); $event.stopPropagation()"
+                  (keydown.enter)="openViewTaskModal(task); $event.stopPropagation()"
+                  title="View Task"
+                  tabindex="0"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button
+                  class="btn-icon-sm"
+                  *ngIf="canManageStagesAndTasks()"
+                  (click)="openEditTaskModal(task); $event.stopPropagation()"
+                  (keydown.enter)="openEditTaskModal(task); $event.stopPropagation()"
+                  title="Edit Task"
+                  tabindex="0"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  class="btn-icon-sm"
+                  *ngIf="canManageStagesAndTasks()"
+                  (click)="openDeleteTaskModal(task); $event.stopPropagation()"
+                  (keydown.enter)="openDeleteTaskModal(task); $event.stopPropagation()"
+                  title="Delete Task"
+                  tabindex="0"
+                >
+                  <i class="fas fa-trash-alt"></i>
+                </button>
               </div>
+            </div>
               <div class="task-title">{{ task.title }}</div>
               <div class="task-description" *ngIf="task.description">
                 {{ task.description | slice: 0 : 50
@@ -414,6 +428,7 @@
         <h2>Project Documents</h2>
         <button
           class="btn-primary add-document-btn"
+          *ngIf="canManageProject"
           (click)="openAddDocumentModal()"
         >
           <i class="fas fa-plus"></i> Add New Document
@@ -1372,6 +1387,163 @@
           ></i>
           <span *ngIf="formSubmitting">Deleting...</span>
           <span *ngIf="!formSubmitting">Delete Document</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New modal for editing project image -->
+<div class="modal" *ngIf="showEditProjectImageModal">
+  <div
+    class="modal-overlay"
+    (click)="closeEditProjectImageModal()"
+    (keydown.escape)="closeEditProjectImageModal()"
+    tabindex="0"
+    role="button"
+    aria-label="Close modal"
+  ></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Edit Project Image</h2>
+      <button class="close-button" (click)="closeEditProjectImageModal()">
+        &times;
+      </button>
+    </div>
+    <div class="modal-body">
+      <form [formGroup]="editProjectImageForm">
+        <div class="form-group">
+          <label for="projectImage">
+            Project Image <span class="required">*</span>
+          </label>
+          <div
+            class="file-upload"
+            (click)="projectImageInput.click()"
+            (keydown.enter)="projectImageInput.click()"
+            tabindex="0"
+            role="button"
+            aria-label="Upload project image"
+          >
+            <input
+              #projectImageInput
+              type="file"
+              id="projectImage"
+              accept="image/*"
+              (change)="onProjectImageSelected($event)"
+              style="display: none"
+            />
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p class="upload-text">
+              {{ selectedProjectImage ? selectedProjectImage.name : 'Click to upload project image' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            type="button"
+            class="cancel-button"
+            (click)="closeEditProjectImageModal()"
+          >
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button
+            type="button"
+            class="submit-button"
+            [disabled]="!selectedProjectImage"
+            (click)="submitEditProjectImage()"
+          >
+            <i class="fas fa-save"></i>
+            <span *ngIf="formSubmitting">Uploading...</span>
+            <span *ngIf="!formSubmitting">Update Image</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- View Task Modal -->
+<div class="modal" *ngIf="showViewTaskModal">
+  <div
+    class="modal-overlay"
+    (click)="closeViewTaskModal()"
+    (keydown.escape)="closeViewTaskModal()"
+    tabindex="0"
+    role="button"
+    aria-label="Close modal"
+  ></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Task Details</h2>
+      <button class="close-button" (click)="closeViewTaskModal()">
+        &times;
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="view-task-content">
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Title</h3>
+          <p class="task-detail-value">{{ selectedTask?.title }}</p>
+        </div>
+
+        <div class="task-detail-group" *ngIf="selectedTask?.description">
+          <h3 class="task-detail-label">Description</h3>
+          <p class="task-detail-value description">{{ selectedTask?.description }}</p>
+        </div>
+
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Stage</h3>
+          <p class="task-detail-value">{{ getStageNameById(selectedTask?.stageId) }}</p>
+        </div>
+
+      <div class="task-detail-group">
+        <h3 class="task-detail-label">Priority</h3>
+        <p class="task-detail-value">
+          <span class="task-priority" [ngClass]="selectedTask && selectedTask.priority ? getPriorityClass(selectedTask.priority) : ''">
+            {{ selectedTask && selectedTask.priority ? formatPriority(selectedTask.priority) : 'None' }}
+          </span>
+        </p>
+      </div>
+
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Assigned To</h3>
+          <p class="task-detail-value">{{ getAssignedUserName(selectedTask?.assignedTo) }}</p>
+        </div>
+
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Type</h3>
+          <p class="task-detail-value">{{ selectedTask?.type || 'Task' }}</p>
+        </div>
+
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Estimate (hours)</h3>
+          <p class="task-detail-value">{{ selectedTask?.estimate || 0 }}</p>
+        </div>
+
+        <div class="task-detail-group" *ngIf="viewTaskImagePreviews.length > 0">
+          <h3 class="task-detail-label">Images</h3>
+          <div class="task-images-gallery">
+            <div class="image-preview" *ngFor="let url of viewTaskImagePreviews">
+              <img [src]="url" alt="Task image" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="cancel-button" (click)="closeViewTaskModal()">
+          <i class="fas fa-times"></i> Close
+        </button>
+        <button 
+          *ngIf="canManageStagesAndTasks()"
+          type="button" 
+          class="submit-button" 
+          (click)="switchToEditTask()"
+        >
+          <i class="fas fa-edit"></i> Edit Task
         </button>
       </div>
     </div>
