@@ -1,7 +1,7 @@
 /**
  * @file tests/unit/services/storage.service.test.js
  */
-process.env.MINIO_BUCKET = "worknest-bucket";  // now the code returns "worknest-bucket"
+process.env.MINIO_BUCKET = "worknest-bucket"; // now the code returns "worknest-bucket"
 process.env.MINIO_INTERNAL_ENDPOINT = "http://localhost:9000";
 process.env.MINIO_PUBLIC_URL = "http://localhost:9000";
 process.env.MINIO_ACCESS_KEY = "test-key";
