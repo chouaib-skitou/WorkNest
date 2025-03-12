@@ -28,14 +28,14 @@ export const StorageController = {
 
   /**
    * Update an existing document.
-   * Expects fileId in req.params and optionally a new file or newName in req.body.
+   * Expects id in req.params and optionally a new file or newName in req.body.
    */
   async update(req, res) {
     try {
-      const { fileId } = req.params;
+      const { id } = req.params;
       const file = req.file; // optional new file content
       const newName = req.body.newName; // optional new name
-      const result = await updateDocument(fileId, file, newName);
+      const result = await updateDocument(id, file, newName);
       res.status(200).json(result);
     } catch (error) {
       console.error("Error updating document:", error);
@@ -45,12 +45,12 @@ export const StorageController = {
 
   /**
    * Delete a document.
-   * Expects fileId in req.params.
+   * Expects id in req.params.
    */
   async delete(req, res) {
     try {
-      const { fileId } = req.params;
-      const result = await deleteDocument(fileId);
+      const { id } = req.params;
+      const result = await deleteDocument(id);
       res.status(200).json(result);
     } catch (error) {
       console.error("Error deleting document:", error);
@@ -74,12 +74,12 @@ export const StorageController = {
 
   /**
    * Get metadata for a specific document.
-   * Expects fileId in req.params.
+   * Expects id in req.params.
    */
   async get(req, res) {
     try {
-      const { fileId } = req.params;
-      const result = await getDocument(fileId);
+      const { id } = req.params;
+      const result = await getDocument(id);
       res.status(200).json(result);
     } catch (error) {
       console.error("Error getting document:", error);
