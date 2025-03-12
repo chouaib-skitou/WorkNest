@@ -13,7 +13,6 @@ import {
   Project,
   Status,
   Priority,
-  ProjectCreateUpdate,
 } from '../core/services/project.service';
 import { UserService, User } from '../core/services/user.service';
 import { finalize, forkJoin, Observable, of } from 'rxjs';
