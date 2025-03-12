@@ -521,3 +521,57 @@ export const deleteProjectService = async (user, id) => {
     return Promise.reject({ status: 500, message: "Internal server error" });
   }
 };
+
+
+/**
+ * Retrieve the list of employees for a given project.
+ * This function checks role-based access, fetches the project to verify its existence and the user's authorization,
+ * then uses fetchUsersByIds to retrieve detailed user data for each employee ID in the project.
+ * 
+ * @param {Object} user - The user making the request (contains `id` and `role`).
+ * @param {string} projectId - The project ID.
+ * @param {string} token - The JWT token used to fetch user details.
+ * @returns {Promise<Array>} - Returns an array of enriched employees assigned to the project.
+ */
+export const getProjectEmployeesService = async (user, projectId, token) => {
+  // Combine role-based filter with the project ID
+  const where = { id: projectId, ...getRoleBasedFilter(user) };
+
+  // Retrieve the project to ensure it exists and that the user is authorized to view it
+  const project = await ProjectRepository.findUnique({
+    where,
+    select: { id: true, employeeIds: true },
+  });
+
+  if (!project) {
+    // If project exists but user does not have access
+    const existingProject = await ProjectRepository.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
+    if (existingProject) {
+      return Promise.reject({
+        status: 403,
+        message: "Access denied: You do not have permission to view this project's employees",
+      });
+    } else {
+      return Promise.reject({ status: 404, message: "Project not found" });
+    }
+  }
+
+  // If there are no employees in this project, return an empty array
+  if (!project.employeeIds || project.employeeIds.length === 0) {
+    return [];
+  }
+
+  // Use fetchUsersByIds to enrich the list of employees
+  const usersMap = await fetchUsersByIds(project.employeeIds, token);
+
+  // Build an array of enriched employees
+  const enrichedEmployees = project.employeeIds.map(
+    (empId) => usersMap[empId] || { id: empId }
+  );
+
+  return enrichedEmployees;
+};
+

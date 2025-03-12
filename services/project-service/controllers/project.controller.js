@@ -9,6 +9,7 @@ import {
   updateProjectValidation,
   patchProjectValidation,
   deleteProjectValidation,
+  getEmployeesValidation,
 } from "../validators/project.validator.js";
 import {
   getProjectsService,
@@ -17,6 +18,7 @@ import {
   updateProjectService,
   patchProjectService,
   deleteProjectService,
+  getProjectEmployeesService,
 } from "../services/project.service.js";
 
 /**
@@ -152,4 +154,26 @@ export const deleteProject = [
       res.status(statusCode).json({ error: error.message });
     }
   },
+];
+
+
+/**
+ * Get the list of employees in a project.
+ * @route GET /api/projects/:id/employees
+ * @access Protected
+ */
+export const getProjectEmployees = [
+  getEmployeesValidation,
+  async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const employees = await getProjectEmployeesService(req.user, req.params.id, token);
+
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error("Error fetching project employees:", error);
+    const statusCode = error.status || 500;
+    res.status(statusCode).json({ error: error.message });
+  }
+},
 ];
