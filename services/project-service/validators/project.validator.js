@@ -18,7 +18,16 @@ export const createProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
+    body("image")
+    .optional()
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()
@@ -109,7 +118,16 @@ export const updateProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
+    body("image")
+    .optional()
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()
@@ -202,7 +220,16 @@ export const patchProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
+    body("image")
+    .optional()
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()

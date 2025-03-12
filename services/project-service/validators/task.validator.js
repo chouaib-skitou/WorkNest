@@ -27,12 +27,24 @@ export const createTaskValidation = [
     .withMessage("AssignedTo must be a user ID"),
   body("images")
     .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
   body("images.*")
     .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 ];
 
 /**
@@ -60,12 +72,24 @@ export const updateTaskValidation = [
     .withMessage("AssignedTo must be a user ID"),
   body("images")
     .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
   body("images.*")
     .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 ];
 
 /**
@@ -93,12 +117,24 @@ export const patchTaskValidation = [
     .withMessage("AssignedTo must be a user ID"),
   body("images")
     .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
   body("images.*")
     .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 ];
 
 /**
