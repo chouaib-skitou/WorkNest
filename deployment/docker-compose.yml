@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres-db:
     image: postgres:14-alpine
@@ -10,6 +12,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   mailhog:
     image: mailhog/mailhog:latest
@@ -18,6 +25,11 @@ services:
       - "1025:1025"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1025"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   identity-service:
     build:
@@ -43,6 +55,16 @@ services:
       - "5000:5000"
     networks:
       - app-network
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      mailhog:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   project-service:
     build:
@@ -60,6 +82,86 @@ services:
       - "5001:5001"
     networks:
       - app-network
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # New service: MinIO object storage
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: "rootroot"
+      MINIO_ROOT_PASSWORD: "rootroot"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Initialize MinIO with required buckets
+  minio-init:
+    image: minio/mc
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set myminio http://minio:9000 rootroot rootroot; do
+        echo 'Waiting for MinIO to be ready...'
+        sleep 3
+      done &&
+      mc mb myminio/worknest-bucket || true &&
+      mc anonymous set public myminio/worknest-bucket &&
+      echo 'MinIO initialization completed successfully'"
+    networks:
+      - app-network
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  # New service: Storage service
+  storage-service:
+    build:
+      context: ../services/storage-service
+      dockerfile: Dockerfile
+    image: worknest/storage-service:latest
+    environment:
+      NODE_ENV: production
+      PORT: 5002
+      MINIO_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "rootroot"
+      MINIO_SECRET_KEY: "rootroot"
+      MINIO_BUCKET: "worknest-bucket"
+      IDENTITY_SERVICE_URL: "http://identity-service:5000"
+      FRONTEND_URL: "http://frontend:4200"
+    ports:
+      - "5002:5002"
+    networks:
+      - app-network
+    depends_on:
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      identity-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5002/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   frontend:
     build:
@@ -70,9 +172,14 @@ services:
       - "4200:80"
     networks:
       - app-network
+    depends_on:
+      - identity-service
+      - project-service
+      - storage-service
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   app-network:
