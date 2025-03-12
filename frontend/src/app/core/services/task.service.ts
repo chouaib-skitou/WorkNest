@@ -1,4 +1,3 @@
-// core/services/task.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -37,7 +36,7 @@ export interface TaskCreateUpdate {
   stageId: string;
   projectId: string;
   assignedTo?: string;
-  images?: File[];
+  images?: string[];
   type?: 'Draft' | 'Bug' | 'Feature' | 'Task';
   estimate?: number;
   [key: string]: unknown; // Changed 'any' to 'unknown' for better type safety
@@ -83,81 +82,51 @@ export class TaskService {
    */
   createTask(taskData: TaskCreateUpdate): Observable<Task> {
     const accessToken = localStorage.getItem('accessToken');
-    const headers = new HttpHeaders({
+
+    // Use JSON headers for all requests since we're only sending URLs
+    const jsonHeaders = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
     });
 
-    // Check if we have images to upload
+    // Check if we have images
     const hasImages = taskData.images && taskData.images.length > 0;
 
-    if (hasImages) {
-      // Use FormData for file uploads
-      const formData = new FormData();
+    // Create a complete payload that includes images if present
+    const completePayload: Record<string, unknown> = {
+      title: taskData.title,
+      description: taskData.description,
+      priority: taskData.priority,
+      stageId: taskData.stageId,
+      projectId: taskData.projectId,
+      assignedTo: taskData.assignedTo,
+    };
 
-      // Add required fields explicitly
-      formData.append('title', taskData.title);
-      formData.append('stageId', taskData.stageId);
-      formData.append('projectId', taskData.projectId);
-
-      // Add optional fields if they exist
-      if (taskData.description) {
-        formData.append('description', taskData.description);
-      }
-
-      if (taskData.priority) {
-        formData.append('priority', taskData.priority);
-      }
-
-      if (taskData.assignedTo) {
-        formData.append('assignedTo', taskData.assignedTo);
-      }
-
-      // Removed type and estimate fields as requested
-
-      // Add images - we know images exists here because hasImages is true
-      if (taskData.images) {
-        taskData.images.forEach((image) => {
-          formData.append('images', image);
-        });
-      }
-
-      console.log('Sending task data with images:', {
+    // Add images to the payload if they exist
+    if (hasImages && taskData.images) {
+      console.log('Sending task data with image URLs:', {
         title: taskData.title,
-        stageId: taskData.stageId,
-        projectId: taskData.projectId,
-        priority: taskData.priority,
-        imageCount: taskData.images ? taskData.images.length : 0,
+        imageCount: taskData.images.length,
+        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...', // Log truncated URL for debugging with optional chaining
       });
 
-      return this.http.post<Task>(`${this.projectServiceUrl}/tasks`, formData, {
-        headers,
-      });
+      completePayload['images'] = taskData.images;
     } else {
-      // Use JSON for requests without files
-      console.log('Sending task data without images:', taskData);
-
-      const jsonHeaders = new HttpHeaders({
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      });
-
-      // Create a simplified payload without type and estimate
-      const simplifiedPayload = {
+      console.log('Sending task data without images:', {
         title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        stageId: taskData.stageId,
-        projectId: taskData.projectId,
-        assignedTo: taskData.assignedTo,
-        // Removed type and estimate fields as requested
-      };
-
-      return this.http.post<Task>(
-        `${this.projectServiceUrl}/tasks`,
-        simplifiedPayload,
-        { headers: jsonHeaders }
-      );
+        description:
+          typeof completePayload['description'] === 'string'
+            ? (completePayload['description'] as string).substring(0, 30) +
+              '...'
+            : 'No description',
+      });
     }
+
+    return this.http.post<Task>(
+      `${this.projectServiceUrl}/tasks`,
+      completePayload,
+      { headers: jsonHeaders }
+    );
   }
 
   /**
@@ -165,73 +134,48 @@ export class TaskService {
    */
   updateTask(taskId: string, taskData: TaskCreateUpdate): Observable<Task> {
     const accessToken = localStorage.getItem('accessToken');
-    const headers = new HttpHeaders({
+
+    // Use JSON headers for all requests since we're only sending URLs
+    const jsonHeaders = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
     });
 
-    // Check if we have images to upload
+    // Check if we have images
     const hasImages = taskData.images && taskData.images.length > 0;
 
-    if (hasImages) {
-      // Use FormData for file uploads
-      const formData = new FormData();
+    // Create a complete payload that includes images if present
+    const completePayload: Record<string, unknown> = {
+      title: taskData.title,
+      description: taskData.description,
+      priority: taskData.priority,
+      stageId: taskData.stageId,
+      projectId: taskData.projectId,
+      assignedTo: taskData.assignedTo,
+    };
 
-      // Add required fields explicitly
-      formData.append('title', taskData.title);
-      formData.append('stageId', taskData.stageId);
-      formData.append('projectId', taskData.projectId);
-
-      // Add optional fields if they exist
-      if (taskData.description) {
-        formData.append('description', taskData.description);
-      }
-
-      if (taskData.priority) {
-        formData.append('priority', taskData.priority);
-      }
-
-      if (taskData.assignedTo) {
-        formData.append('assignedTo', taskData.assignedTo);
-      }
-
-      // Removed type and estimate fields as requested
-
-      // Add images - we know images exists here because hasImages is true
-      if (taskData.images) {
-        taskData.images.forEach((image) => {
-          formData.append('images', image);
-        });
-      }
-
-      return this.http.put<Task>(
-        `${this.projectServiceUrl}/tasks/${taskId}`,
-        formData,
-        { headers }
-      );
-    } else {
-      // Use JSON for requests without files
-      const jsonHeaders = new HttpHeaders({
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+    // Add images to the payload if they exist
+    if (hasImages && taskData.images) {
+      console.log('Updating task with image URLs:', {
+        taskId,
+        title: taskData.title,
+        imageCount: taskData.images.length,
+        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...', // Log truncated URL for debugging with optional chaining
       });
 
-      // Create a simplified payload without type and estimate
-      const simplifiedPayload = {
+      completePayload['images'] = taskData.images;
+    } else {
+      console.log('Updating task without images:', {
+        taskId,
         title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        stageId: taskData.stageId,
-        projectId: taskData.projectId,
-        assignedTo: taskData.assignedTo,
-        // Removed type and estimate fields as requested
-      };
-
-      return this.http.put<Task>(
-        `${this.projectServiceUrl}/tasks/${taskId}`,
-        simplifiedPayload,
-        { headers: jsonHeaders }
-      );
+      });
     }
+
+    return this.http.put<Task>(
+      `${this.projectServiceUrl}/tasks/${taskId}`,
+      completePayload,
+      { headers: jsonHeaders }
+    );
   }
 
   /**

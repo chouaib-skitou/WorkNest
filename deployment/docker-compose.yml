@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # 1) Postgres DB
   postgres-db:
     image: postgres:14-alpine
     environment:
@@ -11,6 +14,7 @@ services:
     networks:
       - app-network
 
+  # 2) MailHog
   mailhog:
     image: mailhog/mailhog:latest
     ports:
@@ -19,6 +23,40 @@ services:
     networks:
       - app-network
 
+  # 3) MinIO (Object Storage)
+  minio:
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: "rootroot"
+      MINIO_ROOT_PASSWORD: "rootroot"
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - app-network
+
+  # 4) MinIO initialization (creates bucket, sets public access, etc.)
+  minio-init:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set myminio http://minio:9000 rootroot rootroot; do
+        echo 'Waiting for MinIO...'
+        sleep 3
+      done &&
+      mc mb myminio/worknest-bucket || true &&
+      mc anonymous set public myminio/worknest-bucket &&
+      echo 'MinIO initialization completed successfully'
+      "
+    networks:
+      - app-network
+
+  # 5) Identity Service
   identity-service:
     build:
       context: ../services/identity-service
@@ -35,15 +73,19 @@ services:
       JWT_REFRESH_EXPIRES_IN: "7d"
       JWT_SECRET: ${JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      FRONTEND_URL: "http://frontend:4200"
-      BASE_URL: "http://identity-service:5000"
+      FRONTEND_URL: "http://localhost:4200"
+      BASE_URL: "http://localhost:5000"
     volumes:
       - ../services/identity-service/config/jwt:/config/jwt:ro
     ports:
       - "5000:5000"
     networks:
       - app-network
+    depends_on:
+      - postgres-db
+      - mailhog
 
+  # 6) Project Service
   project-service:
     build:
       context: ../services/project-service
@@ -54,13 +96,44 @@ services:
       PORT: 5001
       DATABASE_URL: "postgresql://root:root@postgres-db:5432/project_service?schema=public"
       IDENTITY_SERVICE_URL: "http://identity-service:5000"
-      FRONTEND_URL: "http://frontend:4200"
+      FRONTEND_URL: "http://localhost:4200"
       PROJECT_SERVICE_URL: "http://project-service:5001"
     ports:
       - "5001:5001"
     networks:
       - app-network
+    depends_on:
+      - postgres-db
+      - identity-service
 
+  # 7) Storage Service
+  storage-service:
+    build:
+      context: ../services/storage-service
+      dockerfile: Dockerfile
+    image: worknest/storage-service:latest
+    environment:
+      NODE_ENV: production
+      PORT: 5002
+      # Internal S3 endpoint used inside Docker:
+      MINIO_INTERNAL_ENDPOINT: "http://minio:9000"
+      MINIO_ACCESS_KEY: "rootroot"
+      MINIO_SECRET_KEY: "rootroot"
+      MINIO_BUCKET: "worknest-bucket"
+      # Public URL returned to users:
+      MINIO_PUBLIC_URL: "http://localhost:9000"
+
+      IDENTITY_SERVICE_URL: "http://identity-service:5000"
+      FRONTEND_URL: "http://localhost:4200"
+    ports:
+      - "5002:5002"
+    networks:
+      - app-network
+    depends_on:
+      - minio-init
+      - identity-service
+
+  # 8) Frontend
   frontend:
     build:
       context: ../frontend
@@ -70,9 +143,14 @@ services:
       - "4200:80"
     networks:
       - app-network
+    depends_on:
+      - identity-service
+      - project-service
+      - storage-service
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   app-network:

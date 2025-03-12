@@ -6,6 +6,20 @@ import { body, param } from "express-validator";
 const isUUID = param("id").isUUID().withMessage("Invalid task ID format");
 
 /**
+ * Shared validation for image URLs
+ */
+const validateImageUrls = body("images.*")
+  .optional()
+  .custom((value) => {
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      throw new Error("Each document must be a valid URL");
+    }
+  });
+
+/**
  * Validation for creating a task
  */
 export const createTaskValidation = [
@@ -25,14 +39,7 @@ export const createTaskValidation = [
     .optional()
     .isString()
     .withMessage("AssignedTo must be a user ID"),
-  body("images")
-    .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
-  body("images.*")
-    .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+  validateImageUrls,
 ];
 
 /**
@@ -58,14 +65,7 @@ export const updateTaskValidation = [
     .optional()
     .isString()
     .withMessage("AssignedTo must be a user ID"),
-  body("images")
-    .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
-  body("images.*")
-    .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+  validateImageUrls,
 ];
 
 /**
@@ -91,14 +91,7 @@ export const patchTaskValidation = [
     .optional()
     .isString()
     .withMessage("AssignedTo must be a user ID"),
-  body("images")
-    .optional()
-    .isArray()
-    .withMessage("Images must be an array of URLs"),
-  body("images.*")
-    .optional()
-    .isURL()
-    .withMessage("Each image must be a valid URL"),
+  validateImageUrls,
 ];
 
 /**

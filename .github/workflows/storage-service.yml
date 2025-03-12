@@ -1,0 +1,57 @@
+name: CI Storage Service Workflow
+
+on:
+  push:
+    branches:
+      - '*'
+      - main
+      - develop
+      - feature/*
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          cd services/storage-service
+          npm install
+
+      - name: Run ESLint
+        run: |
+          cd services/storage-service
+          npm run lint
+
+      - name: Check formatting with Prettier
+        run: |
+          cd services/storage-service
+          npm run format:check
+
+      - name: Run Tests with Code Coverage
+        run: |
+          cd services/storage-service
+          npm run test:coverage
+
+    #   - name: Upload coverage reports to Codecov
+    #     uses: codecov/codecov-action@v5
+    #     with:
+    #       token: ${{ secrets.CODECOV_TOKEN }}
+    #       slug: chouaib-skitou/WorkNest
+
+      - name: Build the project
+        run: |
+          cd services/storage-service
+          npm run build
