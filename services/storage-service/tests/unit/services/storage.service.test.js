@@ -1,5 +1,9 @@
-process.env.MINIO_BUCKET = "test-bucket";
-process.env.MINIO_ENDPOINT = "http://localhost:9000";
+/**
+ * @file tests/unit/services/storage.service.test.js
+ */
+process.env.MINIO_BUCKET = "worknest-bucket";  // now the code returns "worknest-bucket"
+process.env.MINIO_INTERNAL_ENDPOINT = "http://localhost:9000";
+process.env.MINIO_PUBLIC_URL = "http://localhost:9000";
 process.env.MINIO_ACCESS_KEY = "test-key";
 process.env.MINIO_SECRET_KEY = "test-secret";
 
@@ -52,6 +56,9 @@ describe("Storage Service", () => {
     mockPromises = AWS.mockPromises;
   });
 
+  // -------------------------------------------------------------------
+  // uploadDocument
+  // -------------------------------------------------------------------
   describe("uploadDocument", () => {
     const mockFile = {
       path: "/tmp/mock-file",
@@ -60,20 +67,22 @@ describe("Storage Service", () => {
     };
 
     it("should upload a document successfully", async () => {
+      // The code eventually returns location: http://localhost:9000/worknest-bucket/test-file.txt
       const mockData = {
         Key: "test-file.txt",
-        Location: "http://minio-server/test-bucket/test-file.txt",
+        Location: "http://some-s3-server/test-bucket/test-file.txt",
       };
       mockPromises.uploadPromise.mockResolvedValueOnce(mockData);
 
       const result = await uploadDocument(mockFile);
 
+      // Adjust your expectation to "worknest-bucket" instead of "test-bucket"
       expect(result).toEqual({
         message: "Document created successfully",
         data: {
-          id: mockData.Key,
-          name: mockData.Key,
-          location: mockData.Location,
+          id: "test-file.txt",
+          name: "test-file.txt",
+          location: "http://localhost:9000/worknest-bucket/test-file.txt",
         },
       });
     });
@@ -81,7 +90,7 @@ describe("Storage Service", () => {
     it("should handle fs.unlink error", async () => {
       const mockData = {
         Key: "test-file.txt",
-        Location: "http://minio-server/test-bucket/test-file.txt",
+        Location: "ignored-in-new-code",
       };
       mockPromises.uploadPromise.mockResolvedValueOnce(mockData);
 
@@ -101,9 +110,9 @@ describe("Storage Service", () => {
       expect(result).toEqual({
         message: "Document created successfully",
         data: {
-          id: mockData.Key,
-          name: mockData.Key,
-          location: mockData.Location,
+          id: "test-file.txt",
+          name: "test-file.txt",
+          location: "http://localhost:9000/worknest-bucket/test-file.txt",
         },
       });
 
@@ -118,6 +127,9 @@ describe("Storage Service", () => {
     });
   });
 
+  // -------------------------------------------------------------------
+  // updateDocument
+  // -------------------------------------------------------------------
   describe("updateDocument", () => {
     const fileId = "existing-file.txt";
     const mockFile = {
@@ -128,9 +140,10 @@ describe("Storage Service", () => {
     const newName = "renamed-file.txt";
 
     it("should update document content only (no rename)", async () => {
+      // The code eventually returns: http://localhost:9000/worknest-bucket/existing-file.txt
       const mockData = {
         Key: fileId,
-        Location: `http://minio-server/test-bucket/${fileId}`,
+        Location: "ignored-here",
       };
       mockPromises.uploadPromise.mockResolvedValueOnce(mockData);
 
@@ -141,7 +154,7 @@ describe("Storage Service", () => {
         data: {
           id: fileId,
           name: fileId,
-          location: mockData.Location,
+          location: "http://localhost:9000/worknest-bucket/existing-file.txt",
         },
       });
     });
@@ -149,7 +162,7 @@ describe("Storage Service", () => {
     it("should update document content and rename", async () => {
       const mockData = {
         Key: newName,
-        Location: `http://minio-server/test-bucket/${newName}`,
+        Location: "ignored-here",
       };
       mockPromises.uploadPromise.mockResolvedValueOnce(mockData);
       mockPromises.deletePromise.mockResolvedValueOnce({});
@@ -161,7 +174,7 @@ describe("Storage Service", () => {
         data: {
           id: newName,
           name: newName,
-          location: mockData.Location,
+          location: "http://localhost:9000/worknest-bucket/renamed-file.txt",
         },
       });
     });
@@ -177,6 +190,7 @@ describe("Storage Service", () => {
         data: {
           id: newName,
           name: newName,
+          location: "http://localhost:9000/worknest-bucket/renamed-file.txt",
         },
       });
     });
@@ -215,6 +229,9 @@ describe("Storage Service", () => {
     });
   });
 
+  // -------------------------------------------------------------------
+  // deleteDocument
+  // -------------------------------------------------------------------
   describe("deleteDocument", () => {
     const fileId = "file-to-delete.txt";
 
@@ -236,6 +253,9 @@ describe("Storage Service", () => {
     });
   });
 
+  // -------------------------------------------------------------------
+  // listDocuments
+  // -------------------------------------------------------------------
   describe("listDocuments", () => {
     it("should list documents with default pagination", async () => {
       const mockDate = new Date();
@@ -260,12 +280,14 @@ describe("Storage Service", () => {
               name: "file1.txt",
               size: 100,
               lastModified: mockDate,
+              location: "http://localhost:9000/worknest-bucket/file1.txt",
             },
             {
               id: "file2.txt",
               name: "file2.txt",
               size: 200,
               lastModified: mockDate,
+              location: "http://localhost:9000/worknest-bucket/file2.txt",
             },
           ],
         },
@@ -295,6 +317,7 @@ describe("Storage Service", () => {
               name: "file1.txt",
               size: 100,
               lastModified: mockDate,
+              location: "http://localhost:9000/worknest-bucket/file1.txt",
             },
           ],
         },
@@ -309,6 +332,9 @@ describe("Storage Service", () => {
     });
   });
 
+  // -------------------------------------------------------------------
+  // getDocument
+  // -------------------------------------------------------------------
   describe("getDocument", () => {
     const fileId = "test-file.txt";
 
@@ -322,12 +348,12 @@ describe("Storage Service", () => {
       mockPromises.headPromise.mockResolvedValueOnce(mockData);
 
       const result = await getDocument(fileId);
-
       expect(result).toEqual({
         message: "Document metadata retrieved successfully",
         data: {
           id: fileId,
           name: fileId,
+          location: `http://localhost:9000/worknest-bucket/${fileId}`,
           ContentType: "text/plain",
           ContentLength: 100,
           LastModified: mockDate,
