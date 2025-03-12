@@ -31,6 +31,7 @@ export interface Project {
   image?: string | null;
   createdAt: string;
   updatedAt?: string;
+  documents?: string[];
   createdBy?: User;
   status: Status;
   priority: Priority;
@@ -40,7 +41,6 @@ export interface Project {
   stages?: Record<string, unknown>[];
 }
 
-// Add the missing ProjectCreateUpdate interface
 export interface ProjectCreateUpdate {
   name: string;
   description?: string;
@@ -49,8 +49,8 @@ export interface ProjectCreateUpdate {
   dueDate: string;
   managerId?: string;
   employeeIds?: string[];
-  image?: File;
-  documents?: File[];
+  image?: string;
+  documents?: string[];
 }
 
 export interface ProjectResponse {
@@ -143,88 +143,23 @@ export class ProjectService {
     projectData: Partial<Project> | ProjectCreateUpdate
   ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
 
-    // Check if we're dealing with a ProjectCreateUpdate with files
-    if (this.isProjectCreateUpdate(projectData)) {
-      // Format the date properly
-      const formattedData = {
-        ...projectData,
-        dueDate: this.formatDateForAPI(projectData.dueDate),
-      };
-
-      if (projectData.image instanceof File) {
-        const formData = new FormData();
-        const headers = new HttpHeaders({
-          Authorization: `Bearer ${accessToken}`,
-        });
-
-        // Add basic project data
-        formData.append('name', formattedData.name);
-        if (formattedData.description) {
-          formData.append('description', formattedData.description);
-        }
-        formData.append('status', formattedData.status);
-        formData.append('priority', formattedData.priority);
-        formData.append('dueDate', formattedData.dueDate);
-
-        // Add relations
-        if (formattedData.managerId) {
-          formData.append('managerId', formattedData.managerId);
-        }
-
-        if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
-          formattedData.employeeIds.forEach((id: string) => {
-            formData.append('employeeIds', id);
-          });
-        }
-
-        // Add files
-        formData.append('image', projectData.image);
-
-        if (projectData.documents && projectData.documents.length > 0) {
-          projectData.documents.forEach((doc: File) => {
-            formData.append('documents', doc);
-          });
-        }
-
-        return this.http.post<Project>(
-          `${this.projectServiceUrl}/projects`,
-          formData,
-          { headers }
-        );
-      } else {
-        // Use JSON for regular project data
-        const jsonHeaders = new HttpHeaders({
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        });
-
-        return this.http.post<Project>(
-          `${this.projectServiceUrl}/projects`,
-          formattedData,
-          { headers: jsonHeaders }
-        );
-      }
-    } else {
-      // Handle Partial<Project> case
-      const jsonData = { ...projectData };
-
-      // Format the date if it exists
-      if (jsonData.dueDate) {
-        jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
-      }
-
-      const jsonHeaders = new HttpHeaders({
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      });
-
-      return this.http.post<Project>(
-        `${this.projectServiceUrl}/projects`,
-        jsonData,
-        { headers: jsonHeaders }
-      );
+    // Format the date properly if it exists
+    const formattedData = { ...projectData };
+    if ('dueDate' in formattedData && formattedData.dueDate) {
+      formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
     }
+
+    // Send JSON data - we only use string URLs now, no File objects
+    return this.http.post<Project>(
+      `${this.projectServiceUrl}/projects`,
+      formattedData,
+      { headers }
+    );
   }
 
   /**
@@ -238,88 +173,23 @@ export class ProjectService {
     projectData: Partial<Project> | ProjectCreateUpdate
   ): Observable<Project> {
     const accessToken = localStorage.getItem('accessToken');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    });
 
-    // Check if we're dealing with a ProjectCreateUpdate
-    if (this.isProjectCreateUpdate(projectData)) {
-      // Format the date properly
-      const formattedData = {
-        ...projectData,
-        dueDate: this.formatDateForAPI(projectData.dueDate),
-      };
-
-      if (projectData.image instanceof File) {
-        const formData = new FormData();
-        const headers = new HttpHeaders({
-          Authorization: `Bearer ${accessToken}`,
-        });
-
-        // Add basic project data
-        formData.append('name', formattedData.name);
-        if (formattedData.description) {
-          formData.append('description', formattedData.description);
-        }
-        formData.append('status', formattedData.status);
-        formData.append('priority', formattedData.priority);
-        formData.append('dueDate', formattedData.dueDate);
-
-        // Add relations
-        if (formattedData.managerId) {
-          formData.append('managerId', formattedData.managerId);
-        }
-
-        if (formattedData.employeeIds && formattedData.employeeIds.length > 0) {
-          formattedData.employeeIds.forEach((id: string) => {
-            formData.append('employeeIds', id);
-          });
-        }
-
-        // Add files
-        formData.append('image', projectData.image);
-
-        if (projectData.documents && projectData.documents.length > 0) {
-          projectData.documents.forEach((doc: File) => {
-            formData.append('documents', doc);
-          });
-        }
-
-        return this.http.put<Project>(
-          `${this.projectServiceUrl}/projects/${projectId}`,
-          formData,
-          { headers }
-        );
-      } else {
-        // Use JSON for regular project data
-        const jsonHeaders = new HttpHeaders({
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        });
-
-        return this.http.put<Project>(
-          `${this.projectServiceUrl}/projects/${projectId}`,
-          formattedData,
-          { headers: jsonHeaders }
-        );
-      }
-    } else {
-      // Handle Partial<Project> case
-      const jsonData = { ...projectData };
-
-      // Format the date if it exists
-      if (jsonData.dueDate) {
-        jsonData.dueDate = this.formatDateForAPI(jsonData.dueDate);
-      }
-
-      const jsonHeaders = new HttpHeaders({
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      });
-
-      return this.http.put<Project>(
-        `${this.projectServiceUrl}/projects/${projectId}`,
-        jsonData,
-        { headers: jsonHeaders }
-      );
+    // Format the date properly if it exists
+    const formattedData = { ...projectData };
+    if ('dueDate' in formattedData && formattedData.dueDate) {
+      formattedData.dueDate = this.formatDateForAPI(formattedData.dueDate);
     }
+
+    // Send JSON data - we only use string URLs now, no File objects
+    return this.http.put<Project>(
+      `${this.projectServiceUrl}/projects/${projectId}`,
+      formattedData,
+      { headers }
+    );
   }
 
   /**

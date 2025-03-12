@@ -18,17 +18,27 @@ export const createProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
-
-  body("documents")
+  body("image")
     .optional()
-    .isArray()
-    .withMessage("Documents must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()
-    .isURL()
-    .withMessage("Each document must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 
   body("createdBy").not().exists().withMessage("Cannot set createdBy manually"),
 
@@ -97,17 +107,27 @@ export const updateProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
-
-  body("documents")
+  body("image")
     .optional()
-    .isArray()
-    .withMessage("Documents must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()
-    .isURL()
-    .withMessage("Each document must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 
   body("managerId")
     .optional()
@@ -178,17 +198,27 @@ export const patchProjectValidation = [
     .isString()
     .withMessage("Project description must be a string"),
 
-  body("image").optional().isURL().withMessage("Image must be a valid URL"),
-
-  body("documents")
+  body("image")
     .optional()
-    .isArray()
-    .withMessage("Documents must be an array of URLs"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Image must be a valid URL");
+      }
+    }),
 
   body("documents.*")
     .optional()
-    .isURL()
-    .withMessage("Each document must be a valid URL"),
+    .custom((value) => {
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error("Each document must be a valid URL");
+      }
+    }),
 
   body("managerId")
     .optional()
