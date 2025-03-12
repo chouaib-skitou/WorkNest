@@ -44,7 +44,12 @@ const upload = multer({ dest: "uploads/" });
  *       500:
  *         description: Failed to upload document.
  */
-router.post("/documents", authMiddleware, upload.single("file"), StorageController.upload);
+router.post(
+  "/documents",
+  authMiddleware,
+  upload.single("file"),
+  StorageController.upload
+);
 
 /**
  * @swagger
