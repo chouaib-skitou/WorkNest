@@ -1,5 +1,6 @@
 import { StageRepository } from "../repositories/stage.repository.js";
 import { StageDTO } from "../dtos/stage.dto.js";
+import { ProjectRepository } from "../repositories/project.repository.js";
 
 /**
  * Generate dynamic filter conditions based on query parameters.
@@ -135,33 +136,32 @@ const authorizeStageDeletion = async (user, id) => {
  * @returns {Promise<void>} - Resolves if authorized, otherwise rejects with an error.
  */
 const authorizeStageCreation = async (user, projectId) => {
+  // First, check if the project exists for ALL roles
+  const project = await ProjectRepository.findUnique({
+    where: { id: projectId }
+  });
+  
+  if (!project) {
+    return Promise.reject({ status: 404, message: "Project not found" });
+  }
+
   if (user.role === "ROLE_ADMIN") {
     console.log(`Admin authorized to create stage for project: ${projectId}`);
     return;
   } else if (user.role === "ROLE_MANAGER") {
-    // Here we use StageRepository.findUnique for project lookup for simplicity.
-    const project = await StageRepository.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      return Promise.reject({ status: 404, message: "Project not found" });
-    }
     if (project.managerId === user.id || project.createdBy === user.id) {
-      console.log(
-        `Manager authorized to create stage for project: ${projectId}`
-      );
+      console.log(`Manager authorized to create stage for project: ${projectId}`);
       return;
     } else {
       return Promise.reject({
         status: 403,
-        message:
-          "Access denied: You do not have permission to create a stage for this project",
+        message: "Access denied: You do not have permission to create a stage for this project"
       });
     }
   } else {
     return Promise.reject({
       status: 403,
-      message: "Access denied: Only admins and managers can create stages",
+      message: "Access denied: Only admins and managers can create stages"
     });
   }
 };
