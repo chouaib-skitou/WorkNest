@@ -18,7 +18,7 @@
           [innerHTML]="placeholderSvg"
         ></div>
         <!-- Added this button -->
-        <button 
+        <button
           *ngIf="canManageProject"
           class="edit-image-button"
           (click)="openEditProjectImageModal()"
@@ -204,40 +204,48 @@
               (click)="openEditTaskModal(task)"
               (keydown.enter)="openEditTaskModal(task)"
             >
-            <div class="task-header">
-              <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
-              <div class="task-actions">
-                <button
-                  class="btn-icon-sm"
-                  (click)="openViewTaskModal(task); $event.stopPropagation()"
-                  (keydown.enter)="openViewTaskModal(task); $event.stopPropagation()"
-                  title="View Task"
-                  tabindex="0"
-                >
-                  <i class="fas fa-eye"></i>
-                </button>
-                <button
-                  class="btn-icon-sm"
-                  *ngIf="canManageStagesAndTasks()"
-                  (click)="openEditTaskModal(task); $event.stopPropagation()"
-                  (keydown.enter)="openEditTaskModal(task); $event.stopPropagation()"
-                  title="Edit Task"
-                  tabindex="0"
-                >
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button
-                  class="btn-icon-sm"
-                  *ngIf="canManageStagesAndTasks()"
-                  (click)="openDeleteTaskModal(task); $event.stopPropagation()"
-                  (keydown.enter)="openDeleteTaskModal(task); $event.stopPropagation()"
-                  title="Delete Task"
-                  tabindex="0"
-                >
-                  <i class="fas fa-trash-alt"></i>
-                </button>
+              <div class="task-header">
+                <span class="task-id">#{{ task.id.toString().slice(-4) }}</span>
+                <div class="task-actions">
+                  <button
+                    class="btn-icon-sm"
+                    (click)="openViewTaskModal(task); $event.stopPropagation()"
+                    (keydown.enter)="
+                      openViewTaskModal(task); $event.stopPropagation()
+                    "
+                    title="View Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button
+                    class="btn-icon-sm"
+                    *ngIf="canManageStagesAndTasks()"
+                    (click)="openEditTaskModal(task); $event.stopPropagation()"
+                    (keydown.enter)="
+                      openEditTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Edit Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button
+                    class="btn-icon-sm"
+                    *ngIf="canManageStagesAndTasks()"
+                    (click)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
+                    (keydown.enter)="
+                      openDeleteTaskModal(task); $event.stopPropagation()
+                    "
+                    title="Delete Task"
+                    tabindex="0"
+                  >
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
               </div>
-            </div>
               <div class="task-title">{{ task.title }}</div>
               <div class="task-description" *ngIf="task.description">
                 {{ task.description | slice: 0 : 50
@@ -341,16 +349,10 @@
               <!-- Remplacez la section des actions de document dans votre tableau par ceci -->
               <td>
                 <div class="document-actions">
-                  <button
-                    class="btn-icon"
-                    title="View Document"
-                  >
+                  <button class="btn-icon" title="View Document">
                     <i class="fas fa-eye"></i>
                   </button>
-                  <button
-                    class="btn-icon"
-                    title="Download"
-                  >
+                  <button class="btn-icon" title="Download">
                     <i class="fas fa-download"></i>
                   </button>
                   <button
@@ -515,7 +517,6 @@
                 </div>
               </td>
             </tr>
-            
           </tbody>
         </table>
       </div>
@@ -540,7 +541,7 @@
           <i class="fas fa-chevron-left"></i>
           Previous
         </button>
-      
+
         <div class="page-numbers">
           <ng-container *ngFor="let page of getDocumentPageNumbers()">
             <ng-container *ngIf="page === '...'">
@@ -557,7 +558,7 @@
             </ng-container>
           </ng-container>
         </div>
-      
+
         <button
           class="pagination-button"
           (click)="nextDocumentPage()"
@@ -1357,10 +1358,12 @@
         <p>
           Are you sure you want to delete the document "<strong>{{
             selectedDocument ? getDocumentName(selectedDocument) : ''
-          }}</strong>"?
+          }}</strong
+          >"?
         </p>
         <p class="delete-warning">
-          This action cannot be undone and will permanently delete the document from storage.
+          This action cannot be undone and will permanently delete the document
+          from storage.
         </p>
       </div>
 
@@ -1382,7 +1385,7 @@
             class="fas"
             [ngClass]="{
               'fa-spinner fa-spin': formSubmitting,
-              'fa-trash-alt': !formSubmitting
+              'fa-trash-alt': !formSubmitting,
             }"
           ></i>
           <span *ngIf="formSubmitting">Deleting...</span>
@@ -1434,7 +1437,11 @@
             />
             <i class="fas fa-cloud-upload-alt"></i>
             <p class="upload-text">
-              {{ selectedProjectImage ? selectedProjectImage.name : 'Click to upload project image' }}
+              {{
+                selectedProjectImage
+                  ? selectedProjectImage.name
+                  : 'Click to upload project image'
+              }}
             </p>
           </div>
         </div>
@@ -1463,8 +1470,6 @@
   </div>
 </div>
 
-
-
 <!-- View Task Modal -->
 <div class="modal" *ngIf="showViewTaskModal">
   <div
@@ -1491,26 +1496,43 @@
 
         <div class="task-detail-group" *ngIf="selectedTask?.description">
           <h3 class="task-detail-label">Description</h3>
-          <p class="task-detail-value description">{{ selectedTask?.description }}</p>
+          <p class="task-detail-value description">
+            {{ selectedTask?.description }}
+          </p>
         </div>
 
         <div class="task-detail-group">
           <h3 class="task-detail-label">Stage</h3>
-          <p class="task-detail-value">{{ getStageNameById(selectedTask?.stageId) }}</p>
+          <p class="task-detail-value">
+            {{ getStageNameById(selectedTask?.stageId) }}
+          </p>
         </div>
 
-      <div class="task-detail-group">
-        <h3 class="task-detail-label">Priority</h3>
-        <p class="task-detail-value">
-          <span class="task-priority" [ngClass]="selectedTask && selectedTask.priority ? getPriorityClass(selectedTask.priority) : ''">
-            {{ selectedTask && selectedTask.priority ? formatPriority(selectedTask.priority) : 'None' }}
-          </span>
-        </p>
-      </div>
+        <div class="task-detail-group">
+          <h3 class="task-detail-label">Priority</h3>
+          <p class="task-detail-value">
+            <span
+              class="task-priority"
+              [ngClass]="
+                selectedTask && selectedTask.priority
+                  ? getPriorityClass(selectedTask.priority)
+                  : ''
+              "
+            >
+              {{
+                selectedTask && selectedTask.priority
+                  ? formatPriority(selectedTask.priority)
+                  : 'None'
+              }}
+            </span>
+          </p>
+        </div>
 
         <div class="task-detail-group">
           <h3 class="task-detail-label">Assigned To</h3>
-          <p class="task-detail-value">{{ getAssignedUserName(selectedTask?.assignedTo) }}</p>
+          <p class="task-detail-value">
+            {{ getAssignedUserName(selectedTask?.assignedTo) }}
+          </p>
         </div>
 
         <div class="task-detail-group">
@@ -1526,7 +1548,10 @@
         <div class="task-detail-group" *ngIf="viewTaskImagePreviews.length > 0">
           <h3 class="task-detail-label">Images</h3>
           <div class="task-images-gallery">
-            <div class="image-preview" *ngFor="let url of viewTaskImagePreviews">
+            <div
+              class="image-preview"
+              *ngFor="let url of viewTaskImagePreviews"
+            >
               <img [src]="url" alt="Task image" />
             </div>
           </div>
@@ -1534,13 +1559,17 @@
       </div>
 
       <div class="form-actions">
-        <button type="button" class="cancel-button" (click)="closeViewTaskModal()">
+        <button
+          type="button"
+          class="cancel-button"
+          (click)="closeViewTaskModal()"
+        >
           <i class="fas fa-times"></i> Close
         </button>
-        <button 
+        <button
           *ngIf="canManageStagesAndTasks()"
-          type="button" 
-          class="submit-button" 
+          type="button"
+          class="submit-button"
           (click)="switchToEditTask()"
         >
           <i class="fas fa-edit"></i> Edit Task

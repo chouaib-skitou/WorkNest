@@ -82,7 +82,7 @@ export class TaskService {
    */
   createTask(taskData: TaskCreateUpdate): Observable<Task> {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     // Use JSON headers for all requests since we're only sending URLs
     const jsonHeaders = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
@@ -107,16 +107,18 @@ export class TaskService {
       console.log('Sending task data with image URLs:', {
         title: taskData.title,
         imageCount: taskData.images.length,
-        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...' // Log truncated URL for debugging with optional chaining
+        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...', // Log truncated URL for debugging with optional chaining
       });
-      
+
       completePayload['images'] = taskData.images;
     } else {
       console.log('Sending task data without images:', {
         title: taskData.title,
-        description: typeof completePayload['description'] === 'string' 
-          ? (completePayload['description'] as string).substring(0, 30) + '...'
-          : 'No description'
+        description:
+          typeof completePayload['description'] === 'string'
+            ? (completePayload['description'] as string).substring(0, 30) +
+              '...'
+            : 'No description',
       });
     }
 
@@ -132,7 +134,7 @@ export class TaskService {
    */
   updateTask(taskId: string, taskData: TaskCreateUpdate): Observable<Task> {
     const accessToken = localStorage.getItem('accessToken');
-    
+
     // Use JSON headers for all requests since we're only sending URLs
     const jsonHeaders = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
@@ -158,14 +160,14 @@ export class TaskService {
         taskId,
         title: taskData.title,
         imageCount: taskData.images.length,
-        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...' // Log truncated URL for debugging with optional chaining
+        firstImageUrl: taskData.images[0]?.substring(0, 50) + '...', // Log truncated URL for debugging with optional chaining
       });
-      
+
       completePayload['images'] = taskData.images;
     } else {
       console.log('Updating task without images:', {
         taskId,
-        title: taskData.title
+        title: taskData.title,
       });
     }
 

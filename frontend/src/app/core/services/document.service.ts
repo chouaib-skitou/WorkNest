@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
-import {
-  HttpClient,
-  HttpParams
-} from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -41,15 +38,16 @@ export class DocumentService {
    * @returns An error Observable
    */
   private handleError(error: unknown): Observable<never> {
-    let errorMessage = 'An unknown error occurred while processing the document';
-    
+    let errorMessage =
+      'An unknown error occurred while processing the document';
+
     if (typeof error === 'object' && error !== null) {
       // We can add more specific checks here
       if ('message' in error && typeof error.message === 'string') {
         errorMessage = error.message;
       }
     }
-    
+
     console.error('Document service error:', error);
     return throwError(() => new Error(errorMessage));
   }
@@ -67,23 +65,27 @@ export class DocumentService {
     return this.http
       .post<DocumentResponse>(this.baseUrl, formData, { observe: 'response' })
       .pipe(
-        map(response => {
+        map((response) => {
           // If we receive a 201 status, it's a success, even if the body is empty
           if (response.status === 201) {
             // Return a valid response object, even if the body is null
-            return response.body || {
-              message: 'Document uploaded successfully',
-              data: {
-                id: 'generated-id',
-                name: file.name,
-                location: 'document-location'
+            return (
+              response.body || {
+                message: 'Document uploaded successfully',
+                data: {
+                  id: 'generated-id',
+                  name: file.name,
+                  location: 'document-location',
+                },
               }
-            };
+            );
           }
-          return response.body || {
-            message: 'Unknown response',
-            data: undefined as unknown as DocumentData
-          };
+          return (
+            response.body || {
+              message: 'Unknown response',
+              data: undefined as unknown as DocumentData,
+            }
+          );
         }),
         catchError(this.handleError)
       );
