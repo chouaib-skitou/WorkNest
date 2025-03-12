@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
@@ -33,6 +33,17 @@ export class DocumentService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Get authorization headers with the current access token
+   * @returns HttpHeaders with Authorization header
+   */
+  private getAuthHeaders(): HttpHeaders {
+    const accessToken = localStorage.getItem('accessToken');
+    return new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+    });
+  }
+
+  /**
    * Handles HTTP errors
    * @param error The error to process
    * @returns An error Observable
@@ -61,9 +72,15 @@ export class DocumentService {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Get auth headers
+    const headers = this.getAuthHeaders();
+
     // Use the observe: 'response' configuration to get the HTTP status
     return this.http
-      .post<DocumentResponse>(this.baseUrl, formData, { observe: 'response' })
+      .post<DocumentResponse>(this.baseUrl, formData, { 
+        headers,
+        observe: 'response'
+      })
       .pipe(
         map((response) => {
           // If we receive a 201 status, it's a success, even if the body is empty
@@ -110,9 +127,16 @@ export class DocumentService {
     if (newName) {
       formData.append('newName', newName);
     }
+    
+    // Get auth headers
+    const headers = this.getAuthHeaders();
+
     return this.http.put<DocumentResponse>(
       `${this.baseUrl}/${fileId}`,
-      formData
+      formData,
+      { headers }
+    ).pipe(
+      catchError(this.handleError)
     );
   }
 
@@ -122,7 +146,15 @@ export class DocumentService {
    * @returns Observable with the deletion confirmation
    */
   deleteDocument(fileId: string): Observable<{ message: string }> {
-    return this.http.delete<{ message: string }>(`${this.baseUrl}/${fileId}`);
+    // Get auth headers
+    const headers = this.getAuthHeaders();
+
+    return this.http.delete<{ message: string }>(
+      `${this.baseUrl}/${fileId}`,
+      { headers }
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   /**
@@ -142,7 +174,19 @@ export class DocumentService {
     if (pageToken) {
       params = params.set('pageToken', pageToken);
     }
-    return this.http.get<ListDocumentsResponse>(this.baseUrl, { params });
+    
+    // Get auth headers
+    const headers = this.getAuthHeaders();
+
+    return this.http.get<ListDocumentsResponse>(
+      this.baseUrl, 
+      { 
+        headers,
+        params 
+      }
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 
   /**
@@ -151,6 +195,14 @@ export class DocumentService {
    * @returns Observable with the document data
    */
   getDocument(fileId: string): Observable<DocumentResponse> {
-    return this.http.get<DocumentResponse>(`${this.baseUrl}/${fileId}`);
+    // Get auth headers
+    const headers = this.getAuthHeaders();
+
+    return this.http.get<DocumentResponse>(
+      `${this.baseUrl}/${fileId}`,
+      { headers }
+    ).pipe(
+      catchError(this.handleError)
+    );
   }
 }
