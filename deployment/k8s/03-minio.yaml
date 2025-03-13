@@ -5,16 +5,18 @@ metadata:
   name: minio
   namespace: worknest
 spec:
-  type: ClusterIP
+  type: NodePort    # Changed from ClusterIP to NodePort
   selector:
     app: minio
   ports:
     - name: minio-api
       port: 9000
       targetPort: 9000
+      nodePort: 30900  # Fixed external port for MinIO API
     - name: minio-console
       port: 9001
       targetPort: 9001
+      nodePort: 30901  # Fixed external port for MinIO Console
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -49,4 +51,5 @@ spec:
       volumes:
         - name: minio-data
           emptyDir: {}
+
 
