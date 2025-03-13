@@ -5,7 +5,7 @@ import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment'; // Import environment variables
 import { LoginResponse, User } from '../../auth/interfaces/auth.interfaces'; // Import interfaces
 import { Router } from '@angular/router';
-import { FlashMessageService } from '../services/flash-message.service';
+import { FlashMessageService } from './flash-message.service';
 
 interface AuthorizeResponse {
   user: User;
