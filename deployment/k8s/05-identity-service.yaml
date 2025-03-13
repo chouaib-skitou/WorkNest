@@ -1,0 +1,64 @@
+# k8s/05-identity-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: worknest
+spec:
+  type: ClusterIP
+  selector:
+    app: identity-service
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: worknest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: identity-service
+  template:
+    metadata:
+      labels:
+        app: identity-service
+    spec:
+      containers:
+        - name: identity-service
+          image: skitou/identity-service:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "5000"
+            - name: DATABASE_URL
+              value: "postgresql://root:root@postgres-db.worknest:5432/identity_service?schema=public"
+            - name: SMTP_HOST
+              value: "mailhog"
+            - name: SMTP_PORT
+              value: "1025"
+            - name: EMAIL_FROM
+              value: "no-reply@worknest.com"
+            - name: JWT_EXPIRES_IN
+              value: "1h"
+            - name: JWT_REFRESH_EXPIRES_IN
+              value: "7d"
+            - name: FRONTEND_URL
+              value: "http://localhost:4200"
+            - name: BASE_URL
+              value: "http://localhost:5000"
+          volumeMounts:
+            - name: jwt-secrets
+              mountPath: /config/jwt
+              readOnly: true
+      volumes:
+        - name: jwt-secrets
+          emptyDir: {}
+
