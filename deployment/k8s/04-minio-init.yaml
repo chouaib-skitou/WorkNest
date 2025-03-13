@@ -1,0 +1,27 @@
+# k8s/04-minio-init.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: worknest
+spec:
+  template:
+    metadata:
+      name: minio-init
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: minio-init
+          image: minio/mc
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              until mc alias set myminio http://minio:9000 rootroot rootroot; do
+                echo 'Waiting for MinIO...'
+                sleep 3;
+              done &&
+              mc mb myminio/worknest-bucket || true &&
+              mc anonymous set public myminio/worknest-bucket &&
+              echo 'MinIO initialization completed successfully';
+  backoffLimit: 4
+

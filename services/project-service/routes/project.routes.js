@@ -6,6 +6,7 @@ import {
   updateProject,
   patchProject,
   deleteProject,
+  getProjectEmployees,
 } from "../controllers/project.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -115,6 +116,38 @@ router.get("/", authMiddleware, getProjects);
  *         description: Internal server error.
  */
 router.get("/:id", authMiddleware, getProjectById);
+
+/**
+ * @swagger
+ * /api/projects/{id}/employees:
+ *   get:
+ *     summary: Retrieve all employees assigned to a specific project
+ *     description: Returns an array of enriched employee objects for the given project.
+ *     tags: [Projects]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the project to retrieve employees for.
+ *     responses:
+ *       200:
+ *         description: An array of employees for the specified project.
+ *       400:
+ *         description: Invalid or expired token.
+ *       401:
+ *         description: Unauthorized, token required.
+ *       403:
+ *         description: Access denied, user not authorized to view the project's employees.
+ *       404:
+ *         description: Project not found.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get("/:id/employees", authMiddleware, getProjectEmployees);
 
 /**
  * @swagger

@@ -25,6 +25,7 @@ import {
   updateProjectService,
   patchProjectService,
   deleteProjectService,
+  getProjectEmployeesService,
 } from "../../../services/project.service.js";
 
 describe("🛠 Project Service Tests", () => {
@@ -1532,6 +1533,119 @@ describe("🛠 Project Service Tests", () => {
         message:
           "Access denied: You do not have permission to delete this project",
       });
+    });
+  });
+
+  describe("🛠 Project Service - getProjectEmployeesService Tests", () => {
+    // eslint-disable-next-line no-unused-vars
+    let adminUser, managerUser, employeeUser, mockProject;
+
+    beforeEach(() => {
+      adminUser = { id: "admin-id", role: "ROLE_ADMIN" };
+      managerUser = { id: "manager-id", role: "ROLE_MANAGER" };
+      employeeUser = { id: "employee-id", role: "ROLE_EMPLOYEE" };
+
+      mockProject = {
+        id: "project-123",
+        employeeIds: ["emp-1", "emp-2"],
+      };
+
+      jest.clearAllMocks();
+    });
+
+    test("✅ returns a list of enriched employees (200)", async () => {
+      // Project exists and user is authorized => findUnique returns the project
+      ProjectRepository.findUnique.mockResolvedValue(mockProject);
+      // Suppose we found exactly 2 employees; "emp-1" fully known, "emp-2" partially known
+      fetchUsersByIds.mockResolvedValue({
+        "emp-1": { id: "emp-1", fullName: "Employee One" },
+        "emp-2": { id: "emp-2", fullName: "Employee Two" },
+      });
+
+      const result = await getProjectEmployeesService(
+        adminUser,
+        "project-123",
+        "token"
+      );
+      expect(ProjectRepository.findUnique).toHaveBeenCalledWith({
+        where: {
+          id: "project-123",
+          // Because adminUser => no additional role-based filter => {}
+        },
+        select: { id: true, employeeIds: true },
+      });
+      expect(result).toEqual([
+        { id: "emp-1", fullName: "Employee One" },
+        { id: "emp-2", fullName: "Employee Two" },
+      ]);
+    });
+
+    test("✅ returns empty array if project has no employees", async () => {
+      const projectNoEmployees = { id: "project-abc", employeeIds: [] };
+      ProjectRepository.findUnique.mockResolvedValue(projectNoEmployees);
+
+      const result = await getProjectEmployeesService(
+        adminUser,
+        "project-abc",
+        "token"
+      );
+      expect(result).toEqual([]);
+      expect(fetchUsersByIds).not.toHaveBeenCalled(); // No employees => no fetch
+    });
+
+    test("🚫 rejects with 403 if project exists but user lacks permission", async () => {
+      // First call => null (role-based filter => no project returned),
+      // Second call => project does exist => means user is not allowed
+      ProjectRepository.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: "project-xyz" });
+
+      await expect(
+        getProjectEmployeesService(employeeUser, "project-xyz", "token")
+      ).rejects.toEqual({
+        status: 403,
+        message:
+          "Access denied: You do not have permission to view this project's employees",
+      });
+
+      expect(ProjectRepository.findUnique).toHaveBeenCalledTimes(2);
+    });
+
+    test("🚫 rejects with 404 if project not found at all", async () => {
+      // Both calls => null => project truly doesn't exist
+      ProjectRepository.findUnique.mockResolvedValue(null);
+
+      await expect(
+        getProjectEmployeesService(adminUser, "non-existent-id", "token")
+      ).rejects.toEqual({
+        status: 404,
+        message: "Project not found",
+      });
+    });
+
+    test("✅ partially enriched employees if some IDs missing", async () => {
+      ProjectRepository.findUnique.mockResolvedValue(mockProject);
+      fetchUsersByIds.mockResolvedValue({
+        "emp-1": { id: "emp-1", fullName: "Employee One" },
+        // "emp-2" is missing => fallback to { id: "emp-2" }
+      });
+
+      const result = await getProjectEmployeesService(
+        adminUser,
+        "project-123",
+        "token"
+      );
+      expect(result).toEqual([
+        { id: "emp-1", fullName: "Employee One" },
+        { id: "emp-2" }, // fallback
+      ]);
+    });
+
+    test("🚫 rejects with internal error (500) if findUnique fails unexpectedly", async () => {
+      ProjectRepository.findUnique.mockRejectedValue(new Error("DB error"));
+      await expect(
+        getProjectEmployeesService(adminUser, "project-123", "token")
+      ).rejects.toThrow("DB error"); // or toEqual() if you want a custom shape
     });
   });
 

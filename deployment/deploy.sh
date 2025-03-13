@@ -1,51 +1,35 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
 
-STACK_NAME="worknest"
+# This script applies all Kubernetes manifests for the WorkNest deployment.
 
-echo "Removing existing stack '${STACK_NAME}'..."
-docker stack rm ${STACK_NAME}
+set -e  # Exit on error
 
-echo "Waiting for the stack to be removed..."
-# Adjust the sleep duration if needed
-sleep 15
+echo "🏗  Creating namespace..."
+kubectl apply -f k8s/00-namespace.yaml
 
-echo "Removing old JWT secrets (if any)..."
-docker secret rm jwt_secret || true
-docker secret rm jwt_refresh_secret || true
+echo "🐘 Deploying Postgres..."
+kubectl apply -f k8s/01-postgres.yaml
 
-echo "Generating new JWT keys for identity-service..."
-# Navigate to the JWT config directory (adjust relative path if needed)
-cd ../services/identity-service/config/jwt
-mkdir -p .
-# Generate new keys (64 hex characters each)
-openssl rand -hex 64 > JWT_SECRET
-openssl rand -hex 64 > JWT_REFRESH_SECRET
-echo "New JWT keys generated in $(pwd)"
+echo "📨 Deploying MailHog..."
+kubectl apply -f k8s/02-mailhog.yaml
 
-echo "Creating Docker secrets for JWT..."
-docker secret create jwt_secret JWT_SECRET
-docker secret create jwt_refresh_secret JWT_REFRESH_SECRET
+echo "💾 Deploying MinIO..."
+kubectl apply -f k8s/03-minio.yaml
 
-echo "Returning to deployment directory..."
-cd ../../../../deployment
+echo "🔧 Deploying MinIO initialization Job..."
+kubectl apply -f k8s/04-minio-init.yaml
 
-echo "Building worknest/identity-service image..."
-cd ../services/identity-service
-docker build -t worknest/identity-service:latest .
+echo "🔑 Deploying Identity Service..."
+kubectl apply -f k8s/05-identity-service.yaml
 
-echo "Building worknest/project-service image..."
-cd ../project-service
-docker build -t worknest/project-service:latest .
+echo "📁 Deploying Project Service..."
+kubectl apply -f k8s/06-project-service.yaml
 
-echo "Building worknest/frontend image..."
-cd ../../frontend
-docker build -t worknest/frontend:latest .
+echo "📦 Deploying Storage Service..."
+kubectl apply -f k8s/07-storage-service.yaml
 
-echo "Returning to deployment directory..."
-cd ../deployment
+echo "🌐 Deploying Frontend..."
+kubectl apply -f k8s/08-frontend.yaml
 
-echo "Deploying stack..."
-docker stack deploy -c docker-compose.yml ${STACK_NAME}
-
-echo "Deployment complete. To check services, run: docker stack services ${STACK_NAME}"
+echo "✅ All services deployed."
+echo "You can check pods with: kubectl get pods -n worknest"

@@ -279,3 +279,7 @@ export const patchProjectValidation = [
 export const deleteProjectValidation = [
   param("id").isUUID().withMessage("Invalid project ID format"),
 ];
+
+export const getEmployeesValidation = [
+  param("id").isUUID().withMessage("Invalid project ID format"),
+];

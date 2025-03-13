@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, of } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, of, switchMap } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment'; // Import environment variables
 import { LoginResponse, User } from '../../auth/interfaces/auth.interfaces'; // Import interfaces
 import { Router } from '@angular/router';
+import { FlashMessageService } from './flash-message.service';
 
 interface AuthorizeResponse {
   user: User;
@@ -37,7 +38,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private flashMessageService: FlashMessageService
   ) {}
 
   /**
@@ -119,46 +121,76 @@ export class AuthService {
   }
 
   /**
-   * Authorizes the user by checking their role against the server
-   * @returns {Observable<User>} Observable resolving to the user data
+   * Authorizes the user by checking their role against the server.
+   * If the token is invalid, we attempt to refresh it once.
+   * @returns {Observable<User>}
    */
   authorize(): Observable<User> {
     const accessToken = localStorage.getItem('accessToken');
-
     if (!accessToken) {
-      this.clearAuthData();
-      this.router.navigate(['/login']);
+      this.logoutAndRedirect();
       return throwError(() => new Error('No access token found'));
     }
 
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${accessToken}`,
-    });
+    const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` });
+    const authorizeUrl = `${this.identityServiceUrl}/auth/authorize`;
 
-    return this.http
-      .get<AuthorizeResponse>(`${this.identityServiceUrl}/auth/authorize`, {
-        headers,
-      })
-      .pipe(
-        map((response) => {
-          // Update the current user with the latest data
-          this.currentUserSubject.next(response.user);
-          return response.user;
-        }),
-        catchError((error) => {
-          console.error('Authorization error:', error);
+    return this.http.get<AuthorizeResponse>(authorizeUrl, { headers }).pipe(
+      catchError((error) => {
+        if (
+          error.status === 401 ||
+          error.status === 403 ||
+          error.status === 400
+        ) {
+          return this.refreshToken().pipe(
+            switchMap(() => {
+              const newAccessToken = localStorage.getItem('accessToken');
+              if (!newAccessToken) {
+                this.logoutAndRedirect('Session expired. Please log in again.');
+                return throwError(
+                  () => new Error('No new access token found after refresh.')
+                );
+              }
 
-          // If token is expired or invalid, clear auth data and redirect to login
-          if (error.status === 401 || error.status === 403) {
-            this.clearAuthData();
-            this.isAuthenticatedSubject.next(false);
-            this.currentUserSubject.next(null);
-            this.router.navigate(['/login']);
-          }
+              const retryHeaders = new HttpHeaders({
+                Authorization: `Bearer ${newAccessToken}`,
+              });
 
-          return throwError(() => error);
-        })
-      );
+              return this.http.get<AuthorizeResponse>(authorizeUrl, {
+                headers: retryHeaders,
+              });
+            }),
+            catchError((refreshErr) => {
+              this.logoutAndRedirect('Session expired. Please log in again.');
+              return throwError(() => refreshErr);
+            })
+          );
+        }
+
+        // If none of these statuses, rethrow
+        return throwError(() => error);
+      }),
+      tap((response: AuthorizeResponse) => {
+        this.currentUserSubject.next(response.user);
+      }),
+      map((response: AuthorizeResponse) => response.user)
+    );
+  }
+
+  // Optional convenience method to keep code DRY
+  private logoutAndRedirect(message?: string): void {
+    // Clear tokens & user
+    this.clearAuthData();
+    this.isAuthenticatedSubject.next(false);
+    this.currentUserSubject.next(null);
+
+    // Show flash message if provided
+    if (message) {
+      this.flashMessageService.showError(message);
+    }
+
+    // Redirect to login
+    this.router.navigate(['/login']);
   }
 
   /**

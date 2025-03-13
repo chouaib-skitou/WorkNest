@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "transpile": "babel . --out-dir dist --ignore node_modules",
-    "generate:jwt": "mkdir config\\jwt 2>nul & openssl rand -hex 64 > config\\jwt\\JWT_SECRET & openssl rand -hex 64 > config\\jwt\\JWT_REFRESH_SECRET && echo ✅ JWT keys generated in /config/jwt/",
+    "generate:jwt": "mkdir -p config/jwt && openssl rand -hex 64 > config/jwt/JWT_SECRET && openssl rand -hex 64 > config/jwt/JWT_REFRESH_SECRET && echo ✅ JWT keys generated in /config/jwt/",
     "migrate:dev": "npx prisma migrate dev --name init",
     "migrate:prod": "npx prisma migrate deploy",
     "migrate:test": "dotenv -e .env.test -- npx prisma migrate reset --force && npx prisma generate",

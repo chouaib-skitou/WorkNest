@@ -1,0 +1,48 @@
+# k8s/06-project-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: project-service
+  namespace: worknest
+spec:
+  type: ClusterIP
+  selector:
+    app: project-service
+  ports:
+    - name: http
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project-service
+  namespace: worknest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: project-service
+  template:
+    metadata:
+      labels:
+        app: project-service
+    spec:
+      containers:
+        - name: project-service
+          image: skitou/project-service:latest
+          ports:
+            - containerPort: 5001
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "5001"
+            - name: DATABASE_URL
+              value: "postgresql://root:root@postgres-db.worknest:5432/project_service?schema=public"
+            - name: IDENTITY_SERVICE_URL
+              value: "http://identity-service:5000"
+            - name: FRONTEND_URL
+              value: "http://localhost:4200"
+            - name: PROJECT_SERVICE_URL
+              value: "http://project-service:5001"
