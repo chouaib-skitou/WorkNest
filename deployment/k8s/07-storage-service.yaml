@@ -48,7 +48,7 @@ spec:
               value: "worknest-bucket"
             # Update this to use the NodePort (external) URL for MinIO API
             - name: MINIO_PUBLIC_URL
-              value: "http://192.168.49.2:30900"  # Replace with your Minikube IP and NodePort
+              value: "http://localhost:9000"  # Replace with your Minikube IP and NodePort
             - name: IDENTITY_SERVICE_URL
               value: "http://identity-service:5000"
             - name: FRONTEND_URL
