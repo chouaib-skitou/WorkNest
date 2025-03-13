@@ -164,6 +164,7 @@ export const deleteProject = [
  */
 export const getProjectEmployees = [
   getEmployeesValidation,
+  validateRequest,
   async (req, res) => {
   try {
     const token = req.headers.authorization.split(" ")[1];
