@@ -18,12 +18,19 @@ export const routes: Routes = [
   { path: 'reset-password-request', component: ResetPasswordRequestComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'reset-password/:token', component: ResetPasswordComponent },
+
+  // Protected: user must have a valid token
   { path: 'profiles', component: ProjectsComponent, canActivate: [AuthGuard] },
-  { path: 'projects', component: ProjectsComponent },
-  { path: 'projects/:id', component: ProjectShowComponent },
-  { path: 'profile', component: ProfileComponent },
-  { path: 'users', component: UsersComponent },
-  //{ path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] }, // Protected
+  { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] },
+  {
+    path: 'projects/:id',
+    component: ProjectShowComponent,
+    canActivate: [AuthGuard],
+  },
+  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
+  { path: 'users', component: UsersComponent, canActivate: [AuthGuard] },
+
+  // Fallback for any unrecognized route
   { path: '**', redirectTo: '/login' },
 ];
 

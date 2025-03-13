@@ -23,10 +23,19 @@ export class NavBarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Subscribe to role changes
-    if (this.authService.isLoggedIn()) {
-      this.checkUserRoles();
-    }
+    // Subscribe to isAuthenticated$ so we know exactly when a user logs in or out
+    this.subscription.add(
+      this.authService.isAuthenticated$.subscribe((isAuthenticated) => {
+        if (isAuthenticated) {
+          // If the user just logged in, go fetch the roles
+          this.checkUserRoles();
+        } else {
+          // User logged out or is not authenticated
+          this.isAdmin = false;
+          this.isManager = false;
+        }
+      })
+    );
   }
 
   ngOnDestroy(): void {

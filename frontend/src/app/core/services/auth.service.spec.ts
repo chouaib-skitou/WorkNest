@@ -81,15 +81,28 @@ describe('AuthService', () => {
   it('should clear auth data and redirect on failed authorization', () => {
     service.authorize().subscribe({
       error: () => {
+        // Once everything finishes, we expect localStorage to be cleared and a redirect
         expect(localStorage.getItem('accessToken')).toBeNull();
         expect(router.navigate).toHaveBeenCalledWith(['/login']);
       },
     });
 
+    // 1) First request: /auth/authorize
     const req = httpMock.expectOne(
       `${environment.identityServiceUrl}/auth/authorize`
     );
     expect(req.request.method).toBe('GET');
+
+    // Return 401 => triggers refresh logic
     req.flush({}, { status: 401, statusText: 'Unauthorized' });
+
+    // 2) Because of 401, code calls /auth/refresh. Let’s handle that request too.
+    const refreshReq = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/refresh`
+    );
+    expect(refreshReq.request.method).toBe('POST');
+
+    // We want refresh to fail as well => that triggers the final logout & redirect
+    refreshReq.flush({}, { status: 401, statusText: 'Unauthorized' });
   });
 });
