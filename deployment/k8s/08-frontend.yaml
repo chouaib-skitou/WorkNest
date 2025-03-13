@@ -1,0 +1,37 @@
+# k8s/08-frontend.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: worknest
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: worknest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: skitou/frontend:latest
+          ports:
+            - containerPort: 80
+
