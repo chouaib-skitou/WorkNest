@@ -6,7 +6,7 @@ import {
   updateProject,
   patchProject,
   deleteProject,
-  getProjectEmployees
+  getProjectEmployees,
 } from "../controllers/project.controller.js";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
@@ -148,7 +148,6 @@ router.get("/:id", authMiddleware, getProjectById);
  *         description: Internal server error.
  */
 router.get("/:id/employees", authMiddleware, getProjectEmployees);
-
 
 /**
  * @swagger

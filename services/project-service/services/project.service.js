@@ -522,12 +522,11 @@ export const deleteProjectService = async (user, id) => {
   }
 };
 
-
 /**
  * Retrieve the list of employees for a given project.
  * This function checks role-based access, fetches the project to verify its existence and the user's authorization,
  * then uses fetchUsersByIds to retrieve detailed user data for each employee ID in the project.
- * 
+ *
  * @param {Object} user - The user making the request (contains `id` and `role`).
  * @param {string} projectId - The project ID.
  * @param {string} token - The JWT token used to fetch user details.
@@ -552,7 +551,8 @@ export const getProjectEmployeesService = async (user, projectId, token) => {
     if (existingProject) {
       return Promise.reject({
         status: 403,
-        message: "Access denied: You do not have permission to view this project's employees",
+        message:
+          "Access denied: You do not have permission to view this project's employees",
       });
     } else {
       return Promise.reject({ status: 404, message: "Project not found" });
@@ -574,4 +574,3 @@ export const getProjectEmployeesService = async (user, projectId, token) => {
 
   return enrichedEmployees;
 };
-

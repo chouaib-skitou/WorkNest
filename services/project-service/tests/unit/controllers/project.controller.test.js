@@ -245,8 +245,8 @@ describe("🛠 Project Controller Tests", () => {
   });
 
   describe("🛠 Project Controller - getProjectEmployees Tests", () => {
-    let req, res, next;
-  
+    let req, res;
+
     beforeEach(() => {
       req = {
         params: {},
@@ -258,10 +258,10 @@ describe("🛠 Project Controller Tests", () => {
         json: jest.fn(),
       };
       next = jest.fn();
-  
+
       jest.clearAllMocks();
     });
-  
+
     test("✅ should return employees array successfully (200)", async () => {
       req.params.id = "project-123";
       const mockEmployees = [
@@ -269,57 +269,57 @@ describe("🛠 Project Controller Tests", () => {
         { id: "emp-2", fullName: "Employee Two" },
       ];
       getProjectEmployeesService.mockResolvedValue(mockEmployees);
-  
+
       await projectController.getProjectEmployees[2](req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(mockEmployees);
     });
-  
+
     test("✅ should return empty array if project has no employees (200)", async () => {
       req.params.id = "project-123";
       getProjectEmployeesService.mockResolvedValue([]);
-  
+
       await projectController.getProjectEmployees[2](req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith([]);
     });
-  
+
     test("🚫 should handle 403 (Access denied) from service", async () => {
       req.params.id = "project-123";
       getProjectEmployeesService.mockRejectedValue({
         status: 403,
         message: "Access denied: You do not have permission",
       });
-  
+
       await projectController.getProjectEmployees[2](req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({
         error: "Access denied: You do not have permission",
       });
     });
-  
+
     test("🚫 should handle 404 (Project not found) from service", async () => {
       req.params.id = "non-existent-project";
       getProjectEmployeesService.mockRejectedValue({
         status: 404,
         message: "Project not found",
       });
-  
+
       await projectController.getProjectEmployees[2](req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: "Project not found" });
     });
-  
+
     test("🚫 should handle generic 500 error if service throws an Error without status", async () => {
       req.params.id = "project-123";
       getProjectEmployeesService.mockRejectedValue(new Error("Database error"));
-  
+
       await projectController.getProjectEmployees[2](req, res);
-  
+
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({ error: "Database error" });
     });

@@ -156,7 +156,6 @@ export const deleteProject = [
   },
 ];
 
-
 /**
  * Get the list of employees in a project.
  * @route GET /api/projects/:id/employees
@@ -166,15 +165,19 @@ export const getProjectEmployees = [
   getEmployeesValidation,
   validateRequest,
   async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(" ")[1];
-    const employees = await getProjectEmployeesService(req.user, req.params.id, token);
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      const employees = await getProjectEmployeesService(
+        req.user,
+        req.params.id,
+        token
+      );
 
-    res.status(200).json(employees);
-  } catch (error) {
-    console.error("Error fetching project employees:", error);
-    const statusCode = error.status || 500;
-    res.status(statusCode).json({ error: error.message });
-  }
-},
+      res.status(200).json(employees);
+    } catch (error) {
+      console.error("Error fetching project employees:", error);
+      const statusCode = error.status || 500;
+      res.status(statusCode).json({ error: error.message });
+    }
+  },
 ];
