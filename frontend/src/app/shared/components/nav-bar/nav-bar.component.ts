@@ -37,7 +37,6 @@ export class NavBarComponent implements OnInit, OnDestroy {
       })
     );
   }
-  
 
   ngOnDestroy(): void {
     // Clean up subscriptions to prevent memory leaks

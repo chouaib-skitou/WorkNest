@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError, of, switchMap  } from 'rxjs';
+import { Observable, BehaviorSubject, throwError, of, switchMap } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment'; // Import environment variables
 import { LoginResponse, User } from '../../auth/interfaces/auth.interfaces'; // Import interfaces
@@ -131,10 +131,10 @@ export class AuthService {
       this.logoutAndRedirect();
       return throwError(() => new Error('No access token found'));
     }
-  
+
     const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` });
     const authorizeUrl = `${this.identityServiceUrl}/auth/authorize`;
-  
+
     return this.http.get<AuthorizeResponse>(authorizeUrl, { headers }).pipe(
       catchError((error) => {
         if (
@@ -147,14 +147,18 @@ export class AuthService {
               const newAccessToken = localStorage.getItem('accessToken');
               if (!newAccessToken) {
                 this.logoutAndRedirect('Session expired. Please log in again.');
-                return throwError(() => new Error('No new access token found after refresh.'));
+                return throwError(
+                  () => new Error('No new access token found after refresh.')
+                );
               }
-  
+
               const retryHeaders = new HttpHeaders({
                 Authorization: `Bearer ${newAccessToken}`,
               });
-  
-              return this.http.get<AuthorizeResponse>(authorizeUrl, { headers: retryHeaders });
+
+              return this.http.get<AuthorizeResponse>(authorizeUrl, {
+                headers: retryHeaders,
+              });
             }),
             catchError((refreshErr) => {
               this.logoutAndRedirect('Session expired. Please log in again.');
@@ -162,7 +166,7 @@ export class AuthService {
             })
           );
         }
-  
+
         // If none of these statuses, rethrow
         return throwError(() => error);
       }),
@@ -172,7 +176,6 @@ export class AuthService {
       map((response: AuthorizeResponse) => response.user)
     );
   }
-  
 
   // Optional convenience method to keep code DRY
   private logoutAndRedirect(message?: string): void {

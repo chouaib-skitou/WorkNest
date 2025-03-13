@@ -13,7 +13,10 @@ import { map, catchError } from 'rxjs/operators';
   providedIn: 'root',
 })
 export class AuthGuard implements CanActivate {
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   canActivate(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

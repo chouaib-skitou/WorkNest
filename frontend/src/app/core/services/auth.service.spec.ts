@@ -86,20 +86,23 @@ describe('AuthService', () => {
         expect(router.navigate).toHaveBeenCalledWith(['/login']);
       },
     });
-  
+
     // 1) First request: /auth/authorize
-    const req = httpMock.expectOne(`${environment.identityServiceUrl}/auth/authorize`);
+    const req = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/authorize`
+    );
     expect(req.request.method).toBe('GET');
-  
+
     // Return 401 => triggers refresh logic
     req.flush({}, { status: 401, statusText: 'Unauthorized' });
-  
+
     // 2) Because of 401, code calls /auth/refresh. Let’s handle that request too.
-    const refreshReq = httpMock.expectOne(`${environment.identityServiceUrl}/auth/refresh`);
+    const refreshReq = httpMock.expectOne(
+      `${environment.identityServiceUrl}/auth/refresh`
+    );
     expect(refreshReq.request.method).toBe('POST');
-  
+
     // We want refresh to fail as well => that triggers the final logout & redirect
     refreshReq.flush({}, { status: 401, statusText: 'Unauthorized' });
   });
-  
 });

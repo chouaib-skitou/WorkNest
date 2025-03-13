@@ -22,7 +22,11 @@ export const routes: Routes = [
   // Protected: user must have a valid token
   { path: 'profiles', component: ProjectsComponent, canActivate: [AuthGuard] },
   { path: 'projects', component: ProjectsComponent, canActivate: [AuthGuard] },
-  { path: 'projects/:id', component: ProjectShowComponent, canActivate: [AuthGuard] },
+  {
+    path: 'projects/:id',
+    component: ProjectShowComponent,
+    canActivate: [AuthGuard],
+  },
   { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
   { path: 'users', component: UsersComponent, canActivate: [AuthGuard] },
 
