@@ -48,6 +48,43 @@ input {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
+  transition: border-color 0.3s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+}
+
+.input-error {
+  border-color: #e74c3c;
+  
+  &:focus {
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+  }
+}
+
+.error-message {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+}
+
+.error-alert {
+  background-color: #fdecea;
+  border-left: 4px solid #e74c3c;
+  color: #e74c3c;
+  padding: 0.75rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.error-icon {
+  margin-right: 0.5rem;
 }
 
 button {
@@ -60,6 +97,7 @@ button {
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  min-height: 2.75rem; /* Ensure consistent height when loading */
 
   &:hover {
     background-color: #3a7bc8;
@@ -86,3 +124,4 @@ button {
     }
   }
 }
+

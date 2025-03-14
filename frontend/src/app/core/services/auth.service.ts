@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError, of, switchMap } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment'; // Import environment variables
@@ -62,6 +62,8 @@ export class AuthService {
     return this.http.post<{ message: string }>(
       `${this.identityServiceUrl}/auth/register`,
       userData
+    ).pipe(
+      catchError(this.handleError)
     );
   }
 
@@ -82,7 +84,8 @@ export class AuthService {
           this.storeAuthData(response);
           this.isAuthenticatedSubject.next(true);
           this.currentUserSubject.next(response.user);
-        })
+        }),
+        catchError(this.handleError)
       );
   }
 
@@ -108,7 +111,8 @@ export class AuthService {
       .pipe(
         tap((tokens) => {
           this.storeAuthData(tokens);
-        })
+        }),
+        catchError(this.handleError)
       );
   }
 
@@ -262,6 +266,8 @@ export class AuthService {
     return this.http.post<{ message: string }>(
       `${this.identityServiceUrl}/auth/reset-password-request`,
       { email }
+    ).pipe(
+      catchError(this.handleError)
     );
   }
 
@@ -283,6 +289,47 @@ export class AuthService {
         newPassword,
         confirmNewPassword,
       }
+    ).pipe(
+      catchError(this.handleError)
     );
+  }
+
+  /**
+   * Handles HTTP errors and extracts meaningful error messages
+   * @param error - The HTTP error response
+   * @returns An observable that throws an error with a meaningful message
+   */
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'An unknown error occurred';
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      if (error.status === 401) {
+        if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else {
+          errorMessage = 'Invalid credentials';
+        }
+      } else if (error.error) {
+        // Try to extract the error message from the response
+        if (typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.error.error) {
+          errorMessage = error.error.error;
+        } else {
+          errorMessage = `Error Code: ${error.status}, Message: ${error.message}`;
+        }
+      }
+    }
+    
+    console.error('API Error:', errorMessage, error);
+    return throwError(() => ({ message: errorMessage, status: error.status, originalError: error }));
   }
 }
