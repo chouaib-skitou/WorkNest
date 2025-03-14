@@ -108,6 +108,7 @@ export class RegisterComponent {
             queryParams: { registered: 'true' },
           });
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         error: (error: any) => {
           this.isSubmitting = false;
           this.isError = true;
@@ -118,6 +119,7 @@ export class RegisterComponent {
             Array.isArray(error.originalError.error.errors)
           ) {
             this.errorMessages = error.originalError.error.errors.map(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (err: any) => err.message
             );
           } else {
