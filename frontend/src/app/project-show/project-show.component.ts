@@ -613,30 +613,34 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       this.closeCreateStageModal();
       return;
     }
-
+  
     if (this.createStageForm.invalid) {
       this.markFormGroupTouched(this.createStageForm);
       return;
     }
-
+  
     this.formSubmitting = true;
     this.formError = null;
-
+  
     const stageData: StageCreateUpdate = {
       ...this.createStageForm.value,
       projectId: this.projectId,
     };
-
+  
+    // Store the name from the form for the flash message
+    const stageName = this.createStageForm.value.name;
+  
     this.stageService
       .createStage(stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
         next: (stage) => {
           this.closeCreateStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${stage.name}" created successfully`
+            `Stage "${stageName}" created successfully`
           );
-
+  
           this.loadProject();
         },
         error: (error) => {
@@ -690,29 +694,33 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       this.closeEditStageModal();
       return;
     }
-
+  
     if (!this.selectedStage || this.editStageForm.invalid) {
       this.markFormGroupTouched(this.editStageForm);
       return;
     }
-
+  
     this.formSubmitting = true;
     this.formError = null;
-
+  
     const stageData: Partial<StageCreateUpdate> = {
       ...this.editStageForm.value,
     };
-
+  
+    // Store the name from the form for the flash message
+    const stageName = this.editStageForm.value.name;
+  
     this.stageService
       .updateStage(this.selectedStage.id, stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
         next: (stage) => {
           this.closeEditStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${stage.name}" updated successfully`
+            `Stage "${stageName}" updated successfully`
           );
-
+  
           this.loadProject();
         },
         error: (error) => {
@@ -759,21 +767,25 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       this.closeDeleteStageModal();
       return;
     }
-
+  
     if (!this.selectedStage) return;
-
+  
     this.formSubmitting = true;
-
+    
+    // Store the name before deletion for the flash message
+    const stageName = this.selectedStage.name;
+  
     this.stageService
       .deleteStage(this.selectedStage.id)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
         next: () => {
           this.closeDeleteStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${this.selectedStage?.name}" deleted successfully`
+            `Stage "${stageName}" deleted successfully`
           );
-
+  
           this.loadProject();
         },
         error: (error) => {
