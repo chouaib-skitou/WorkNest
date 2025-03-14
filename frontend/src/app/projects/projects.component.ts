@@ -153,7 +153,7 @@ export class ProjectsComponent implements OnInit {
           Validators.maxLength(100),
         ],
       ],
-      description: [''],
+      description: ['', Validators.required],
       managerId: [''],
       employeeIds: [[]],
       dueDate: ['', Validators.required],
