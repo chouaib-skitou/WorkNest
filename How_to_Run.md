@@ -417,7 +417,7 @@ This document describes a typical workflow scenario for using the WorkNest platf
 - **Add Tasks:**  
   Within each stage, create tasks and assign them to the appropriate employees.
 - **Attach Documents:**  
-  You can also add relevant documents to the project or specific stages.
+  You can also add relevant documents to the project.
 
 ## 4. Final Notes
 
@@ -425,6 +425,8 @@ This document describes a typical workflow scenario for using the WorkNest platf
   You now have a fully functional platform where Admins can manage users and projects. Managers and employees can collaborate on tasks, track progress, and store project documents.
 - **Feedback and Issues:**  
   If you encounter any bugs or have suggestions for improvements, please create an issue on our repository. Your feedback is highly appreciated!
+- **Project Service Test Scenarios:**  
+  For detailed rules and role-based access, refer to the [Project Service Test Scenarios](https://github.com/chouaib-skitou/WorkNest/blob/main/services/project-service/docs/TEST_SCENARIOS.md).
 
 ---
 
