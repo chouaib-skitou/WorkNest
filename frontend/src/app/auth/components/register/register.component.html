@@ -6,6 +6,22 @@
       <p class="subtitle">Create your account to get started</p>
     </div>
 
+    <!-- Error messages -->
+    <div *ngIf="message" class="message error">
+      <span class="message-icon">⚠️</span>
+      {{ message }}
+    </div>
+
+    <!-- List of error messages -->
+    <div *ngIf="errorMessages.length > 0" class="message error">
+      <div class="error-list">
+        <span class="message-icon">⚠️</span>
+        <ul>
+          <li *ngFor="let errorMsg of errorMessages">{{ errorMsg }}</li>
+        </ul>
+      </div>
+    </div>
+
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
       <div class="name-fields">
         <div class="form-field">
@@ -15,7 +31,11 @@
             type="text"
             formControlName="firstName"
             placeholder="Enter first name"
+            [class.input-error]="hasError(firstName, 'required')"
           />
+          <div class="error-message" *ngIf="hasError(firstName, 'required')">
+            First name is required
+          </div>
         </div>
         <div class="form-field">
           <label for="lastName">Last Name</label>
@@ -24,7 +44,11 @@
             type="text"
             formControlName="lastName"
             placeholder="Enter last name"
+            [class.input-error]="hasError(lastName, 'required')"
           />
+          <div class="error-message" *ngIf="hasError(lastName, 'required')">
+            Last name is required
+          </div>
         </div>
       </div>
 
@@ -35,7 +59,16 @@
           type="email"
           formControlName="email"
           placeholder="Enter your email"
+          [class.input-error]="
+            hasError(email, 'required') || hasError(email, 'email')
+          "
         />
+        <div class="error-message" *ngIf="hasError(email, 'required')">
+          Email is required
+        </div>
+        <div class="error-message" *ngIf="hasError(email, 'email')">
+          Please enter a valid email address
+        </div>
       </div>
 
       <div class="form-field">
@@ -45,7 +78,16 @@
           type="password"
           formControlName="password"
           placeholder="Enter your password"
+          [class.input-error]="
+            hasError(password, 'required') || hasError(password, 'minlength')
+          "
         />
+        <div class="error-message" *ngIf="hasError(password, 'required')">
+          Password is required
+        </div>
+        <div class="error-message" *ngIf="hasError(password, 'minlength')">
+          Password must be at least 8 characters
+        </div>
       </div>
 
       <div class="form-field">
@@ -55,11 +97,24 @@
           type="password"
           formControlName="confirmPassword"
           placeholder="Confirm your password"
+          [class.input-error]="
+            hasError(confirmPassword, 'required') || hasPasswordMismatch()
+          "
         />
+        <div
+          class="error-message"
+          *ngIf="hasError(confirmPassword, 'required')"
+        >
+          Please confirm your password
+        </div>
+        <div class="error-message" *ngIf="hasPasswordMismatch()">
+          Passwords do not match
+        </div>
       </div>
 
-      <button type="submit" [disabled]="registerForm.invalid">
-        Create Account
+      <button type="submit" [disabled]="registerForm.invalid || isSubmitting">
+        <span *ngIf="isSubmitting">Creating account...</span>
+        <span *ngIf="!isSubmitting">Create Account</span>
       </button>
     </form>
 

@@ -146,9 +146,20 @@
         </button>
       </div>
       <div class="modal-body">
+        <!-- Single error message -->
         <div class="form-error" *ngIf="formError">
           <i class="fas fa-exclamation-circle"></i>
           {{ formError }}
+        </div>
+
+        <!-- List of error messages -->
+        <div class="form-error" *ngIf="errorMessages.length > 0">
+          <div class="error-list">
+            <i class="fas fa-exclamation-circle"></i>
+            <ul>
+              <li *ngFor="let errorMsg of errorMessages">{{ errorMsg }}</li>
+            </ul>
+          </div>
         </div>
 
         <form [formGroup]="userForm" (ngSubmit)="createUser()">
@@ -236,47 +247,6 @@
           </div>
 
           <div class="form-group">
-            <label for="password"
-              >Password <span class="required">*</span></label
-            >
-            <div class="password-input-container">
-              <input
-                [type]="showPassword ? 'text' : 'password'"
-                id="password"
-                formControlName="password"
-                [class.invalid]="
-                  userForm.get('password')?.invalid &&
-                  userForm.get('password')?.touched
-                "
-              />
-              <button
-                type="button"
-                class="password-toggle"
-                (click)="togglePasswordVisibility()"
-              >
-                <i
-                  class="fas"
-                  [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"
-                ></i>
-              </button>
-            </div>
-            <div
-              class="error-message"
-              *ngIf="
-                userForm.get('password')?.invalid &&
-                userForm.get('password')?.touched
-              "
-            >
-              <span *ngIf="userForm.get('password')?.errors?.['required']"
-                >Password is required</span
-              >
-              <span *ngIf="userForm.get('password')?.errors?.['minlength']"
-                >Password must be at least 8 characters</span
-              >
-            </div>
-          </div>
-
-          <div class="form-group">
             <label for="role">Role <span class="required">*</span></label>
             <select id="role" formControlName="role">
               <option value="ROLE_EMPLOYEE">Employee</option>
@@ -315,9 +285,20 @@
         </button>
       </div>
       <div class="modal-body">
+        <!-- Single error message -->
         <div class="form-error" *ngIf="formError">
           <i class="fas fa-exclamation-circle"></i>
           {{ formError }}
+        </div>
+
+        <!-- List of error messages -->
+        <div class="form-error" *ngIf="errorMessages.length > 0">
+          <div class="error-list">
+            <i class="fas fa-exclamation-circle"></i>
+            <ul>
+              <li *ngFor="let errorMsg of errorMessages">{{ errorMsg }}</li>
+            </ul>
+          </div>
         </div>
 
         <form [formGroup]="userForm" (ngSubmit)="updateUser()">
@@ -402,45 +383,6 @@
               >
               <span *ngIf="userForm.get('email')?.errors?.['email']"
                 >Please enter a valid email address</span
-              >
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="edit-password"
-              >Password
-              <small>(Leave blank to keep current password)</small></label
-            >
-            <div class="password-input-container">
-              <input
-                [type]="showPassword ? 'text' : 'password'"
-                id="edit-password"
-                formControlName="password"
-                [class.invalid]="
-                  userForm.get('password')?.invalid &&
-                  userForm.get('password')?.touched
-                "
-              />
-              <button
-                type="button"
-                class="password-toggle"
-                (click)="togglePasswordVisibility()"
-              >
-                <i
-                  class="fas"
-                  [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"
-                ></i>
-              </button>
-            </div>
-            <div
-              class="error-message"
-              *ngIf="
-                userForm.get('password')?.invalid &&
-                userForm.get('password')?.touched
-              "
-            >
-              <span *ngIf="userForm.get('password')?.errors?.['minlength']"
-                >Password must be at least 8 characters</span
               >
             </div>
           </div>

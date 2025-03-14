@@ -5,6 +5,12 @@
     <p>Your efficient task management solution</p>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <!-- Error alert for API errors -->
+      <div class="error-alert" *ngIf="errorMessage">
+        <span class="error-icon">⚠️</span>
+        {{ errorMessage }}
+      </div>
+
       <div class="form-group">
         <label for="email">Email</label>
         <input
@@ -12,7 +18,16 @@
           type="email"
           formControlName="email"
           placeholder="Enter your email"
+          [class.input-error]="
+            hasError(email, 'required') || hasError(email, 'email')
+          "
         />
+        <div class="error-message" *ngIf="hasError(email, 'required')">
+          Email is required
+        </div>
+        <div class="error-message" *ngIf="hasError(email, 'email')">
+          Please enter a valid email address
+        </div>
       </div>
 
       <div class="form-group">
@@ -22,10 +37,22 @@
           type="password"
           formControlName="password"
           placeholder="Enter your password"
+          [class.input-error]="
+            hasError(password, 'required') || hasError(password, 'minlength')
+          "
         />
+        <div class="error-message" *ngIf="hasError(password, 'required')">
+          Password is required
+        </div>
+        <div class="error-message" *ngIf="hasError(password, 'minlength')">
+          Password must be at least 6 characters
+        </div>
       </div>
 
-      <button type="submit" [disabled]="loginForm.invalid">Log In</button>
+      <button type="submit" [disabled]="loginForm.invalid || isSubmitting">
+        <span *ngIf="isSubmitting">Logging in...</span>
+        <span *ngIf="!isSubmitting">Log In</span>
+      </button>
     </form>
 
     <div class="alternative-actions">

@@ -627,14 +627,19 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       projectId: this.projectId,
     };
 
+    // Store the name from the form for the flash message
+    const stageName = this.createStageForm.value.name;
+
     this.stageService
       .createStage(stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: (stage) => {
           this.closeCreateStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${stage.name}" created successfully`
+            `Stage "${stageName}" created successfully`
           );
 
           this.loadProject();
@@ -703,14 +708,19 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       ...this.editStageForm.value,
     };
 
+    // Store the name from the form for the flash message
+    const stageName = this.editStageForm.value.name;
+
     this.stageService
       .updateStage(this.selectedStage.id, stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: (stage) => {
           this.closeEditStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${stage.name}" updated successfully`
+            `Stage "${stageName}" updated successfully`
           );
 
           this.loadProject();
@@ -764,14 +774,18 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
 
     this.formSubmitting = true;
 
+    // Store the name before deletion for the flash message
+    const stageName = this.selectedStage.name;
+
     this.stageService
       .deleteStage(this.selectedStage.id)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
         next: () => {
           this.closeDeleteStageModal();
+          // Use the stored name instead of relying on the response
           this.flashMessageService.showSuccess(
-            `Stage "${this.selectedStage?.name}" deleted successfully`
+            `Stage "${stageName}" deleted successfully`
           );
 
           this.loadProject();
