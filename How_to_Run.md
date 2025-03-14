@@ -14,6 +14,7 @@ This document explains how to run each service in the **WorkNest** application. 
 3. [Run with Docker Compose](#-running-all-services-with-docker-compose)
 4. [Run with Kubernetes](#-running-with-kubernetes)
 5. [Additional Notes](#-additional-notes)
+6. [WorkNest Usage Scenario](#worknest-usage-scenario)
 
 ---
 
@@ -358,6 +359,76 @@ To have a role of Admin or Manager, register a user and then update the role dir
 
 ### Environment Setup
 Make sure each service’s `.env` file is properly configured before running the services.
+
+---
+
+## WorkNest Usage Scenario
+
+This document describes a typical workflow scenario for using the WorkNest platform. Follow these steps to set up and start managing your projects and teams.
+
+## 1. Initial Setup
+
+### a. Register as Admin
+- **Register:**  
+  Sign up using the email `admin@worknest.com` via the registration page.
+- **Verify Email:**  
+  Check the verification email using MailHog by navigating to [http://localhost:8025/](http://localhost:8025/).  
+- **Update Role:**  
+  After verifying the email, manually update the role of the registered user in your database from `ROLE_EMPLOYEE` (default) to `ROLE_ADMIN`.
+
+### b. Log In
+- **Login:**  
+  Log into the platform using the updated admin credentials.
+
+## 2. Create Manager and Employee Accounts
+
+### a. Create Manager Accounts
+- **Access Users Page:**  
+  Navigate to the `/users` section.
+- **Add Manager:**  
+  Click on "Add New User" and fill in the details for a new user.
+- **Select Role:**  
+  Choose the **Manager** role for the new user.
+- **Repeat:**  
+  Create one or more manager accounts as needed.
+
+### b. Create Employee Accounts
+- **Add Employees:**  
+  Similarly, use the "Add New User" feature to create 5, 10, or more employee accounts.
+- **Assign Role:**  
+  Assign these users the role **ROLE_EMPLOYEE**.
+- **Force Password Reset:**  
+  Each time a new user is created, a reset-password-request email is sent (via MailHog).  
+  - Instruct each user to check their email at [http://localhost:8025/](http://localhost:8025/) and update their password accordingly.
+
+## 3. Project and Task Management
+
+### a. Create a New Project
+- **Create Project:**  
+  As an Admin (or Manager with permissions), navigate to the Projects section and create a new project by filling out the required details.
+- **Assign Roles:**  
+  After the project is created, assign a manager to the project and add employees who will work on the project.
+
+### b. Manage Project Workflow
+- **Access Project Details:**  
+  Go to the project details page (e.g., `/project/:id`).
+- **Create Stages:**  
+  Create various stages (such as Backlog, Ready, Pending, etc.) to structure your project workflow.
+- **Add Tasks:**  
+  Within each stage, create tasks and assign them to the appropriate employees.
+- **Attach Documents:**  
+  You can also add relevant documents to the project or specific stages.
+
+## 4. Final Notes
+
+- **Enjoy Using WorkNest:**  
+  You now have a fully functional platform where Admins can manage users and projects. Managers and employees can collaborate on tasks, track progress, and store project documents.
+- **Feedback and Issues:**  
+  If you encounter any bugs or have suggestions for improvements, please create an issue on our repository. Your feedback is highly appreciated!
+
+---
+
+This scenario outlines the step-by-step process to set up an admin account, create manager and employee users, initialize a project, and manage tasks and stages within WorkNest. Enjoy using the app!
 
 ---
 
