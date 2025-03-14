@@ -66,6 +66,7 @@ export class ResetPasswordRequestComponent {
             this.isError = false;
             this.resetForm.reset();
           },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           error: (error: any) => {
             this.isSubmitting = false;
             this.message =

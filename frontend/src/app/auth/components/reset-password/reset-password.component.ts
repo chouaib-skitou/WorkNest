@@ -115,6 +115,7 @@ export class ResetPasswordComponent implements OnInit {
                 this.router.navigate(['/login']);
               }, 2000); // 2 seconds delay
             },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             error: (error: any) => {
               this.isSubmitting = false;
               this.isError = true;
@@ -125,6 +126,7 @@ export class ResetPasswordComponent implements OnInit {
                 Array.isArray(error.originalError.error.errors)
               ) {
                 this.errorMessages = error.originalError.error.errors.map(
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (err: any) => err.message
                 );
               } else {
