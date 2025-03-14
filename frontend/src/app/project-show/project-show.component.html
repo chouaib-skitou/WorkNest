@@ -380,10 +380,10 @@
         <div class="empty-state">
           <i class="fas fa-users"></i>
           <h3>No team members yet</h3>
-          <p>Add team members to collaborate on this project</p>
-          <button class="btn-primary" *ngIf="canManageProject" disabled>
+          <!-- <p>Add team members to collaborate on this project</p> -->
+          <!-- <button class="btn-primary" *ngIf="canManageProject" disabled>
             <i class="fas fa-plus"></i> Add First Team Member
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -525,8 +525,8 @@
         <div class="empty-state">
           <i class="fas fa-file-alt"></i>
           <h3>No documents yet</h3>
-          <p>Add documents to share with your team</p>
-          <button class="btn-primary" (click)="openAddDocumentModal()">
+          <p *ngIf="canManageStagesAndTasks()">Add documents to share with your team</p>
+          <button class="btn-primary" *ngIf="canManageStagesAndTasks()" (click)="openAddDocumentModal()">
             <i class="fas fa-plus"></i> Add First Document
           </button>
         </div>
