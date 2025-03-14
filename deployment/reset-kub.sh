@@ -17,7 +17,7 @@ done
 echo "Namespace 'worknest' deleted."
 
 # Redeploy all resources using the deploy.sh script
-echo "Redeploying all resources..."
-./deploy.sh
+# echo "Redeploying all resources..."
+# ./deploy.sh
 
 echo "✅ WorkNest Kubernetes reset complete."
