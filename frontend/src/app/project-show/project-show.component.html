@@ -525,8 +525,14 @@
         <div class="empty-state">
           <i class="fas fa-file-alt"></i>
           <h3>No documents yet</h3>
-          <p *ngIf="canManageStagesAndTasks()">Add documents to share with your team</p>
-          <button class="btn-primary" *ngIf="canManageStagesAndTasks()" (click)="openAddDocumentModal()">
+          <p *ngIf="canManageStagesAndTasks()">
+            Add documents to share with your team
+          </p>
+          <button
+            class="btn-primary"
+            *ngIf="canManageStagesAndTasks()"
+            (click)="openAddDocumentModal()"
+          >
             <i class="fas fa-plus"></i> Add First Document
           </button>
         </div>
