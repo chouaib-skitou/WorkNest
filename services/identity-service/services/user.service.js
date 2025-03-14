@@ -119,6 +119,10 @@ export const createUserService = async (requestingUser, data) => {
   }
 
   try {
+    // Lowercase email before proceeding
+    if (data.email) {
+      data.email = data.email.toLowerCase();
+    }
     // Create the user with isVerified forced to true
     const newUser = await UserRepository.create({
       ...data,

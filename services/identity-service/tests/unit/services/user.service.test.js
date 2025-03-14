@@ -240,6 +240,28 @@ describe("User Service Tests", () => {
       });
     });
 
+    test("✅ createUserService handles missing email gracefully", async () => {
+      // Input data without the email property
+      const inputData = { firstName: "John", lastName: "Doe", password: "secret" };
+    
+      // Mock repository responses
+      UserRepository.create.mockResolvedValue({ id: "new-user", firstName: "John", lastName: "Doe" });
+      PasswordResetTokenRepository.deleteMany.mockResolvedValue({ count: 0 });
+      PasswordResetTokenRepository.create.mockResolvedValue({ id: "token-id" });
+    
+      // Call the service (adminUser is assumed to be defined in your test setup)
+      const result = await createUserService(adminUser, inputData);
+    
+      // Verify that UserRepository.create was called with the input data unchanged (aside from isVerified: true)
+      expect(UserRepository.create).toHaveBeenCalledWith({
+        ...inputData,
+        isVerified: true,
+      });
+    
+      // And that the service returns a new UserDTO with the mocked user data
+      expect(result).toEqual(new UserDTO({ id: "new-user", firstName: "John", lastName: "Doe" }));
+    });    
+
     test("🚫 rejects with 500 on other repo errors", async () => {
       UserRepository.create.mockRejectedValue(new Error("DB error"));
       await expect(createUserService(adminUser, { email: "x" })).rejects.toEqual({
