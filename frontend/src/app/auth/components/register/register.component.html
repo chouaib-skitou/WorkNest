@@ -59,7 +59,9 @@
           type="email"
           formControlName="email"
           placeholder="Enter your email"
-          [class.input-error]="hasError(email, 'required') || hasError(email, 'email')"
+          [class.input-error]="
+            hasError(email, 'required') || hasError(email, 'email')
+          "
         />
         <div class="error-message" *ngIf="hasError(email, 'required')">
           Email is required
@@ -76,7 +78,9 @@
           type="password"
           formControlName="password"
           placeholder="Enter your password"
-          [class.input-error]="hasError(password, 'required') || hasError(password, 'minlength')"
+          [class.input-error]="
+            hasError(password, 'required') || hasError(password, 'minlength')
+          "
         />
         <div class="error-message" *ngIf="hasError(password, 'required')">
           Password is required
@@ -93,9 +97,14 @@
           type="password"
           formControlName="confirmPassword"
           placeholder="Confirm your password"
-          [class.input-error]="hasError(confirmPassword, 'required') || hasPasswordMismatch()"
+          [class.input-error]="
+            hasError(confirmPassword, 'required') || hasPasswordMismatch()
+          "
         />
-        <div class="error-message" *ngIf="hasError(confirmPassword, 'required')">
+        <div
+          class="error-message"
+          *ngIf="hasError(confirmPassword, 'required')"
+        >
           Please confirm your password
         </div>
         <div class="error-message" *ngIf="hasPasswordMismatch()">

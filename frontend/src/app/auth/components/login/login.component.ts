@@ -34,17 +34,23 @@ export class LoginComponent {
   }
 
   // Getter methods for easy access to form controls in the template
-  get email() { return this.loginForm.get('email'); }
-  get password() { return this.loginForm.get('password'); }
+  get email() {
+    return this.loginForm.get('email');
+  }
+  get password() {
+    return this.loginForm.get('password');
+  }
 
   // Check if a field has a specific error
   hasError(control: AbstractControl | null, errorName: string): boolean {
-    return control ? control.hasError(errorName) && (control.dirty || control.touched) : false;
+    return control
+      ? control.hasError(errorName) && (control.dirty || control.touched)
+      : false;
   }
 
   onSubmit() {
     // Mark all fields as touched to trigger validation
-    Object.keys(this.loginForm.controls).forEach(key => {
+    Object.keys(this.loginForm.controls).forEach((key) => {
       const control = this.loginForm.get(key);
       control?.markAsTouched();
     });
@@ -61,16 +67,19 @@ export class LoginComponent {
           },
           error: (error: any) => {
             this.isSubmitting = false;
-            
+
             // Use the error message from our improved error handler
-            this.errorMessage = error.message || 'Login failed. Please try again.';
-            
+            this.errorMessage =
+              error.message || 'Login failed. Please try again.';
+
             // Focus on the email field for better UX
-            const emailInput = document.getElementById('email') as HTMLInputElement;
+            const emailInput = document.getElementById(
+              'email'
+            ) as HTMLInputElement;
             if (emailInput) {
               emailInput.focus();
             }
-          }
+          },
         });
     }
   }

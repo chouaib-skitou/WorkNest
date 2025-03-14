@@ -49,7 +49,7 @@ input {
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
-  
+
   &:focus {
     outline: none;
     border-color: #4a90e2;
@@ -59,7 +59,7 @@ input {
 
 .input-error {
   border-color: #e74c3c;
-  
+
   &:focus {
     box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
   }
@@ -124,4 +124,3 @@ button {
     }
   }
 }
-

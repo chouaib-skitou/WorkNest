@@ -33,16 +33,20 @@ export class ResetPasswordRequestComponent {
   }
 
   // Getter for easy access to form control
-  get email() { return this.resetForm.get('email'); }
+  get email() {
+    return this.resetForm.get('email');
+  }
 
   // Check if a field has a specific error
   hasError(control: AbstractControl | null, errorName: string): boolean {
-    return control ? control.hasError(errorName) && (control.dirty || control.touched) : false;
+    return control
+      ? control.hasError(errorName) && (control.dirty || control.touched)
+      : false;
   }
 
   onSubmit() {
     // Mark fields as touched to trigger validation
-    Object.keys(this.resetForm.controls).forEach(key => {
+    Object.keys(this.resetForm.controls).forEach((key) => {
       const control = this.resetForm.get(key);
       control?.markAsTouched();
     });
@@ -57,21 +61,25 @@ export class ResetPasswordRequestComponent {
         .subscribe({
           next: (response) => {
             this.isSubmitting = false;
-            this.message = response.message || 'Password reset link sent to your email.';
+            this.message =
+              response.message || 'Password reset link sent to your email.';
             this.isError = false;
             this.resetForm.reset();
           },
           error: (error: any) => {
             this.isSubmitting = false;
-            this.message = error.message || 'Failed to send reset link. Please try again.';
+            this.message =
+              error.message || 'Failed to send reset link. Please try again.';
             this.isError = true;
-            
+
             // Focus on the email field for better UX
-            const emailInput = document.getElementById('email') as HTMLInputElement;
+            const emailInput = document.getElementById(
+              'email'
+            ) as HTMLInputElement;
             if (emailInput) {
               emailInput.focus();
             }
-          }
+          },
         });
     }
   }

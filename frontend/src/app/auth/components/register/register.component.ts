@@ -5,7 +5,7 @@ import {
   FormGroup,
   Validators,
   ReactiveFormsModule,
-  AbstractControl
+  AbstractControl,
 } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Router } from '@angular/router';
@@ -43,24 +43,39 @@ export class RegisterComponent {
   }
 
   // Getter methods for easy access to form controls
-  get firstName() { return this.registerForm.get('firstName'); }
-  get lastName() { return this.registerForm.get('lastName'); }
-  get email() { return this.registerForm.get('email'); }
-  get password() { return this.registerForm.get('password'); }
-  get confirmPassword() { return this.registerForm.get('confirmPassword'); }
+  get firstName() {
+    return this.registerForm.get('firstName');
+  }
+  get lastName() {
+    return this.registerForm.get('lastName');
+  }
+  get email() {
+    return this.registerForm.get('email');
+  }
+  get password() {
+    return this.registerForm.get('password');
+  }
+  get confirmPassword() {
+    return this.registerForm.get('confirmPassword');
+  }
 
   // Check if a field has a specific error
   hasError(control: AbstractControl | null, errorName: string): boolean {
-    return control ? control.hasError(errorName) && (control.dirty || control.touched) : false;
+    return control
+      ? control.hasError(errorName) && (control.dirty || control.touched)
+      : false;
   }
 
   // Check if the form has a password mismatch error
   hasPasswordMismatch(): boolean {
-    const confirmPasswordTouched = !!this.registerForm.get('confirmPassword')?.touched;
+    const confirmPasswordTouched =
+      !!this.registerForm.get('confirmPassword')?.touched;
     const passwordTouched = !!this.registerForm.get('password')?.touched;
-    return !!this.registerForm.hasError('mismatch') && 
-           confirmPasswordTouched &&
-           passwordTouched;
+    return (
+      !!this.registerForm.hasError('mismatch') &&
+      confirmPasswordTouched &&
+      passwordTouched
+    );
   }
 
   passwordMatchValidator(form: FormGroup) {
@@ -75,7 +90,7 @@ export class RegisterComponent {
 
   onSubmit() {
     // Mark all fields as touched to trigger validation
-    Object.keys(this.registerForm.controls).forEach(key => {
+    Object.keys(this.registerForm.controls).forEach((key) => {
       const control = this.registerForm.get(key);
       control?.markAsTouched();
     });
@@ -96,22 +111,34 @@ export class RegisterComponent {
         error: (error: any) => {
           this.isSubmitting = false;
           this.isError = true;
-          
+
           // Handle array of error messages
-          if (error.originalError?.error?.errors && Array.isArray(error.originalError.error.errors)) {
-            this.errorMessages = error.originalError.error.errors.map((err: any) => err.message);
+          if (
+            error.originalError?.error?.errors &&
+            Array.isArray(error.originalError.error.errors)
+          ) {
+            this.errorMessages = error.originalError.error.errors.map(
+              (err: any) => err.message
+            );
           } else {
-            this.message = error.message || 'Registration failed. Please try again.';
+            this.message =
+              error.message || 'Registration failed. Please try again.';
           }
-          
+
           // Focus on the password field if there are password-related errors
-          if (this.errorMessages.some(msg => msg.toLowerCase().includes('password'))) {
-            const passwordInput = document.getElementById('password') as HTMLInputElement;
+          if (
+            this.errorMessages.some((msg) =>
+              msg.toLowerCase().includes('password')
+            )
+          ) {
+            const passwordInput = document.getElementById(
+              'password'
+            ) as HTMLInputElement;
             if (passwordInput) {
               passwordInput.focus();
             }
           }
-        }
+        },
       });
     }
   }

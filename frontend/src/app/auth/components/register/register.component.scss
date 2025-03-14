@@ -70,7 +70,7 @@
 
     li {
       margin-bottom: 0.3rem;
-      
+
       &:last-child {
         margin-bottom: 0;
       }
@@ -117,7 +117,7 @@
 
       .input-error {
         border-color: #e74c3c;
-        
+
         &:focus {
           box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
         }
@@ -173,4 +173,3 @@
     }
   }
 }
-

@@ -1,41 +1,49 @@
-import { Injectable } from "@angular/core"
-import { HttpClient, HttpHeaders, HttpErrorResponse } from "@angular/common/http"
-import { Observable, BehaviorSubject, throwError, of, switchMap } from "rxjs"
-import { tap, catchError, map } from "rxjs/operators"
-import { environment } from "../../../environments/environment" // Import environment variables
-import { LoginResponse, User } from "../../auth/interfaces/auth.interfaces" // Import interfaces
-import { Router } from "@angular/router"
-import { FlashMessageService } from "./flash-message.service"
+import { Injectable } from '@angular/core';
+import {
+  HttpClient,
+  HttpHeaders,
+  HttpErrorResponse,
+} from '@angular/common/http';
+import { Observable, BehaviorSubject, throwError, of, switchMap } from 'rxjs';
+import { tap, catchError, map } from 'rxjs/operators';
+import { environment } from '../../../environments/environment'; // Import environment variables
+import { LoginResponse, User } from '../../auth/interfaces/auth.interfaces'; // Import interfaces
+import { Router } from '@angular/router';
+import { FlashMessageService } from './flash-message.service';
 
 interface AuthorizeResponse {
-  user: User
+  user: User;
 }
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class AuthService {
   /** Base API URL for authentication endpoints */
-  private identityServiceUrl = environment.identityServiceUrl
+  private identityServiceUrl = environment.identityServiceUrl;
 
   /**
    * Tracks whether the user is authenticated.
    * Uses a BehaviorSubject to allow real-time updates across the application.
    */
-  private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasToken())
-  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable()
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(
+    this.hasToken()
+  );
+  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
   /**
    * Tracks the current user data.
    * Uses a BehaviorSubject to update components when the user data changes.
    */
-  private currentUserSubject = new BehaviorSubject<User | null>(this.getStoredUser())
-  public currentUser$ = this.currentUserSubject.asObservable()
+  private currentUserSubject = new BehaviorSubject<User | null>(
+    this.getStoredUser()
+  );
+  public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
     private http: HttpClient,
     private router: Router,
-    private flashMessageService: FlashMessageService,
+    private flashMessageService: FlashMessageService
   ) {}
 
   /**
@@ -43,7 +51,7 @@ export class AuthService {
    * @returns {boolean} True if an access token is present, otherwise false.
    */
   private hasToken(): boolean {
-    return !!localStorage.getItem("accessToken")
+    return !!localStorage.getItem('accessToken');
   }
 
   /**
@@ -52,12 +60,14 @@ export class AuthService {
    * @returns {Observable<{ message: string }>} Observable resolving to a success message.
    */
   register(userData: {
-    email: string
-    password: string
+    email: string;
+    password: string;
   }): Observable<{ message: string }> {
     return this.http
-      .post<{ message: string }>(`${this.identityServiceUrl}/auth/register`, userData)
-      .pipe(catchError(this.handleError.bind(this)))
+      .post<{
+        message: string;
+      }>(`${this.identityServiceUrl}/auth/register`, userData)
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -74,21 +84,21 @@ export class AuthService {
       })
       .pipe(
         tap((response) => {
-          this.storeAuthData(response)
-          this.isAuthenticatedSubject.next(true)
-          this.currentUserSubject.next(response.user)
+          this.storeAuthData(response);
+          this.isAuthenticatedSubject.next(true);
+          this.currentUserSubject.next(response.user);
         }),
-        catchError(this.handleError.bind(this)),
-      )
+        catchError(this.handleError.bind(this))
+      );
   }
 
   /**
    * Logs out the user by clearing tokens and user data from localStorage.
    */
   logout(): void {
-    this.clearAuthData()
-    this.isAuthenticatedSubject.next(false)
-    this.currentUserSubject.next(null)
+    this.clearAuthData();
+    this.isAuthenticatedSubject.next(false);
+    this.currentUserSubject.next(null);
   }
 
   /**
@@ -96,17 +106,17 @@ export class AuthService {
    * @returns {Observable<LoginResponse>} Observable resolving to the new tokens and user info.
    */
   refreshToken(): Observable<LoginResponse> {
-    const refreshToken = localStorage.getItem("refreshToken")
+    const refreshToken = localStorage.getItem('refreshToken');
     return this.http
       .post<LoginResponse>(`${this.identityServiceUrl}/auth/refresh`, {
         refreshToken,
       })
       .pipe(
         tap((tokens) => {
-          this.storeAuthData(tokens)
+          this.storeAuthData(tokens);
         }),
-        catchError(this.handleError.bind(this)),
-      )
+        catchError(this.handleError.bind(this))
+      );
   }
 
   /**
@@ -114,7 +124,7 @@ export class AuthService {
    * @returns {boolean} True if authenticated, otherwise false.
    */
   isLoggedIn(): boolean {
-    return this.isAuthenticatedSubject.value
+    return this.isAuthenticatedSubject.value;
   }
 
   /**
@@ -123,65 +133,71 @@ export class AuthService {
    * @returns {Observable<User>}
    */
   authorize(): Observable<User> {
-    const accessToken = localStorage.getItem("accessToken")
+    const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
-      this.logoutAndRedirect()
-      return throwError(() => new Error("No access token found"))
+      this.logoutAndRedirect();
+      return throwError(() => new Error('No access token found'));
     }
 
-    const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` })
-    const authorizeUrl = `${this.identityServiceUrl}/auth/authorize`
+    const headers = new HttpHeaders({ Authorization: `Bearer ${accessToken}` });
+    const authorizeUrl = `${this.identityServiceUrl}/auth/authorize`;
 
     return this.http.get<AuthorizeResponse>(authorizeUrl, { headers }).pipe(
       catchError((error) => {
-        if (error.status === 401 || error.status === 403 || error.status === 400) {
+        if (
+          error.status === 401 ||
+          error.status === 403 ||
+          error.status === 400
+        ) {
           return this.refreshToken().pipe(
             switchMap(() => {
-              const newAccessToken = localStorage.getItem("accessToken")
+              const newAccessToken = localStorage.getItem('accessToken');
               if (!newAccessToken) {
-                this.logoutAndRedirect("Session expired. Please log in again.")
-                return throwError(() => new Error("No new access token found after refresh."))
+                this.logoutAndRedirect('Session expired. Please log in again.');
+                return throwError(
+                  () => new Error('No new access token found after refresh.')
+                );
               }
 
               const retryHeaders = new HttpHeaders({
                 Authorization: `Bearer ${newAccessToken}`,
-              })
+              });
 
               return this.http.get<AuthorizeResponse>(authorizeUrl, {
                 headers: retryHeaders,
-              })
+              });
             }),
             catchError((refreshErr) => {
-              this.logoutAndRedirect("Session expired. Please log in again.")
-              return throwError(() => refreshErr)
-            }),
-          )
+              this.logoutAndRedirect('Session expired. Please log in again.');
+              return throwError(() => refreshErr);
+            })
+          );
         }
 
         // If none of these statuses, rethrow
-        return throwError(() => error)
+        return throwError(() => error);
       }),
       tap((response: AuthorizeResponse) => {
-        this.currentUserSubject.next(response.user)
+        this.currentUserSubject.next(response.user);
       }),
-      map((response: AuthorizeResponse) => response.user),
-    )
+      map((response: AuthorizeResponse) => response.user)
+    );
   }
 
   // Optional convenience method to keep code DRY
   private logoutAndRedirect(message?: string): void {
     // Clear tokens & user
-    this.clearAuthData()
-    this.isAuthenticatedSubject.next(false)
-    this.currentUserSubject.next(null)
+    this.clearAuthData();
+    this.isAuthenticatedSubject.next(false);
+    this.currentUserSubject.next(null);
 
     // Show flash message if provided
     if (message) {
-      this.flashMessageService.showError(message)
+      this.flashMessageService.showError(message);
     }
 
     // Redirect to login
-    this.router.navigate(["/login"])
+    this.router.navigate(['/login']);
   }
 
   /**
@@ -190,9 +206,9 @@ export class AuthService {
    */
   isAdmin(): Observable<boolean> {
     return this.authorize().pipe(
-      map((user) => user.role === "ROLE_ADMIN"),
-      catchError(() => of(false)),
-    )
+      map((user) => user.role === 'ROLE_ADMIN'),
+      catchError(() => of(false))
+    );
   }
 
   /**
@@ -201,9 +217,9 @@ export class AuthService {
    */
   isManager(): Observable<boolean> {
     return this.authorize().pipe(
-      map((user) => user.role === "ROLE_MANAGER" || user.role === "ROLE_ADMIN"),
-      catchError(() => of(false)),
-    )
+      map((user) => user.role === 'ROLE_MANAGER' || user.role === 'ROLE_ADMIN'),
+      catchError(() => of(false))
+    );
   }
 
   /**
@@ -211,10 +227,10 @@ export class AuthService {
    * @param response - The login response containing user info, `accessToken`, `refreshToken`, and `expiresIn`.
    */
   private storeAuthData(response: LoginResponse): void {
-    localStorage.setItem("accessToken", response.accessToken)
-    localStorage.setItem("refreshToken", response.refreshToken)
-    localStorage.setItem("expiresIn", response.expiresIn)
-    localStorage.setItem("user", JSON.stringify(response.user)) // Store user details
+    localStorage.setItem('accessToken', response.accessToken);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    localStorage.setItem('expiresIn', response.expiresIn);
+    localStorage.setItem('user', JSON.stringify(response.user)); // Store user details
   }
 
   /**
@@ -222,18 +238,18 @@ export class AuthService {
    * @returns {User | null} The stored user object or null if not found.
    */
   private getStoredUser(): User | null {
-    const user = localStorage.getItem("user")
-    return user ? JSON.parse(user) : null
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
   }
 
   /**
    * Clears authentication tokens and user data from localStorage.
    */
   private clearAuthData(): void {
-    localStorage.removeItem("accessToken")
-    localStorage.removeItem("refreshToken")
-    localStorage.removeItem("expiresIn")
-    localStorage.removeItem("user")
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('expiresIn');
+    localStorage.removeItem('user');
   }
 
   /**
@@ -241,7 +257,7 @@ export class AuthService {
    * @returns {User | null} The user object if logged in, otherwise null.
    */
   getCurrentUser(): User | null {
-    return this.currentUserSubject.value
+    return this.currentUserSubject.value;
   }
 
   /**
@@ -251,8 +267,10 @@ export class AuthService {
    */
   resetPasswordRequest(email: string): Observable<{ message: string }> {
     return this.http
-      .post<{ message: string }>(`${this.identityServiceUrl}/auth/reset-password-request`, { email })
-      .pipe(catchError(this.handleError.bind(this)))
+      .post<{
+        message: string;
+      }>(`${this.identityServiceUrl}/auth/reset-password-request`, { email })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -262,13 +280,20 @@ export class AuthService {
    * @param confirmNewPassword - Confirmation of the new password.
    * @returns {Observable<{ success: boolean }>} Observable resolving to success status.
    */
-  resetPassword(token: string, newPassword: string, confirmNewPassword: string): Observable<{ success: boolean }> {
+  resetPassword(
+    token: string,
+    newPassword: string,
+    confirmNewPassword: string
+  ): Observable<{ success: boolean }> {
     return this.http
-      .post<{ success: boolean }>(`${this.identityServiceUrl}/auth/reset-password/${token}`, {
-        newPassword,
-        confirmNewPassword,
-      })
-      .pipe(catchError(this.handleError.bind(this)))
+      .post<{ success: boolean }>(
+        `${this.identityServiceUrl}/auth/reset-password/${token}`,
+        {
+          newPassword,
+          confirmNewPassword,
+        }
+      )
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -277,44 +302,51 @@ export class AuthService {
    * @returns An observable that throws an error with a meaningful message
    */
   private handleError(error: HttpErrorResponse): Observable<never> {
-    let errorMessage = "An unknown error occurred"
+    let errorMessage = 'An unknown error occurred';
 
     if (error.error instanceof ErrorEvent) {
       // Client-side error
-      errorMessage = `Error: ${error.error.message}`
+      errorMessage = `Error: ${error.error.message}`;
     } else {
       // Server-side error
       if (error.status === 401) {
-        if (error.error && typeof error.error === "string") {
-          errorMessage = error.error
+        if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
         } else if (error.error && error.error.message) {
-          errorMessage = error.error.message
+          errorMessage = error.error.message;
         } else {
-          errorMessage = "Invalid credentials"
+          errorMessage = 'Invalid credentials';
         }
       } else if (error.error) {
         // Try to extract the error message from the response
-        if (typeof error.error === "string") {
-          errorMessage = error.error
+        if (typeof error.error === 'string') {
+          errorMessage = error.error;
         } else if (error.error.message) {
-          errorMessage = error.error.message
+          errorMessage = error.error.message;
         } else if (error.error.error) {
-          errorMessage = error.error.error
-        } else if (error.error.errors && Array.isArray(error.error.errors) && error.error.errors.length > 0) {
+          errorMessage = error.error.error;
+        } else if (
+          error.error.errors &&
+          Array.isArray(error.error.errors) &&
+          error.error.errors.length > 0
+        ) {
           // Handle errors array format
           if (error.error.errors[0].message) {
-            errorMessage = error.error.errors[0].message
+            errorMessage = error.error.errors[0].message;
           } else {
-            errorMessage = JSON.stringify(error.error.errors[0])
+            errorMessage = JSON.stringify(error.error.errors[0]);
           }
         } else {
-          errorMessage = `Error Code: ${error.status}, Message: ${error.message}`
+          errorMessage = `Error Code: ${error.status}, Message: ${error.message}`;
         }
       }
     }
 
-    console.error("API Error:", errorMessage, error)
-    return throwError(() => ({ message: errorMessage, status: error.status, originalError: error }))
+    console.error('API Error:', errorMessage, error);
+    return throwError(() => ({
+      message: errorMessage,
+      status: error.status,
+      originalError: error,
+    }));
   }
 }
-
