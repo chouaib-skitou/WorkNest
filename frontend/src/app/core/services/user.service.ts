@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import {
+  HttpClient,
+  HttpHeaders,
+  HttpParams,
+  HttpErrorResponse,
+} from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface User {
@@ -27,7 +33,6 @@ export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
   role: 'ROLE_EMPLOYEE' | 'ROLE_MANAGER' | 'ROLE_ADMIN';
 }
 
@@ -83,10 +88,12 @@ export class UserService {
       params = params.set('role', roleFilter);
     }
 
-    return this.http.get<UserResponse>(`${this.identityServiceUrl}/users`, {
-      headers,
-      params,
-    });
+    return this.http
+      .get<UserResponse>(`${this.identityServiceUrl}/users`, {
+        headers,
+        params,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -96,9 +103,11 @@ export class UserService {
    */
   getUserById(userId: string): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.get<User>(`${this.identityServiceUrl}/users/${userId}`, {
-      headers,
-    });
+    return this.http
+      .get<User>(`${this.identityServiceUrl}/users/${userId}`, {
+        headers,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -108,9 +117,11 @@ export class UserService {
    */
   createUser(userData: CreateUserRequest): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.post<User>(`${this.identityServiceUrl}/users`, userData, {
-      headers,
-    });
+    return this.http
+      .post<User>(`${this.identityServiceUrl}/users`, userData, {
+        headers,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -121,11 +132,11 @@ export class UserService {
    */
   updateUser(userId: string, userData: UpdateUserRequest): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.put<User>(
-      `${this.identityServiceUrl}/users/${userId}`,
-      userData,
-      { headers }
-    );
+    return this.http
+      .put<User>(`${this.identityServiceUrl}/users/${userId}`, userData, {
+        headers,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -139,11 +150,11 @@ export class UserService {
     userData: Partial<UpdateUserRequest>
   ): Observable<User> {
     const headers = this.getHeaders();
-    return this.http.patch<User>(
-      `${this.identityServiceUrl}/users/${userId}`,
-      userData,
-      { headers }
-    );
+    return this.http
+      .patch<User>(`${this.identityServiceUrl}/users/${userId}`, userData, {
+        headers,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -153,9 +164,11 @@ export class UserService {
    */
   deleteUser(userId: string): Observable<unknown> {
     const headers = this.getHeaders();
-    return this.http.delete(`${this.identityServiceUrl}/users/${userId}`, {
-      headers,
-    });
+    return this.http
+      .delete(`${this.identityServiceUrl}/users/${userId}`, {
+        headers,
+      })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   /**
@@ -183,5 +196,70 @@ export class UserService {
    */
   formatFullName(user: User): string {
     return `${user.firstName} ${user.lastName}`;
+  }
+
+  /**
+   * Handles HTTP errors and extracts meaningful error messages
+   * @param error - The HTTP error response
+   * @returns An observable that throws an error with a meaningful message
+   */
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'An unknown error occurred';
+
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else {
+      // Server-side error
+      if (error.status === 401) {
+        if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else {
+          errorMessage = 'Authentication failed. Please log in again.';
+        }
+      } else if (error.status === 409) {
+        // Conflict error - typically for duplicate email
+        if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.error && error.error.error) {
+          errorMessage = error.error.error;
+        } else {
+          errorMessage = 'A user with that email already exists.';
+        }
+      } else if (error.error) {
+        // Try to extract the error message from the response
+        if (typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.error.error) {
+          errorMessage = error.error.error;
+        } else if (
+          error.error.errors &&
+          Array.isArray(error.error.errors) &&
+          error.error.errors.length > 0
+        ) {
+          // Handle errors array format
+          if (error.error.errors[0].message) {
+            errorMessage = error.error.errors[0].message;
+          } else {
+            errorMessage = JSON.stringify(error.error.errors[0]);
+          }
+        } else {
+          errorMessage = `Error Code: ${error.status}, Message: ${error.message}`;
+        }
+      }
+    }
+
+    console.error('API Error:', errorMessage, error);
+    return throwError(() => ({
+      message: errorMessage,
+      status: error.status,
+      originalError: error,
+    }));
   }
 }

@@ -19,11 +19,6 @@ import { AuthService } from '../core/services/auth.service';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 
-// Add this interface to extend UpdateUserRequest with the password property
-interface UserDataWithPassword extends UpdateUserRequest {
-  password: string;
-}
-
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -58,9 +53,7 @@ export class UsersComponent implements OnInit {
   selectedUser: User | null = null;
   formSubmitting = false;
   formError = '';
-
-  // Password visibility
-  showPassword = false;
+  errorMessages: string[] = [];
 
   constructor(
     private userService: UserService,
@@ -138,7 +131,6 @@ export class UsersComponent implements OnInit {
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
       role: ['ROLE_EMPLOYEE', Validators.required],
     });
   }
@@ -216,6 +208,7 @@ export class UsersComponent implements OnInit {
       role: 'ROLE_EMPLOYEE',
     });
     this.formError = '';
+    this.errorMessages = [];
     this.showCreateModal = true;
   }
 
@@ -238,11 +231,9 @@ export class UsersComponent implements OnInit {
       email: user.email,
       role: user.role,
     });
-    // Remove password validation for edit
-    this.userForm.get('password')?.clearValidators();
-    this.userForm.get('password')?.updateValueAndValidity();
 
     this.formError = '';
+    this.errorMessages = [];
     this.showEditModal = true;
   }
 
@@ -271,21 +262,8 @@ export class UsersComponent implements OnInit {
     this.showDeleteModal = false;
     this.selectedUser = null;
     this.formSubmitting = false;
-
-    // Reset password validation for next time
-    if (this.userForm.get('password')) {
-      this.userForm
-        .get('password')
-        ?.setValidators([Validators.required, Validators.minLength(8)]);
-      this.userForm.get('password')?.updateValueAndValidity();
-    }
-  }
-
-  /**
-   * Toggle password visibility
-   */
-  togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
+    this.errorMessages = [];
+    this.formError = '';
   }
 
   /**
@@ -308,8 +286,14 @@ export class UsersComponent implements OnInit {
 
     this.formSubmitting = true;
     this.formError = '';
+    this.errorMessages = [];
 
-    const userData: CreateUserRequest = this.userForm.value;
+    const userData: CreateUserRequest = {
+      firstName: this.userForm.value.firstName,
+      lastName: this.userForm.value.lastName,
+      email: this.userForm.value.email,
+      role: this.userForm.value.role,
+    };
 
     this.userService.createUser(userData).subscribe({
       next: (newUser) => {
@@ -321,9 +305,21 @@ export class UsersComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error creating user:', error);
-        this.formError =
-          error.error?.message || 'Failed to create user. Please try again.';
         this.formSubmitting = false;
+
+        // Handle array of error messages
+        if (
+          error.originalError?.error?.errors &&
+          Array.isArray(error.originalError.error.errors)
+        ) {
+          this.errorMessages = error.originalError.error.errors.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (err: any) => err.message
+          );
+        } else {
+          this.formError =
+            error.message || 'Failed to create user. Please try again.';
+        }
       },
     });
   }
@@ -348,6 +344,7 @@ export class UsersComponent implements OnInit {
 
     this.formSubmitting = true;
     this.formError = '';
+    this.errorMessages = [];
 
     const userData: UpdateUserRequest = {
       firstName: this.userForm.value.firstName,
@@ -355,12 +352,6 @@ export class UsersComponent implements OnInit {
       email: this.userForm.value.email,
       role: this.userForm.value.role,
     };
-
-    // Only include password if it was provided
-    if (this.userForm.value.password) {
-      (userData as UserDataWithPassword).password =
-        this.userForm.value.password;
-    }
 
     this.userService.updateUser(this.selectedUser.id, userData).subscribe({
       next: (updatedUser) => {
@@ -372,9 +363,21 @@ export class UsersComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error updating user:', error);
-        this.formError =
-          error.error?.message || 'Failed to update user. Please try again.';
         this.formSubmitting = false;
+
+        // Handle array of error messages
+        if (
+          error.originalError?.error?.errors &&
+          Array.isArray(error.originalError.error.errors)
+        ) {
+          this.errorMessages = error.originalError.error.errors.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (err: any) => err.message
+          );
+        } else {
+          this.formError =
+            error.message || 'Failed to update user. Please try again.';
+        }
       },
     });
   }

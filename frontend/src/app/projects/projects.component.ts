@@ -153,7 +153,7 @@ export class ProjectsComponent implements OnInit {
           Validators.maxLength(100),
         ],
       ],
-      description: [''],
+      description: ['', Validators.required],
       managerId: [''],
       employeeIds: [[]],
       dueDate: ['', Validators.required],
@@ -651,7 +651,6 @@ export class ProjectsComponent implements OnInit {
    * Submit create project form
    */
   submitCreateForm() {
-    // Double-check permissions
     if (!this.canCreateProject()) {
       this.flashMessageService.showError(
         'You do not have permission to create projects'
@@ -696,9 +695,16 @@ export class ProjectsComponent implements OnInit {
           console.log('All uploads completed. Image URL:', results.imageUrl);
           console.log('Document URLs:', results.documentUrls);
 
+          // Get form values
+          const formValues = this.createProjectForm.value;
+
           // Prepare data with document URLs instead of binary files
           const formData = {
-            ...this.createProjectForm.value,
+            ...formValues,
+            // Ensure managerId is an empty string if not provided
+            managerId: formValues.managerId || '',
+            // Ensure employeeIds is an empty array if not provided
+            employeeIds: formValues.employeeIds || [],
             // Only include the URL if it exists
             image: results.imageUrl || undefined,
             // Only include document URLs if we have any
@@ -812,9 +818,16 @@ export class ProjectsComponent implements OnInit {
           );
           console.log('Document URLs for update:', results.documentUrls);
 
+          // Get form values
+          const formValues = this.updateProjectForm.value;
+
           // Prepare data with document URLs instead of binary files
           const formData = {
-            ...this.updateProjectForm.value,
+            ...formValues,
+            // Ensure managerId is an empty string if not provided
+            managerId: formValues.managerId || '',
+            // Ensure employeeIds is an empty array if not provided
+            employeeIds: formValues.employeeIds || [],
             // Only include the URL if it exists
             image: results.imageUrl || undefined,
             // Only include document URLs if we have any

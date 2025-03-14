@@ -6,6 +6,7 @@ import {
   FormGroup,
   Validators,
   ReactiveFormsModule,
+  AbstractControl,
 } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -20,6 +21,7 @@ export class ResetPasswordRequestComponent {
   resetForm: FormGroup;
   message = '';
   isError = false;
+  isSubmitting = false;
 
   constructor(
     private fb: FormBuilder,
@@ -30,22 +32,56 @@ export class ResetPasswordRequestComponent {
     });
   }
 
+  // Getter for easy access to form control
+  get email() {
+    return this.resetForm.get('email');
+  }
+
+  // Check if a field has a specific error
+  hasError(control: AbstractControl | null, errorName: string): boolean {
+    return control
+      ? control.hasError(errorName) && (control.dirty || control.touched)
+      : false;
+  }
+
   onSubmit() {
+    // Mark fields as touched to trigger validation
+    Object.keys(this.resetForm.controls).forEach((key) => {
+      const control = this.resetForm.get(key);
+      control?.markAsTouched();
+    });
+
     if (this.resetForm.valid) {
+      this.isSubmitting = true;
+      this.message = '';
+      this.isError = false;
+
       this.authService
         .resetPasswordRequest(this.resetForm.value.email)
-        .subscribe(
-          () => {
-            this.message = 'Password reset link sent to your email.';
-            this.isError = false;
-          },
-          (error) => {
+        .subscribe({
+          next: (response) => {
+            this.isSubmitting = false;
             this.message =
-              error.error.message ||
-              'Failed to send reset link. Please try again.';
+              response.message || 'Password reset link sent to your email.';
+            this.isError = false;
+            this.resetForm.reset();
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          error: (error: any) => {
+            this.isSubmitting = false;
+            this.message =
+              error.message || 'Failed to send reset link. Please try again.';
             this.isError = true;
-          }
-        );
+
+            // Focus on the email field for better UX
+            const emailInput = document.getElementById(
+              'email'
+            ) as HTMLInputElement;
+            if (emailInput) {
+              emailInput.focus();
+            }
+          },
+        });
     }
   }
 }

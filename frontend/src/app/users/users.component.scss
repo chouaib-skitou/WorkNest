@@ -431,6 +431,31 @@
   }
 }
 
+// Error list styling
+.error-list {
+  display: flex;
+  width: 100%;
+
+  i {
+    margin-top: 3px;
+    margin-right: vars.$spacing-sm;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: vars.$spacing-md;
+    flex: 1;
+  }
+
+  li {
+    margin-bottom: 0.3rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
 // Password input container
 .password-input-container {
   position: relative;

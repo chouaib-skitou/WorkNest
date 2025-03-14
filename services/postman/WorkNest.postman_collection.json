@@ -1,0 +1,1371 @@
+{
+	"info": {
+		"_postman_id": "76f65a2d-8bee-4ad5-b9cb-abd8a2874675",
+		"name": "WorkNest",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "20338702"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"manager@test.com\",\r\n    \"password\": \"Chouaib@2025\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/login",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login employee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"manager@test.com\",\r\n    \"password\": \"Chouaib@2025\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/login",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login manager",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"manager@test.com\",\r\n    \"password\": \"Chouaib@2025\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/login",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login test all",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"manager@test.com\",\r\n    \"password\": \"Chouaib@2025\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/login",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "authorize",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"chouaib.skt@gmail.com\",\r\n    \"password\": \"chouaib.skt@gmail.com\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/login",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "refresh token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/refresh",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"test\",\r\n    \"lastName\": \"test\",\r\n    \"email\": \"chouaib.st@test.com\",\r\n    \"password\": \"Chouaib@2025\",\r\n    \"role\": \"ROLE_ADMIN\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/register",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reset password request",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"test211@test.com\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/reset-password-request",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password-request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reset password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"newPassword\": \"test2@test\",\r\n  \"confirmNewPassword\": \"test2@test\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/auth/reset-password/c60a76786d13ff07e3bdb0dccc4e13e9f8042550c5ab3589cf7e8bca59472c35",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password",
+								"c60a76786d13ff07e3bdb0dccc4e13e9f8042550c5ab3589cf7e8bca59472c35"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "get all users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmMzU4OGJlLWQyMmUtNGQzNS05Y2NmLWI1ZjZmOTk4ODNkMSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MTIzNjM2LCJleHAiOjE3MzkxMjcyMzZ9.gxILFoZ4-C5mplsGCxUlzf3CbhSQPeqksZxiu37M5bk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/users",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5000",
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get one user",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "batch user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update user put",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNkY2E3MGEwLWM0MmYtNGVkOC1hZTg5LTIyN2YxYzQyMTA1MiIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MTI3MDcwLCJleHAiOjE3MzkxMzA2NzB9.WsjbG7gJDCpls6nFGvjyVtQFiH9DIRS_yLaq-bhp4xM",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"role\": \"ROLE_EMPLOYEE\",\r\n    \"password\": \"tatatatata\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users/cc572f55-7c38-4565-ad15-c9ebb7fc449d",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"cc572f55-7c38-4565-ad15-c9ebb7fc449d"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update user patch",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete user",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{identity_service_url}}/api/users/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{identity_service_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Project",
+			"item": [
+				{
+					"name": "get all projects",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmMzU4OGJlLWQyMmUtNGQzNS05Y2NmLWI1ZjZmOTk4ODNkMSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MTIzNjM2LCJleHAiOjE3MzkxMjcyMzZ9.gxILFoZ4-C5mplsGCxUlzf3CbhSQPeqksZxiu37M5bk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{project_service_url}}/api/projects",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get project employees",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get one project",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ3ZTRkMTJkLTI4OGUtNDdmMS1hMzI4LTllMWRkYzU4NmJlNCIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzQxMDg0NjYwLCJleHAiOjE3NDEwODgyNjB9.EcNDlajDYc2PZSfBFilmhMnwELhOd02On6SrHIgu1No",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    //  \"id\": \"3a6067a7-8e4e-4227-a25e-dd24043e18fe\",\r\n  \"name\": \"chouaib 78995\",\r\n  \"description\": \"A project management platform similar to GitHub Projects\",\r\n  \"managerId\": \"7237003f-1fd1-44bf-917c-445144a125c0\",\r\n  \"employeeIds\": [\r\n    \"f2be1dc8-9d97-4b67-84a1-71d5b4968ec6\",\r\n    \"47e4d12d-288e-47f1-a328-9e1ddc586be4\",\r\n    \"5fa16903-4db2-4c2e-9543-5bcc9b987d22\"\r\n  ],\r\n  \"dueDate\": \"2025-03-04T00:00:00.000Z\",\r\n  \"status\": \"PENDING\",\r\n  \"priority\": \"MEDIUM\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update project put",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzODFiNzk4LTc3MWUtNDQ0MS05MGVhLWE5ZjcyODc0NWFjMCIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzQwNDI1NTMyLCJleHAiOjE3NDA0MjkxMzJ9.HHsnxij_aJ5gu0AlZ4jduI6LrTL6yQNG6_pJfaHtk4s",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"WorkNest platform 12555\",\r\n  \"description\": \"A project management platform similar to GitHub Projects\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects/52fbcb3c-8a7e-45c7-a8a9-344821ee0b83",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"52fbcb3c-8a7e-45c7-a8a9-344821ee0b83"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update project patch",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzODFiNzk4LTc3MWUtNDQ0MS05MGVhLWE5ZjcyODc0NWFjMCIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzQwMzMzMjEzLCJleHAiOjE3NDAzMzY4MTN9.WkKE5ckU7qD8aB9QZBQDPxBIVf2if57b_RXxLIEE9bE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"WorkNest Platform 152\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects/52fbcb3c-8a7e-45c7-a8a9-344821ee0b83",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"52fbcb3c-8a7e-45c7-a8a9-344821ee0b83"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete project",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/projects/b2c66f07-b8d3-45cf-828f-bdac6af07749",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"projects",
+								"b2c66f07-b8d3-45cf-828f-bdac6af07749"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Stage",
+			"item": [
+				{
+					"name": "get all stages",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmMzU4OGJlLWQyMmUtNGQzNS05Y2NmLWI1ZjZmOTk4ODNkMSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MTIzNjM2LCJleHAiOjE3MzkxMjcyMzZ9.gxILFoZ4-C5mplsGCxUlzf3CbhSQPeqksZxiu37M5bk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get one stage",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create stage",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update stage put",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQzODFiNzk4LTc3MWUtNDQ0MS05MGVhLWE5ZjcyODc0NWFjMCIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzQwNTg0MDM3LCJleHAiOjE3NDA1ODc2Mzd9.QtPI0zXQrFtdnXOjm8CwoNTTkfQyyoQhrtNAFLIjIUE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Done\",\r\n  \"color\": \"#FF5733\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/stages/ae1589f6-e379-4323-a649-30d90d5ac9e4",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"stages",
+								"ae1589f6-e379-4323-a649-30d90d5ac9e4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update stage patch",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ3ZTRkMTJkLTI4OGUtNDdmMS1hMzI4LTllMWRkYzU4NmJlNCIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzQxMjkzMjMzLCJleHAiOjE3NDEyOTY4MzN9.VbSHynXyC_GnQNdDJMROYihu3Ie8ck-hRLQX_ZOof8M",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"done\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/stages/ae1589f6-e379-4323-a649-30d90d5ac9e4",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"stages",
+								"ae1589f6-e379-4323-a649-30d90d5ac9e4"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete task",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Task",
+			"item": [
+				{
+					"name": "get all tasks",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjVmMzU4OGJlLWQyMmUtNGQzNS05Y2NmLWI1ZjZmOTk4ODNkMSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MTIzNjM2LCJleHAiOjE3MzkxMjcyMzZ9.gxILFoZ4-C5mplsGCxUlzf3CbhSQPeqksZxiu37M5bk",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get one task",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create task",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ3ZTRkMTJkLTI4OGUtNDdmMS1hMzI4LTllMWRkYzU4NmJlNCIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzQxMjE0MTU3LCJleHAiOjE3NDEyMTc3NTd9.jcyGnlaVUWImfxLrZV9R0miUurUN6dByH0t1R-dF3ZI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"UI Design\",\r\n  \"description\": \"Create UI Design for the dashboard\",\r\n  \"priority\": \"HIGH\",\r\n  \"stageId\": \"4084c652-1187-4bd2-b0cc-511d4d21cef0\",\r\n  \"projectId\": \"4903d15f-a369-49eb-9b75-55e7d673d7ce\",\r\n  \"assignedTo\": \"a66646b8-da9b-4e06-89f9-67cc08299242\",\r\n  \"images\": [\r\n    \"https://example.com/task-image1.png\",\r\n    \"https://example.com/task-image2.png\"\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update task put",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update task patch",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"firstName\": \"Test\",\r\n    \"lastName\": \"User\",\r\n    \"email\": \"testuser@example.com\",\r\n    \"password\": \"testuser@example.com\",\r\n    \"role\": \"ROLE_EMPLOYEE\"\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete task",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImExMjBjMDc3LTI3NGUtNDg4MS1iZTcwLTZlMzFlNjk4NmU3OSIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzM5MDMxODI2LCJleHAiOjE3MzkwMzU0MjZ9.iMoQv39QGvqsJJBL4xqrpybKMZwDcegzHv_uDHsgLMg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{project_service_url}}/api/tasks/7a74cea7-030e-49ab-9fa4-dda2ab037cf6",
+							"host": [
+								"{{project_service_url}}"
+							],
+							"path": [
+								"api",
+								"tasks",
+								"7a74cea7-030e-49ab-9fa4-dda2ab037cf6"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Document",
+			"item": [
+				{
+					"name": "create document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjdmYWEyNTI5LWQxYzktNDQxMS1hOWYxLTkxN2NkNDFjNWE3NCIsInJvbGUiOiJST0xFX0VNUExPWUVFIiwiaWF0IjoxNzQxNzU2MDY2LCJleHAiOjE3NDE3NTk2NjZ9.649fvocD6fXuyiyo4r1rA4U_5PkzhOMsvjYdX4jlcZI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/C:/Users/cskit/Desktop/hamCam.docx"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:5002/api/documents/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5002",
+							"path": [
+								"api",
+								"documents",
+								""
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "delete document",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ3ZTRkMTJkLTI4OGUtNDdmMS1hMzI4LTllMWRkYzU4NmJlNCIsInJvbGUiOiJST0xFX0FETUlOIiwiaWF0IjoxNzQxMjE0MTU3LCJleHAiOjE3NDEyMTc3NTd9.jcyGnlaVUWImfxLrZV9R0miUurUN6dByH0t1R-dF3ZI",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"UI Design\",\r\n  \"description\": \"Create UI Design for the dashboard\",\r\n  \"priority\": \"HIGH\",\r\n  \"stageId\": \"4084c652-1187-4bd2-b0cc-511d4d21cef0\",\r\n  \"projectId\": \"4903d15f-a369-49eb-9b75-55e7d673d7ce\",\r\n  \"assignedTo\": \"a66646b8-da9b-4e06-89f9-67cc08299242\",\r\n  \"images\": [\r\n    \"https://example.com/task-image1.png\",\r\n    \"https://example.com/task-image2.png\"\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:5002/api/documents/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "5002",
+							"path": [
+								"api",
+								"documents",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "identity_service_url",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "project_service_url",
+			"value": "http://localhost:5001",
+			"type": "string"
+		}
+	]
+}
