@@ -26,7 +26,10 @@ dotenv.config();
  * @returns {Object} { status, response }
  */
 export async function registerService(data) {
-  const { firstName, lastName, email, password } = data;
+  let { firstName, lastName, email, password } = data;
+
+  //lowercase email
+  email = email.toLowerCase();
 
   // Check if email is already used
   const existingUser = await UserRepository.findUnique({ email });
@@ -77,7 +80,8 @@ export async function registerService(data) {
  * @returns {Object} { status, response }
  */
 export async function loginService(data) {
-  const { email, password } = data;
+  let { email, password } = data;
+  email = email.toLowerCase();
   const user = await UserRepository.findUnique({ email });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return { status: 401, response: { error: "Invalid credentials" } };
@@ -130,6 +134,7 @@ export const verifyEmailService = async (token) => {
  * @returns {Object} { status, response }
  */
 export async function resetPasswordRequestService(email) {
+  email = email.toLowerCase();
   const user = await UserRepository.findUnique({ email });
   if (!user) {
     return {
