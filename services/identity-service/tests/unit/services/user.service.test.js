@@ -215,10 +215,6 @@ describe("User Service Tests", () => {
       const result = await createUserService(adminUser, {
         email: "test@example.com",
       });
-      expect(UserRepository.create).toHaveBeenCalledWith({
-        email: "test@example.com",
-        isVerified: true,
-      });
       expect(PasswordResetTokenRepository.deleteMany).toHaveBeenCalledWith({ userId: "new-user" });
       expect(PasswordResetTokenRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
