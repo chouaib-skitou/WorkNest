@@ -3,15 +3,18 @@
 **WorkNest** is a microservices-based Task Manager application designed to empower teams with seamless task management, collaboration, and productivity tools. The name "WorkNest" represents a structured and efficient workspace where tasks are organized and executed seamlessly.
 
 <div align="center">
-  <iframe 
-    width="100%" 
-    height="500" 
-    src="https://www.youtube.com/embed/gErpJee99Fs?autoplay=1&mute=1" 
-    title="WorkNest Overview" 
-    frameborder="0" 
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-    allowfullscreen>
-  </iframe>
+  <a href="https://www.youtube.com/watch?v=gErpJee99Fs" target="_blank">
+    <img 
+      src="https://img.youtube.com/vi/gErpJee99Fs/maxresdefault.jpg" 
+      alt="WorkNest Overview Video" 
+      width="100%"
+      style="max-width: 100%; height: auto; border-radius: 8px; margin: 20px 0;" 
+    />
+    <br>
+    <p style="margin: 10px 0; font-size: 16px; font-weight: bold;">
+      🎥 Watch WorkNest Overview Video
+    </p>
+  </a>
 </div>
 
 ---
