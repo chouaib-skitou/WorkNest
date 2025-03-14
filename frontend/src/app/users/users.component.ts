@@ -293,7 +293,6 @@ export class UsersComponent implements OnInit {
       lastName: this.userForm.value.lastName,
       email: this.userForm.value.email,
       role: this.userForm.value.role,
-      password: '', // This will be set by the backend or through a separate process
     };
 
     this.userService.createUser(userData).subscribe({
