@@ -313,6 +313,7 @@ export class UsersComponent implements OnInit {
           Array.isArray(error.originalError.error.errors)
         ) {
           this.errorMessages = error.originalError.error.errors.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (err: any) => err.message
           );
         } else {
@@ -370,6 +371,7 @@ export class UsersComponent implements OnInit {
           Array.isArray(error.originalError.error.errors)
         ) {
           this.errorMessages = error.originalError.error.errors.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (err: any) => err.message
           );
         } else {

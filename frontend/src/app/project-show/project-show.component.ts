@@ -634,6 +634,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       .createStage(stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: (stage) => {
           this.closeCreateStageModal();
           // Use the stored name instead of relying on the response
@@ -714,6 +715,7 @@ export class ProjectShowComponent implements OnInit, AfterViewInit {
       .updateStage(this.selectedStage.id, stageData)
       .pipe(finalize(() => (this.formSubmitting = false)))
       .subscribe({
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         next: (stage) => {
           this.closeEditStageModal();
           // Use the stored name instead of relying on the response
