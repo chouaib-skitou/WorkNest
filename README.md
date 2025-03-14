@@ -2,6 +2,21 @@
 
 **WorkNest** is a microservices-based Task Manager application designed to empower teams with seamless task management, collaboration, and productivity tools. The name "WorkNest" represents a structured and efficient workspace where tasks are organized and executed seamlessly.
 
+<div align="center">
+  <a href="https://github.com/chouaib-skitou/WorkNest/blob/main/How_to_Run.md" target="_blank">
+    <img 
+      src="https://github.com/chouaib-skitou/WorkNest/blob/main/project.png" 
+      alt="WorkNest Overview Video" 
+      width="100%"
+      style="max-width: 100%; height: auto; border-radius: 8px !important; margin: 20px 0;" 
+    />
+    <br>
+    <p style="margin: 10px 0; font-size: 16px; font-weight: bold;">
+      🎥 Watch WorkNest Overview Video
+    </p>
+  </a>
+</div>
+
 ---
 
 ## 🏗️ Architecture Overview
@@ -84,7 +99,21 @@ WorkNest/
    docker-compose up
    ```
 4. Access the frontend at `http://localhost:4200`.
-5. Follow the detailed instructions in [How to Run](https://github.com/chouaib-skitou/WorkNest/blob/main/How_to_Run.md).
+5. Follow the detailed instructions in the [How to Run](https://github.com/chouaib-skitou/WorkNest/blob/main/How_to_Run.md) guide:
+
+<div align="center">
+  <a href="https://github.com/chouaib-skitou/WorkNest/blob/main/How_to_Run.md" 
+     style="display: inline-block; 
+            background-color: #4a90e2; 
+            color: white; 
+            font-weight: bold; 
+            padding: 10px 20px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            box-shadow: 0 4px 14px rgba(74, 144, 226, 0.4);">
+    📖 How to Run Guide →
+  </a>
+</div>
 
 ---
 
